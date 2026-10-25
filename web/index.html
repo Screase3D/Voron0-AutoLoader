@@ -83,23 +83,60 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 .step-ic.auto { cursor: default; }
 
 /* filament path graphic */
-#fpath { width: 100%; max-width: 560px; display: block; margin: 0 auto; overflow: visible; }
-#fpath text { font: 7px Roboto, sans-serif; fill: currentColor; opacity: .75; }
-#fpath .frame { fill: none; stroke: currentColor; stroke-opacity: .35; stroke-width: 7; }
-#fpath .panel-bg { fill: currentColor; fill-opacity: .03; }
-#fpath .part { fill: currentColor; fill-opacity: .12; stroke: currentColor; stroke-opacity: .45; stroke-width: .8; }
-#fpath .tube { fill: none; stroke: #3b82f6; stroke-opacity: .35; stroke-width: 6; stroke-linecap: round; }
+#fpath { width: 100%; max-width: 560px; display: block; margin: 0 auto; overflow: visible;
+  --fp-black: #222326; --fp-blk2: #2d2e32; --fp-edge: rgba(255,255,255,.2); --fp-acc: #d42a2a; --fp-acc-edge: rgba(0,0,0,.35);
+  --fp-metal: #a7adb4; --fp-glass: rgba(150,180,210,.07); }
+html.theme--light #fpath { --fp-edge: rgba(0,0,0,.55); --fp-glass: rgba(90,130,170,.08); }
+#fpath text { font: 7px Roboto, sans-serif; fill: currentColor; opacity: .78; }
+#fpath .ext, #fpath .blk, #fpath .motor, #fpath .flange { fill: var(--fp-black); stroke: var(--fp-edge); stroke-width: .6; }
+#fpath .slot { stroke: #000; stroke-opacity: .55; stroke-width: 1.4; }
+#fpath .acc { fill: var(--fp-acc); stroke: var(--fp-acc-edge); stroke-width: .6; }
+#fpath .acc-line { stroke: var(--fp-acc); stroke-width: 2; }
+#fpath .glass { fill: var(--fp-glass); }
+#fpath .glare { stroke: #fff; stroke-opacity: .035; stroke-width: 6; }
+#fpath .rod { stroke: var(--fp-metal); stroke-opacity: .45; stroke-width: 2.2; stroke-dasharray: 1.2 .8; }
+#fpath .zrail { stroke: var(--fp-metal); stroke-opacity: .25; stroke-width: 2.4; }
+#fpath .rail { fill: var(--fp-metal); fill-opacity: .8; stroke: var(--fp-edge); stroke-width: .4; }
+#fpath .belt { stroke: #111; stroke-width: 1.2; stroke-opacity: .8; }
+#fpath .alu { fill: var(--fp-metal); }
+#fpath .sheet { fill: #b8913f; stroke: #8a6a2a; stroke-width: .4; }
+#fpath .lcd { fill: #0f2a44; stroke: var(--fp-edge); stroke-width: .5; }
+#fpath .lcd-txt { stroke: #7fb3e8; stroke-opacity: .7; stroke-width: 1.2; }
+#fpath .wind { fill: #ff8a3d; fill-opacity: .8; }
+#fpath .wind-line { fill: none; stroke: #000; stroke-opacity: .18; stroke-width: .6; }
+#fpath .metal, #fpath .screw { fill: var(--fp-metal); }
+#fpath .screw { stroke: rgba(0,0,0,.4); stroke-width: .3; }
+#fpath .motor-ring { fill: none; stroke: var(--fp-metal); stroke-opacity: .5; stroke-width: .8; }
+#fpath .win, #fpath .fanbox { fill: #141518; stroke: rgba(0,0,0,.4); stroke-width: .4; }
+#fpath .fanhole { fill: #0b0b0c; }
+#fpath .blade { fill: #3a3c41; }
+#fpath .fins { stroke: var(--fp-metal); stroke-width: 1.2; }
+#fpath .brass { fill: #c9a24a; stroke: #8d6d24; stroke-width: .4; }
+#fpath #heater { stroke: rgba(0,0,0,.4); stroke-width: .4; transition: fill .6s; }
+#fpath .coupler { fill: #2a2b2f; stroke: var(--fp-edge); stroke-width: .5; }
+#fpath .sw { fill: #111; stroke: var(--fp-edge); stroke-width: .5; }
+#fpath .lever { stroke: var(--fp-metal); stroke-width: 1; stroke-linecap: round; }
+#fpath .armp { fill: #3b3d42; stroke: var(--fp-edge); stroke-width: .5; }
+#fpath .servo { fill: #1b1c1f; stroke: var(--fp-edge); stroke-width: .6; }
+#fpath .servo-ear { fill: #2c2d31; stroke: var(--fp-edge); stroke-width: .5; }
+#fpath .horn { fill: #ececec; stroke: rgba(0,0,0,.35); stroke-width: .4; }
+#fpath .tube { fill: none; stroke: #8ec5f5; stroke-opacity: .42; stroke-width: 5.5; stroke-linecap: round; }
 #fpath .fil { fill: none; stroke: #ff8a3d; stroke-width: 2.2; stroke-linecap: butt; transition: stroke-dasharray .4s, opacity .4s; }
 #fpath .fil.faint { opacity: .35; }
-#fpath .gear { fill: currentColor; fill-opacity: .25; stroke: currentColor; stroke-opacity: .6; stroke-width: .8; stroke-dasharray: 2 1.2; transform-box: fill-box; transform-origin: center; }
+#fpath .gear { transform-box: fill-box; transform-origin: center; }
+#fpath .gteeth { fill: #b9bec5; stroke: #5f646b; stroke-width: .4; }
+#fpath .ghub { fill: #3a3c41; }
 #fpath .gear.spin { animation: fspin 1s linear infinite; }
 #fpath .gear.spin.rev { animation-direction: reverse; }
-#fpath .sensor { fill: #e53935; stroke: rgba(0,0,0,.35); stroke-width: .6; }
-#fpath .sdot { fill: #333; stroke: #fff; stroke-opacity: .6; stroke-width: .6; transition: fill .3s; }
-#fpath .sdot.on { fill: #4caf50; }
+#fpath #spool { transform-box: view-box; transform-origin: 40px 214px; }
+#fpath #spool.spin { animation: fspin 3s linear infinite reverse; }
+#fpath #fan { transform-box: view-box; transform-origin: 212px 100px; }
+#fpath #fan.spin { animation: fspin .35s linear infinite; }
+#fpath .sdot { fill: #7a7a7a; stroke: #000; stroke-opacity: .5; stroke-width: .5; transition: fill .3s; }
+#fpath .sdot.on { fill: #4caf50; filter: drop-shadow(0 0 1.5px #4caf50); }
 #fpath #arm, #fpath #horn { transition: transform .4s; transform-box: view-box; }
-#fpath #arm { transform-origin: 45px 116px; }
-#fpath #horn { transform-origin: 58px 73px; }
+#fpath #arm { transform-origin: 69.5px 147px; }
+#fpath #horn { transform-origin: 90px 111px; }
 #fpath #press { transition: opacity .3s; }
 #fpath .head { fill: #ff8a3d; }
 #fpath .head.pulse { animation: fpulse 1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
@@ -109,7 +146,6 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 .legend-row { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; opacity: .8; justify-content: center; }
 .legend-row i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
 
-#fpath #g-l1, #fpath #g-l2 { fill: #5d4a00; fill-opacity: .9; stroke: #3e3200; stroke-opacity: 1; }
 
 /* settings editor */
 #tab-bar .v-tab { min-width: 0; padding: 0 12px; }
@@ -228,7 +264,7 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
           <div class="col" id="col1">
             <x-panel p="path" icon="mdiPrinter3d" title="Filamentweg">
               <div class="v-card__text">
-                <svg id="fpath" viewBox="0 0 340 228" role="img" aria-label="Filamentweg"></svg>
+                <svg id="fpath" viewBox="0 0 320 246" role="img" aria-label="Filamentweg"></svg>
                 <div class="d-flex align-center justify-center flex-wrap mt-1" style="gap:8px" id="path-info"></div>
                 <div class="legend-row mt-2" id="path-legend"></div>
               </div>
@@ -595,7 +631,7 @@ const T_EN = {
   "Sprache der Klipper-Meldungen auf {l} gesetzt.": "Klipper message language set to {l}.",
   // Filament path
   "Filamentweg": "Filament path", "Spule": "Spool", "PTFE-Schlauch": "PTFE tube", "Extruder": "Extruder", "Düse": "Nozzle", "Bett": "Bed",
-  "Sensor": "Sensor", "Sensor meldet Filament": "Sensor detects filament", "Sensor 1": "Sensor 1", "Sensor 2": "Sensor 2",
+  "Sensor": "Sensor", "Sensor meldet Filament": "Sensor detects filament", "Sensor: leer": "Sensor: empty", "Servo klemmt": "Servo clamps", "Sensor 1": "Sensor 1", "Sensor 2": "Sensor 2",
   "Filament in den Extruder-Zahnrädern": "Filament in the extruder gears", "Extrudiert zur Düse …": "Extruding to the nozzle …",
   "Hotend heizt auf …": "Hotend heating up …", "Extruder zieht zurück …": "Extruder retracting …",
   "Filament geladen bis zur Düse": "Filament loaded to the nozzle", "Filament im Loader (Zahnräder)": "Filament in the loader (gears)",
@@ -1468,74 +1504,141 @@ function histCsv() {
 
 
 // =====================================================================
-// Filament path graphic (schematic Voron V0-style frame, side-mounted loader)
+// Filament path graphic – front view of a Voron V0.2 (black extrusions,
+// red accent parts, skirt with display) with the side-mounted loader:
+// spool, micro switch, NEMA17 with BMG gears and servo-pressed idler arm,
+// and a Dragon Burner-style toolhead with Sherpa Mini-style extruder.
 // Segments: 0 spool→sensor 1, 1 sensor 1→loader gears, 2 PTFE tube→sensor 2,
 //           3 sensor 2→extruder gears, 4 extruder gears→nozzle
 // Position is derived from the sensors, the macro state and elapsed time
 // (estimated from the configured speeds and lengths while moving).
 // =====================================================================
 const SEG = [
-  "M36,170 L36,134",
-  "M36,134 L36,100",
-  "M36,100 L36,62 C36,2 205,-4 205,46",
-  "M205,46 L205,68",
-  "M205,68 L205,104",
+  "M64,214 L64,170",
+  "M64,170 L64,134",
+  "M64,134 L64,60 C64,6 212,6 212,48 L212,56",
+  "M212,56 L212,72",
+  "M212,72 L212,132",
 ];
 const PATH = { built: false, lens: [], s1: null, s2: null, s1t: 0, s2t: 0, extT: 0, timer: 0 };
 
+/* toothed gear outline */
+function gearD(cx, cy, r, n) {
+  const ri = r - 1.4, st = Math.PI * 2 / n;
+  let d = "";
+  for (let i = 0; i < n; i++) {
+    const a = i * st;
+    [[ri, a - st * 0.5], [ri, a - st * 0.27], [r, a - st * 0.14], [r, a + st * 0.14], [ri, a + st * 0.27]].forEach(([rr, aa], j) => {
+      d += (i === 0 && j === 0 ? "M" : "L") + (cx + rr * Math.cos(aa)).toFixed(2) + "," + (cy + rr * Math.sin(aa)).toFixed(2);
+    });
+  }
+  return d + "Z";
+}
+
 function buildPath() {
   const svg = $("fpath");
-  const gear = (id, x, y) => `<circle class="gear" id="${id}" cx="${x}" cy="${y}" r="5.5"></circle>`;
+  const gear = (id, x, y) => `<g class="gear" id="${id}"><path class="gteeth" d="${gearD(x, y, 5.6, 14)}"></path><circle class="ghub" cx="${x}" cy="${y}" r="1.5"></circle></g>`;
+  const screw = (x, y) => `<circle class="screw" cx="${x}" cy="${y}" r="1.3"></circle>`;
+  // 2020 extrusion with its slot
+  const extH = (x1, x2, y) => `<rect class="ext" x="${x1}" y="${y}" width="${x2 - x1}" height="7"></rect><path class="slot" d="M${x1 + 2},${y + 3.5} H${x2 - 2}"></path>`;
+  const extV = (x, y1, y2) => `<rect class="ext" x="${x}" y="${y1}" width="7" height="${y2 - y1}"></rect><path class="slot" d="M${x + 3.5},${y1 + 2} V${y2 - 2}"></path>`;
+  const blades = (cx, cy, r, n) => Array.from({ length: n }, (_, i) =>
+    `<path class="blade" d="M${cx},${cy} q${(r * 0.55).toFixed(1)},${(-r * 0.35).toFixed(1)} ${(r * 0.25).toFixed(1)},${(-r * 0.95).toFixed(1)} q${(-r * 0.45).toFixed(1)},${(r * 0.1).toFixed(1)} ${(-r * 0.25).toFixed(1)},${(r * 0.95).toFixed(1)}Z" transform="rotate(${(360 / n * i).toFixed(1)} ${cx} ${cy})"></path>`).join("");
   svg.innerHTML =
-    // printer frame (front view) with panels, bed and gantry
-    `<rect class="panel-bg" x="94" y="22" width="222" height="190" rx="2"></rect>` +
-    `<rect class="frame" x="94" y="22" width="222" height="190" rx="2"></rect>` +
-    `<rect class="part" x="128" y="170" width="154" height="6" rx="1"></rect>` +
-    `<rect class="part" x="186" y="176" width="38" height="20"></rect>` +
-    `<rect class="part" x="98" y="72" width="214" height="7" rx="1"></rect>` +
-    // PTFE tube
-    `<path class="tube" d="M36,100 L36,62 C36,2 205,-4 205,46"></path>` +
-    // spool
-    `<circle class="part" cx="36" cy="194" r="24"></circle><circle class="part" cx="36" cy="194" r="7"></circle>` +
-    // loader (BMG principle): stepper (green) drives the fixed gear, the idler gear sits on a
-    // pivoting arm; the servo horn pushes the arm so the idler presses the filament onto the drive gear
-    `<rect x="2" y="86" width="18" height="28" rx="2" fill="#2e9d4a" fill-opacity=".85"></rect>` +
-    `<rect x="16" y="80" width="40" height="42" rx="3" fill="#f5c400" fill-opacity=".9"></rect>` +
-    gear("g-l1", 29.5, 100) +
-    `<g id="arm">` +
-      `<path d="M41,84 L49,84 L49,116 L41,116 Z" fill="#8d6e00" fill-opacity=".9" stroke="rgba(0,0,0,.4)" stroke-width=".6"></path>` +
-      gear("g-l2", 42.5, 100) +
-      `<circle cx="45" cy="86.5" r="1.6" fill="#ffd54f"></circle>` +
+    // ---- printer: Voron V0.2 front view ----
+    `<rect class="glass" x="119" y="37" width="186" height="159"></rect>` +
+    `<path class="glare" d="M150,37 L128,196 M168,37 L146,196"></path>` +
+    // Z: lead screw and rails behind the bed, Z motor at the bottom
+    `<path class="rod" d="M212,37 V190"></path><path class="zrail" d="M197,37 V190 M227,37 V190"></path>` +
+    `<rect class="blk" x="203" y="186" width="18" height="10" rx="1"></rect>` +
+    // CoreXY: A/B motors in the rear corners, belts, X rail with carriages
+    `<rect class="blk" x="121" y="39" width="16" height="16" rx="1.5"></rect><rect class="blk" x="287" y="39" width="16" height="16" rx="1.5"></rect>` +
+    `<path class="belt" d="M137,44 H287 M137,50 H287"></path>` +
+    `<rect class="blk" x="119" y="84" width="14" height="12" rx="1"></rect><rect class="blk" x="291" y="84" width="14" height="12" rx="1"></rect>` +
+    `<rect class="rail" x="133" y="88" width="158" height="4"></rect>` +
+    // bed: carriage, aluminium plate, textured sheet
+    `<rect class="blk" x="194" y="167" width="36" height="10" rx="1"></rect>` +
+    `<rect class="alu" x="160" y="164" width="104" height="3.5"></rect>` +
+    `<rect class="sheet" x="158" y="160.5" width="108" height="3.5" rx=".8"></rect>` +
+    // frame
+    extV(112, 30, 203) + extV(305, 30, 203) + extH(112, 312, 30) + extH(119, 305, 196) +
+    // PTFE pass-through in the top panel
+    `<rect class="acc" x="206.5" y="27" width="11" height="12" rx="1.5"></rect>` +
+    // skirt with display and knob, feet
+    `<rect class="ext" x="110" y="203" width="204" height="23" rx="1.5"></rect>` +
+    `<path class="acc-line" d="M112,224 H312"></path>` +
+    `<rect class="lcd" x="186" y="207" width="40" height="14" rx="1"></rect><path class="lcd-txt" d="M190,211 h20 M190,214 h28 M190,217 h14"></path>` +
+    `<circle class="acc" cx="238" cy="214" r="4.2"></circle><circle class="blk" cx="238" cy="214" r="1.8"></circle>` +
+    `<rect class="acc" x="114" y="226" width="12" height="4" rx="1"></rect><rect class="acc" x="298" y="226" width="12" height="4" rx="1"></rect>` +
+    // ---- spool on its holder ----
+    `<rect class="blk" x="40" y="211" width="72" height="6" rx="1"></rect>` +
+    `<circle class="wind" cx="40" cy="214" r="24"></circle>` +
+    `<path class="wind-line" d="M40,197 a17,17 0 1,0 0.01,0 M40,201 a13,13 0 1,0 0.01,0 M40,193 a21,21 0 1,0 0.01,0"></path>` +
+    `<g id="spool">` +
+      `<path class="flange" fill-rule="evenodd" d="M40,185 a29,29 0 1,0 0.01,0 Z M40,188 a26,26 0 1,1 -0.01,0 Z"></path>` +
+      [0, 90, 180, 270].map((a) => `<rect class="flange" x="37.5" y="188" width="5" height="16" transform="rotate(${a} 40 214)"></rect>`).join("") +
+      `<circle class="flange" cx="40" cy="214" r="11"></circle><circle class="metal" cx="40" cy="214" r="4"></circle><circle class="blk" cx="40" cy="214" r="1.8"></circle>` +
     `</g>` +
-    `<circle cx="45" cy="116" r="1.8" fill="#424242"></circle>` +
-    `<rect x="56" y="64" width="16" height="12" rx="1.5" fill="#1e88e5" fill-opacity=".85" stroke="rgba(0,0,0,.4)" stroke-width=".6"></rect>` +
-    `<g id="horn"><path d="M58,73 L48.5,85" stroke="#eeeeee" stroke-width="3.2" stroke-linecap="round"></path><circle cx="58" cy="73" r="2.4" fill="#eeeeee"></circle></g>` +
-    `<path id="press" d="M54,90 l-5,0 m2,-2 l-2,2 l2,2" fill="none" stroke="#ff5252" stroke-width="1" stroke-linecap="round"></path>` +
-    // toolhead with extruder gears, hotend and nozzle
-    `<rect class="part" x="184" y="50" width="42" height="44" rx="4"></rect>` +
-    gear("g-e1", 198.5, 68) + gear("g-e2", 211.5, 68) +
-    `<rect id="heater" x="195" y="92" width="20" height="8" rx="1" fill="#757575"></rect>` +
-    `<path d="M200,100 L210,100 L205,106 Z" fill="#bdbdbd"></path>` +
-    // filament segments (drawn above the parts)
+    // ---- loader, mounted to the left frame post ----
+    `<rect class="blk" x="94" y="128" width="18" height="12" rx="1"></rect>` +
+    // NEMA17 (front face) – the drive gear sits on its shaft
+    `<rect class="motor" x="39.5" y="115" width="38" height="38" rx="5"></rect>` +
+    // printed housing with gear window, couplers top and bottom
+    `<rect class="acc" x="46" y="120" width="34" height="29" rx="3"></rect>` +
+    `<rect class="win" x="50" y="124.5" width="26" height="19" rx="2"></rect>` +
+    screw(46, 121.5) + screw(71, 121.5) + screw(46, 146.5) + screw(71, 146.5) +
+    `<rect class="coupler" x="59" y="113" width="10" height="7" rx="1"></rect>` +
+    `<rect class="coupler" x="59" y="149" width="10" height="7" rx="1"></rect>` +
+    // micro switch at the entrance (sensor 1)
+    `<rect class="blk" x="66.5" y="164" width="12" height="11" rx="1.2"></rect><path class="lever" d="M67,166.5 L64.8,172"></path>` +
+    // gears: drive gear (motor shaft) + idler gear on the swing arm
+    gear("g-l1", 58.4, 134) +
+    `<g id="arm"><path class="armp" d="M66.6,121 a2.9,2.9 0 0,1 5.8,0 V127.6 a7.4,7.4 0 0,1 0,12.8 V147 a2.9,2.9 0 0,1 -5.8,0 V140.4 a7.4,7.4 0 0,1 0,-12.8 Z"></path>` + gear("g-l2", 69.6, 134) + `</g>` +
+    screw(69.5, 147) +
+    // MG90S servo (top view of the shaft side) with its horn
+    `<rect class="servo-ear" x="85.5" y="103" width="9" height="28" rx="1"></rect>` +
+    `<rect class="servo" x="84.5" y="106" width="11" height="22" rx="1.2"></rect>` +
+    `<g id="horn"><path class="horn" d="M90,108.8 L73.3,118.6 L72.7,121.6 L90,113.2 Z"></path><circle class="horn" cx="90" cy="111" r="3.4"></circle><circle class="blk" cx="90" cy="111" r="1"></circle></g>` +
+    `<path id="press" d="M84,126 h-6 m2.2,-2.2 l-2.2,2.2 l2.2,2.2" fill="none" stroke="#ffb300" stroke-width="1.2" stroke-linecap="round"></path>` +
+    // ---- PTFE tube ----
+    `<path class="tube" d="M64,116 L64,60 C64,6 212,6 212,46"></path>` +
+    // ---- toolhead: Dragon Burner style with a Sherpa Mini style extruder ----
+    `<circle class="motor" cx="212" cy="64" r="16"></circle>` +
+    `<rect class="acc" x="196" y="62" width="34" height="22" rx="3"></rect>` +
+    `<rect class="win" x="200.5" y="65" width="23" height="14" rx="2"></rect>` +
+    `<rect class="blk" x="228" y="63" width="5" height="17" rx="1.5"></rect>` +
+    gear("g-e1", 206.4, 72) + gear("g-e2", 217.6, 72) +
+    `<rect class="coupler" x="207" y="42" width="10" height="8" rx="1"></rect>` +
+    `<rect class="blk" x="200" y="50" width="24" height="12" rx="2"></rect>` +
+    `<rect class="sw" x="214.5" y="52.5" width="8.5" height="7.5" rx="1"></rect><path class="lever" d="M215,54 L212.6,58.5"></path>` +
+    `<rect class="blk" x="186" y="84" width="52" height="30" rx="4"></rect>` +
+    `<rect class="fanbox" x="200" y="88" width="24" height="24" rx="2.5"></rect><circle class="fanhole" cx="212" cy="100" r="10.5"></circle>` +
+    `<g id="fan">${blades(212, 100, 9.5, 5)}<circle class="blk" cx="212" cy="100" r="3.2"></circle></g>` +
+    screw(202.5, 90.5) + screw(221.5, 90.5) + screw(202.5, 109.5) + screw(221.5, 109.5) +
+    `<path class="acc" d="M186,104 L197,104 L208.5,123 L203,126.5 Z"></path><path class="acc" d="M238,104 L227,104 L215.5,123 L221,126.5 Z"></path>` +
+    `<path class="fins" d="M204,115 h16 M204,117 h16"></path>` +
+    `<rect id="heater" x="201" y="118.5" width="22" height="8" rx="1"></rect>` +
+    `<path class="brass" d="M208,126.5 L216,126.5 L214.2,131 L212,133 L209.8,131 Z"></path>` +
+    // ---- filament segments (drawn above the parts, like a cut-away) ----
     SEG.map((d, i) => `<path class="fil" id="fil${i}" d="${d}"></path>`).join("") +
     `<circle class="head" id="fhead" r="2.6" cx="0" cy="0"></circle>` +
-    // sensors
-    `<rect class="sensor" x="28" y="128" width="16" height="12" rx="2"></rect><circle class="sdot" id="sd1" cx="36" cy="134" r="3"><title></title></circle>` +
-    `<rect class="sensor" x="197" y="39" width="16" height="12" rx="2"></rect><circle class="sdot" id="sd2" cx="205" cy="45" r="3"><title></title></circle>` +
+    // sensor LEDs
+    `<circle class="sdot" id="sd1" cx="73.5" cy="169.5" r="2.6"><title></title></circle>` +
+    `<circle class="sdot" id="sd2" cx="219.5" cy="56.2" r="2.4"><title></title></circle>` +
     // labels
-    `<text x="66" y="198">${esc(t("Spule"))}</text>` +
-    `<text x="48" y="137">${esc(t("Sensor 1"))}</text>` +
-    `<text x="60" y="108">${esc(t("Loader"))}</text>` +
-    `<text x="58" y="60">${esc(t("Servo"))}</text>` +
-    `<text x="96" y="12">${esc(t("PTFE-Schlauch"))}</text>` +
-    `<text x="217" y="44">${esc(t("Sensor 2"))}</text>` +
-    `<text x="230" y="70">${esc(t("Extruder"))}</text>` +
-    `<text x="218" y="105">${esc(t("Düse"))}</text>` +
-    `<text x="218" y="114" id="htemp"></text>` +
-    `<text x="250" y="168">${esc(t("Bett"))}</text>`;
+    `<text x="4" y="181">${esc(t("Spule"))}</text>` +
+    `<text x="82" y="172.5">${esc(t("Sensor 1"))}</text>` +
+    `<text x="36" y="136.5" text-anchor="end">${esc(t("Loader"))}</text>` +
+    `<text x="93" y="96" text-anchor="middle">${esc(t("Servo"))}</text>` +
+    `<text x="110" y="12" text-anchor="middle">${esc(t("PTFE-Schlauch"))}</text>` +
+    `<text x="229" y="58.5">${esc(t("Sensor 2"))}</text>` +
+    `<text x="236" y="76">${esc(t("Extruder"))}</text>` +
+    `<text x="225" y="131">${esc(t("Düse"))}</text>` +
+    `<text x="225" y="140" id="htemp"></text>` +
+    `<text x="270" y="164.5">${esc(t("Bett"))}</text>`;
   PATH.lens = SEG.map((_, i) => $("fil" + i).getTotalLength());
   PATH.built = true;
-  $("path-legend").innerHTML = [["#ff8a3d", "Filament"], ["#3b82f6", "PTFE-Schlauch"], ["#e53935", "Sensor"], ["#4caf50", "Sensor meldet Filament"], ["#f5c400", "Loader"], ["#2e9d4a", "Stepper"], ["#1e88e5", "Servo"]]
+  $("path-legend").innerHTML = [["#ff8a3d", "Filament"], ["#8ec5f5", "PTFE-Schlauch"], ["#7a7a7a", "Sensor: leer"], ["#4caf50", "Sensor meldet Filament"], ["#ffb300", "Servo klemmt"]]
     .map(([c, l]) => `<span><i class="sq" style="background:${c}"></i>${esc(t(l))}</span>`).join("");
 }
 
@@ -1621,11 +1724,16 @@ function drawPath() {
   }
   // servo lever and gears
   // clamped: horn pushes the arm, idler gear on the filament · free: horn turned away, arm swings open
-  $("horn").style.transform = st.clamped ? "rotate(0deg)" : "rotate(-75deg)";
-  $("arm").style.transform = st.clamped ? "rotate(0deg)" : "rotate(22deg)";
+  $("horn").style.transform = st.clamped ? "rotate(0deg)" : "rotate(58deg)";
+  $("arm").style.transform = st.clamped ? "rotate(0deg)" : "rotate(16deg)";
   $("press").style.opacity = st.clamped ? "1" : "0";
   const loaderTurns = m.moving && st.clamped;
   ["g-l1", "g-l2"].forEach((g, i) => { const c = $(g).classList; c.toggle("spin", loaderTurns); c.toggle("rev", (i === 1) !== (m.dir < 0)); });
+  // the spool only turns while the loader pulls (filament leaves on the right side → counter-clockwise);
+  // pushing back just leaves slack between spool and loader
+  $("spool").classList.toggle("spin", loaderTurns && m.dir > 0);
+  // hotend fan (heater_fan) runs above 50 °C
+  $("fan").classList.toggle("spin", Number(ex.temperature || 0) > 50);
   const extTurns = m.moving && m.head > 4 && !st.clamped;
   ["g-e1", "g-e2"].forEach((g, i) => { const c = $(g).classList; c.toggle("spin", extTurns); c.toggle("rev", (i === 1) !== (m.dir < 0)); });
   // hotend colour by temperature
