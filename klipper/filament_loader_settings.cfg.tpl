@@ -1,11 +1,11 @@
 #@schema 1
 # =====================================================================
-# voronv0-filament-loader - Einstellungen (vom Installer erzeugt)
+# voron0-autoloader - Einstellungen (vom Installer erzeugt)
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Diese Datei gehoert dir: der Installer ueberschreibt sie nie ohne Rueckfrage,
 # Updates ueber den Update-Manager fassen sie nicht an. Bearbeiten in der
-# Web-Oberflaeche (Mainsail -> Loader -> Einstellungen) oder von Hand.
+# Web-Oberflaeche (Mainsail -> AutoLoader -> Einstellungen) oder von Hand.
 # Neu erzeugen: ./install.sh --reconfigure
 #
 # Zeilen mit "#off# " am Anfang gehoeren zu einer deaktivierten Section

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""voronv0-filament-loader - analysis, installation and removal.
+"""voron0-autoloader - analysis, installation and removal.
 
 Called via ./install.sh. Needs only the Python standard library.
 Structure and approach follow the voron0-dockprobe installer
@@ -37,17 +37,17 @@ LOGIC_NAME = "filament_loader.cfg"
 SETTINGS_NAME = "filament_loader_settings.cfg"
 MARK = "#loader# "          # prefix for lines the installer commented out
 OFF = "#off# "              # prefix for lines of a deactivated section (Sensor 2)
-NGINX_SNIPPET = os.environ.get("LOADER_NGINX_SNIPPET", "/etc/nginx/snippets/filament-loader.conf")
-NGINX_TAG = "# filament-loader"
-NAVI_HREF = "/server/loader/"
-OLD_HREFS = ("/loader/", "/loader", "/server/loader/", "/server/loader")
-UM_SECTION = "update_manager voronv0-filament-loader"
-MOONRAKER = os.environ.get("LOADER_MOONRAKER", "http://127.0.0.1:7125")
-BACKUP_DIR = "filament-loader-backups"
+NGINX_SNIPPET = os.environ.get("AUTOLOADER_NGINX_SNIPPET", "/etc/nginx/snippets/autoloader.conf")
+NGINX_TAG = "# autoloader"
+NAVI_HREF = "/server/autoloader/"
+OLD_HREFS = ("/autoloader/", "/autoloader", "/server/autoloader/", "/server/autoloader")
+UM_SECTION = "update_manager voron0-autoloader"
+MOONRAKER = os.environ.get("AUTOLOADER_MOONRAKER", "http://127.0.0.1:7125")
+BACKUP_DIR = "autoloader-backups"
 
-KS_NAME = "filament_loader_klipperscreen.conf"
+KS_NAME = "autoloader_klipperscreen.conf"
 KS_INCLUDE = f"[include {KS_NAME}]"
-KS_CREATED = "# created by voronv0-filament-loader"
+KS_CREATED = "# created by voron0-autoloader"
 
 SETTINGS_SCHEMA = 1  # matches "#@schema" in filament_loader_settings.cfg.tpl
 TOOL_SECTION = "filament_switch_sensor toolhead_in"
@@ -544,7 +544,16 @@ def add_includes(printer_cfg, A, ops):
 def remove_includes(printer_cfg, ops):
     lines = printer_cfg.read_text(errors="replace").split("\n")
     pat = re.compile(rf"^\[include\s+({re.escape(LOGIC_NAME)}|{re.escape(SETTINGS_NAME)})\s*\]")
-    kept = [l for l in lines if not pat.match(l)]
+    kept, dropped = [], False
+    for l in lines:
+        if pat.match(l):
+            dropped = True
+            continue
+        if dropped and l.strip() == "":  # blank line add_includes put after the include block
+            dropped = False
+            continue
+        dropped = False
+        kept.append(l)
     if len(kept) != len(lines):
         ops.write(printer_cfg, "\n".join(kept))
         ok("Includes aus printer.cfg entfernt")
@@ -552,16 +561,16 @@ def remove_includes(printer_cfg, ops):
 
 # ---- nginx ----------------------------------------------------------------
 def nginx_snippet():
-    return (f"# voronv0-filament-loader - web UI (generated automatically)\n"
-            f"location = /loader {{ return 301 /loader/; }}\n"
-            f"location ^~ /loader/ {{\n"
+    return (f"# voron0-autoloader - web UI (generated automatically)\n"
+            f"location = /autoloader {{ return 301 /autoloader/; }}\n"
+            f"location ^~ /autoloader/ {{\n"
             f"    alias {WEB_DIR}/;\n"
             f"    index index.html;\n"
             f"    add_header Cache-Control \"no-cache\";\n"
             f"}}\n"
             f"# Mainsail's service worker does not intercept /server/ (matters for https)\n"
-            f"location = /server/loader {{ return 301 /server/loader/; }}\n"
-            f"location ^~ /server/loader/ {{\n"
+            f"location = /server/autoloader {{ return 301 /server/autoloader/; }}\n"
+            f"location ^~ /server/autoloader/ {{\n"
             f"    alias {WEB_DIR}/;\n"
             f"    index index.html;\n"
             f"    add_header Cache-Control \"no-cache\";\n"
@@ -596,7 +605,7 @@ def nginx_install(env, ops):
         ops.remove(NGINX_SNIPPET, root=True)
         return False
     ops.run_root(["systemctl", "reload", "nginx"])
-    ok("Web-Oberfläche in nginx eingebunden (/server/loader/ und /loader/)")
+    ok("Web-Oberfläche in nginx eingebunden (/server/autoloader/ und /autoloader/)")
     if not env["home"].stat().st_mode & 0o001:
         warn(f"{env['home']} ist für nginx nicht betretbar – ggf. 'chmod o+x {env['home']}'")
     return True
@@ -604,6 +613,8 @@ def nginx_install(env, ops):
 
 def nginx_remove(env, ops):
     site = env["nginx_site"]
+    if not (site and site.exists() and NGINX_SNIPPET in site.read_text(errors="replace")) and not os.path.exists(NGINX_SNIPPET):
+        return
     if site and site.exists():
         text = site.read_text(errors="replace")
         if NGINX_SNIPPET in text:
@@ -628,9 +639,9 @@ def navi_install(env, ops):
             warn(f"{navi} ist kein gültiges JSON-Array – Menüeintrag übersprungen")
             return
     entries = [e for e in entries if e.get("href") not in OLD_HREFS]
-    entries.append({"title": "Loader", "href": NAVI_HREF, "target": "_self", "position": 46, "icon": NAVI_ICON})
+    entries.append({"title": "AutoLoader", "href": NAVI_HREF, "target": "_self", "position": 46, "icon": NAVI_ICON})
     ops.write(navi, json.dumps(entries, indent=2, ensure_ascii=False) + "\n")
-    ok("Menüeintrag 'Loader' in Mainsail angelegt (Browser neu laden)")
+    ok("Menüeintrag 'AutoLoader' in Mainsail angelegt (Browser neu laden)")
 
 
 def navi_remove(env, ops):
@@ -665,7 +676,7 @@ def um_install(env, ops):
         return False
     block = (f"\n[{UM_SECTION}]\ntype: git_repo\nchannel: dev\npath: {REPO_DIR}\norigin: {origin}\n"
              f"primary_branch: {git_branch()}\nmanaged_services: klipper\ninfo_tags:\n"
-             f"    desc=Filament Loader (Voron V0.2)\n")
+             f"    desc=Voron0-AutoLoader - automatic filament loader (Voron V0.2)\n")
     ops.write(mc, text.rstrip("\n") + "\n" + block)
     ok("Update-Manager in moonraker.conf eingetragen")
     return True
@@ -699,7 +710,7 @@ def ks_restart(env, ops):
 
 
 def ks_link(env, ops, lang):
-    link, src = env["cfg"] / KS_NAME, KS_DIR / f"loader_{lang}.conf"
+    link, src = env["cfg"] / KS_NAME, KS_DIR / f"autoloader_{lang}.conf"
     if ops.dry:
         info(c("2", f"[dry-run] Symlink {link} -> {src}"))
         return
@@ -717,7 +728,7 @@ def ks_install(env, A, ops, lang):
             ops.write(conf, KS_INCLUDE + "\n" + text)
     else:
         ops.write(conf, f"{KS_CREATED}\n{KS_INCLUDE}\n")
-    ok("KlipperScreen-Menü eingebunden (Mehr → Loader)")
+    ok("KlipperScreen-Menü eingebunden (Mehr → AutoLoader)")
     ks_restart(env, ops)
 
 
@@ -816,7 +827,7 @@ def do_install(env, A, args, ops, asker):
 
     ks = False
     if A["ks_present"] and not A["ks_menu"] and not args.no_klipperscreen:
-        ks = args.klipperscreen or asker.confirm("Loader-Menü in KlipperScreen einbinden (Mehr → Loader)?", False)
+        ks = args.klipperscreen or asker.confirm("AutoLoader-Menü in KlipperScreen einbinden (Mehr → AutoLoader)?", False)
     web = not args.no_web
 
     head("Geplante Änderungen")
@@ -884,7 +895,7 @@ def do_install(env, A, args, ops, asker):
         ks_install(env, A, ops, lang)
     elif A["ks_menu"]:
         link = env["cfg"] / KS_NAME
-        if link.is_symlink() and os.readlink(link) != str(KS_DIR / f"loader_{lang}.conf"):
+        if link.is_symlink() and os.readlink(link) != str(KS_DIR / f"autoloader_{lang}.conf"):
             ks_link(env, ops, lang)
             ok("KlipperScreen-Menü auf die Sprache der Klipper-Meldungen umgestellt (wirkt nach Neustart von KlipperScreen)")
 
@@ -892,7 +903,7 @@ def do_install(env, A, args, ops, asker):
         restart_services(um_changed, ops)
 
     head("Fertig")
-    info("Nächste Schritte (Mainsail → Loader, oder in der Konsole):")
+    info("Nächste Schritte (Mainsail → AutoLoader, oder in der Konsole):")
     info("  1. LOADER_STATUS            – Sensor 1 prüfen (Filament einlegen/entfernen)")
     info("  2. LOADER_MOVE DIST=100     – Drehrichtung und rotation_distance prüfen")
     info("  3. Servo-Winkel klemmen/frei am Aufbau ermitteln und in den Einstellungen speichern")
@@ -911,7 +922,7 @@ def settings_lang(cfg):
 
 def do_uninstall(env, A, args, ops, asker):
     head("Deinstallation")
-    if not asker.confirm("voronv0-filament-loader entfernen?", True):
+    if not asker.confirm("voron0-autoloader entfernen?", True):
         raise SystemExit(tr("Abgebrochen."))
     b = backup(env, ops)
     ok(f"Backup: {b}")
@@ -937,7 +948,7 @@ def do_uninstall(env, A, args, ops, asker):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="voronv0-filament-loader – Installer (de/en)")
+    ap = argparse.ArgumentParser(description="voron0-autoloader – Installer (de/en)")
     ap.add_argument("--analyze", action="store_true", help="nur analysieren / analyse only")
     ap.add_argument("--uninstall", action="store_true", help="Paket entfernen / uninstall")
     ap.add_argument("--reconfigure", action="store_true", help="Einstellungen neu abfragen / ask for settings again")
@@ -957,7 +968,7 @@ def main():
         raw = input(f"Sprache / Language [de/en] ({i18n.LANG}): ").strip().lower()
         if raw in ("de", "en"):
             i18n.LANG = raw
-    print(c("1", tr("voronv0-filament-loader – Filament Loader für Voron V0.2")))
+    print(c("1", tr("Voron0-AutoLoader – automatischer Filament-Loader für Voron V0.2")))
     env = detect(args)
     if not env["cfg"] or not env["printer_cfg"].exists():
         raise SystemExit(tr("printer.cfg nicht gefunden – mit --config-dir angeben."))

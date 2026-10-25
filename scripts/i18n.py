@@ -13,7 +13,7 @@ LANG = "de"
 # (German, English) - applied sorted by length, longest first
 PHRASES = [
     # headings
-    ("voronv0-filament-loader – Filament Loader für Voron V0.2", "voronv0-filament-loader – filament loader for Voron V0.2"),
+    ("Voron0-AutoLoader – automatischer Filament-Loader für Voron V0.2", "Voron0-AutoLoader – automatic filament loader for Voron V0.2"),
     ("Umgebung", "Environment"), ("Installationsstand", "Installation state"), ("Voraussetzungen", "Prerequisites"),
     ("Konflikte", "Conflicts"), ("Einstellungen", "Settings"), ("Geplante Änderungen", "Planned changes"),
     ("Installation", "Installation"), ("Deinstallation", "Uninstall"), ("Fertig", "Done"),
@@ -41,7 +41,7 @@ PHRASES = [
     ("Sensor 1 (Loader-Eingang), Öffner", "Sensor 1 (loader entrance), normally closed"),
     ("Sensor 2 (Toolhead-Eingang) ist verdrahtet und soll aktiv sein?", "Is sensor 2 (toolhead entrance) wired and should it be active?"),
     ("Sensor 2 Pin (MCU-Name:gpioX), Öffner", "Sensor 2 pin (MCU name:gpioX), normally closed"),
-    ("Loader-Menü in KlipperScreen einbinden (Mehr → Loader)?", "Add the Loader menu to KlipperScreen (More → Loader)?"),
+    ("AutoLoader-Menü in KlipperScreen einbinden (Mehr → AutoLoader)?", "Add the AutoLoader menu to KlipperScreen (More → AutoLoader)?"),
     ("existiert – Werte neu abfragen und Datei neu erzeugen?", "exists – ask for the values again and regenerate the file?"),
     ("Fortfahren?", "Continue?"), ("Abgebrochen.", "Aborted."),
     ("printer.cfg nicht gefunden – mit --config-dir angeben.", "printer.cfg not found – specify it with --config-dir."),
@@ -69,7 +69,7 @@ PHRASES = [
     ("ist für nginx nicht betretbar – ggf.", "is not accessible for nginx – maybe run"),
     ("nginx-Eintrag entfernt", "nginx entry removed"),
     ("ist kein gültiges JSON-Array – Menüeintrag übersprungen", "is not a valid JSON array – menu entry skipped"),
-    ("Menüeintrag 'Loader' in Mainsail angelegt (Browser neu laden)", "Menu entry 'Loader' added to Mainsail (reload the browser)"),
+    ("Menüeintrag 'AutoLoader' in Mainsail angelegt (Browser neu laden)", "Menu entry 'AutoLoader' added to Mainsail (reload the browser)"),
     ("Menüeintrag entfernt", "Menu entry removed"),
     ("moonraker.conf nicht gefunden – Update-Manager übersprungen", "moonraker.conf not found – update manager skipped"),
     ("Repo hat keinen git-origin (nicht per git clone installiert) – Update-Manager übersprungen",
@@ -78,7 +78,7 @@ PHRASES = [
     ("Update-Manager-Eintrag entfernt", "Update manager entry removed"),
     ("KlipperScreen neu gestartet", "KlipperScreen restarted"),
     ("KlipperScreen bitte neu starten, damit die Änderung wirkt", "Please restart KlipperScreen for the change to take effect"),
-    ("KlipperScreen-Menü eingebunden (Mehr → Loader)", "KlipperScreen menu added (More → Loader)"),
+    ("KlipperScreen-Menü eingebunden (Mehr → AutoLoader)", "KlipperScreen menu added (More → AutoLoader)"),
     ("KlipperScreen-Menü auf die Sprache der Klipper-Meldungen umgestellt (wirkt nach Neustart von KlipperScreen)",
      "KlipperScreen menu switched to the language of the Klipper messages (takes effect after restarting KlipperScreen)"),
     ("KlipperScreen-Menü entfernt", "KlipperScreen menu removed"),
@@ -93,7 +93,7 @@ PHRASES = [
     ("Befehl fehlgeschlagen:", "Command failed:"),
     ("Installation unvollständig – Backup liegt in", "Installation incomplete – backup is in"),
     # next steps
-    ("Nächste Schritte (Mainsail → Loader, oder in der Konsole):", "Next steps (Mainsail → Loader, or in the console):"),
+    ("Nächste Schritte (Mainsail → AutoLoader, oder in der Konsole):", "Next steps (Mainsail → AutoLoader, or in the console):"),
     ("– Sensor 1 prüfen (Filament einlegen/entfernen)", "– check sensor 1 (insert/remove filament)"),
     ("– Drehrichtung und rotation_distance prüfen", "– check direction and rotation_distance"),
     ("Servo-Winkel klemmen/frei am Aufbau ermitteln und in den Einstellungen speichern",
@@ -102,7 +102,7 @@ PHRASES = [
      "On the Voron: measure tube_len, gear_offset, ext_to_nozzle, enable sensor 2, bench mode off"),
     ("Bei Problemen: Backup liegt in", "In case of problems: the backup is in"), ("Deinstallation mit", "uninstall with"),
     # uninstall
-    ("voronv0-filament-loader entfernen?", "Remove voronv0-filament-loader?"),
+    ("voron0-autoloader entfernen?", "Remove voron0-autoloader?"),
     ("-Symlink entfernt", " symlink removed"), ("gelöscht", "deleted"), ("löschen?", "delete?"),
     ("(Nein = behalten für spätere Neuinstallation)", "(No = keep for a later reinstall)"),
     ("Vom Installer auskommentierte Sections wiederherstellen?", "Restore sections commented out by the installer?"),
@@ -139,7 +139,7 @@ def tr(text):
 
 
 def default_lang():
-    for var in ("LOADER_LANG", "LC_ALL", "LC_MESSAGES", "LANG"):
+    for var in ("AUTOLOADER_LANG", "LC_ALL", "LC_MESSAGES", "LANG"):
         v = os.environ.get(var, "")
         if v:
             return "de" if v.lower().startswith("de") else "en"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# voronv0-filament-loader – installer
+# voron0-autoloader – installer
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 #   ./install.sh               interactive installation

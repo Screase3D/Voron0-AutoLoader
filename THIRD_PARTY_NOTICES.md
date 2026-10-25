@@ -1,6 +1,6 @@
 # Third-party notices
 
-voronv0-filament-loader is licensed under the GNU General Public License v3.0 or later
+voron0-autoloader is licensed under the GNU General Public License v3.0 or later
 (see [LICENSE](LICENSE)). It is derived in structure from, and contains approaches and code from,
 [VoronV0-Zeroclick-Mainsail-UI](https://github.com/Screase3D/VoronV0-Zeroclick-Mainsail-UI)
 (installer, nginx/Mainsail menu/update-manager integration, web UI shell, theme loading), GPL-3.0-or-later.
