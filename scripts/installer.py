@@ -49,7 +49,7 @@ KS_NAME = "autoloader_klipperscreen.conf"
 KS_INCLUDE = f"[include {KS_NAME}]"
 KS_CREATED = "# created by voron0-autoloader"
 
-SETTINGS_SCHEMA = 1  # matches "#@schema" in filament_loader_settings.cfg.tpl
+SETTINGS_SCHEMA = 2  # matches "#@schema" in filament_loader_settings.cfg.tpl
 TOOL_SECTION = "filament_switch_sensor toolhead_in"
 
 # icon: Material Design Icons "printer-3d-nozzle" (Pictogrammers, Apache-2.0)
@@ -82,7 +82,18 @@ FIELDS = [
     "lang", "servo_clamp", "servo_release", "servo_settle", "servo_off_released", "speed", "slow_speed",
     "step_mm", "coarse_len", "tube_len", "overrun", "gear_offset", "gear_push", "ext_to_nozzle", "ext_speed",
     "purge_len", "purge_speed", "default_temp", "unload_ext_len", "unload_hold", "auto_delay", "bench_mode",
-    "bench_dist")]
+    "bench_dist", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
+    "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
+    "unload_after_print")]
+NEW_VARS_V2 = ["tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
+               "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "unload_after_print"]
+
+HOOK_TAG = "# autoloader"
+HOOK_START = "LOADER_PRINT_START  # autoloader: load filament if the toolhead is empty"
+HOOK_END = "LOADER_PRINT_END  # autoloader: optional unload after the print"
+HOOK_RE = re.compile(r"^\s*LOADER_PRINT_(START|END)\b.*#\s*autoloader")
+HEAT_RE = re.compile(r"^\s*(M109\b|TEMPERATURE_WAIT\s+SENSOR=extruder\b)", re.I)
+OFF_RE = re.compile(r"^\s*TURN_OFF_HEATERS\b", re.I)
 
 DEFAULTS = {
     "step_pin": "gpio14", "dir_pin": "!gpio13", "enable_pin": "!gpio15", "microsteps": "16",
@@ -94,6 +105,9 @@ DEFAULTS = {
     "gear_offset": "8", "gear_push": "3", "ext_to_nozzle": "70", "ext_speed": "5", "purge_len": "30",
     "purge_speed": "3", "default_temp": "220", "unload_ext_len": "65", "unload_hold": "15", "auto_delay": "2.0",
     "bench_mode": "1", "bench_dist": "50",
+    "tip_enable": "1", "tip_ram_len": "0", "tip_temp": "0", "tip_speed_start": "80", "tip_speed": "18",
+    "tip_cool_pos": "35", "tip_cool_len": "10", "tip_cool_moves": "4", "tip_cool_start": "10", "tip_cool_end": "50",
+    "tip_eject_speed": "25", "print_start_mode": "2", "unload_after_print": "0",
 }
 
 SECTION_RE = re.compile(r"^\[([^\]]+)\]\s*(?:[#;].*)?$")
@@ -355,6 +369,92 @@ def report(env, A):
         head("Konflikte")
         for s in A["conflicts"]:
             warn(f"[{s.name}] in {os.path.basename(s.file)} (Zeile {s.start + 1}) – wird auskommentiert")
+
+
+# ---------------------------------------------------------------------------
+# PRINT_START / PRINT_END hooks
+# ---------------------------------------------------------------------------
+def macro_body(ctx, cfg, name):
+    """(file, [line indices of the gcode body]) of a gcode_macro inside the config folder"""
+    sec = next((s for s in ctx["sections"] if s.lname == f"gcode_macro {name}"), None)
+    if not sec:
+        return None, None, None
+    inside = os.path.realpath(sec.file).startswith(str(cfg) + os.sep)
+    lines = Path(sec.file).read_text(errors="replace").split("\n")
+    return sec, inside, lines
+
+
+def hook_plan(ctx, cfg):
+    plan = {}
+    for kind, names, rx, before in (("start", ("print_start", "start_print"), HEAT_RE, False),
+                                    ("end", ("print_end", "end_print"), OFF_RE, True)):
+        sec = inside = lines = None
+        for n in names:
+            sec, inside, lines = macro_body(ctx, cfg, n)
+            if sec:
+                break
+        p = {"found": bool(sec), "name": sec.name.split()[1].upper() if sec else names[0].upper(), "inside": inside}
+        if sec:
+            body = range(sec.start + 1, sec.end)
+            p["file"] = sec.file
+            p["present"] = any(HOOK_RE.match(lines[i]) for i in body if i < len(lines))
+            idx = next((i for i in body if i < len(lines) and rx.match(lines[i])), None)
+            p["line"] = idx
+            if idx is not None:
+                p["indent"] = re.match(r"^(\s*)", lines[idx]).group(1) or "  "
+                p["ref"] = lines[idx].strip()
+                p["before"] = before
+        plan[kind] = p
+    return plan
+
+
+def hooks_install(env, ops):
+    plan = hook_plan(parse_config(env["printer_cfg"]), env["cfg"])
+    for kind, text in (("start", HOOK_START), ("end", HOOK_END)):
+        p = plan[kind]
+        if not p["found"] or p.get("present") or not p["inside"] or p.get("line") is None:
+            continue
+        lines = Path(p["file"]).read_text(errors="replace").split("\n")
+        at = p["line"] if p["before"] else p["line"] + 1
+        lines.insert(at, p["indent"] + text)
+        ops.write(p["file"], "\n".join(lines))
+        ok(f"{text.split()[0]} in {p['name']} eingefügt ({os.path.basename(p['file'])}:{at + 1})")
+
+
+def hooks_remove(cfg, ops):
+    for f in sorted(set(glob.glob(str(cfg / "**/*.cfg"), recursive=True))):
+        if os.path.islink(f):
+            continue
+        text = Path(f).read_text(errors="replace")
+        if "LOADER_PRINT_" not in text:
+            continue
+        lines = text.split("\n")
+        kept = [l for l in lines if not HOOK_RE.match(l)]
+        if len(kept) != len(lines):
+            ops.write(f, "\n".join(kept))
+            ok(f"Druck-Hooks aus {os.path.basename(f)} entfernt")
+
+
+def upgrade_settings(env, ops):
+    """add variables introduced by newer versions to an existing settings file (values stay untouched)"""
+    path = env["cfg"] / SETTINGS_NAME
+    if not path.exists():
+        return
+    lines = path.read_text(errors="replace").split("\n")
+    vals, _ = read_values(path)
+    have = vals.get("gcode_macro _loader_vars", {})
+    missing = [k for k in NEW_VARS_V2 if "variable_" + k not in have]
+    if not missing:
+        return
+    idx = next((i for i, l in enumerate(lines) if SECTION_RE.match(l) and SECTION_RE.match(l).group(1).strip().lower() == "gcode_macro _loader_vars"), None)
+    if idx is None:
+        warn(f"[gcode_macro _LOADER_VARS] fehlt in {SETTINGS_NAME} – neue Einstellungen übersprungen")
+        return
+    end = next((i for i in range(idx + 1, len(lines)) if lines[i].startswith("gcode:") or SECTION_RE.match(lines[i])), len(lines))
+    lines[end:end] = [f"variable_{k}: {DEFAULTS[k]}" for k in missing]
+    lines = [re.sub(r"^#@schema\s+\d+", f"#@schema {SETTINGS_SCHEMA}", l) for l in lines]
+    ops.write(path, "\n".join(lines))
+    ok(f"{len(missing)} neue Einstellungen in {SETTINGS_NAME} ergänzt (Tip-Forming, Druck-Hooks)")
 
 
 # ---------------------------------------------------------------------------
@@ -825,6 +925,22 @@ def do_install(env, A, args, ops, asker):
             else:
                 warn(f"Pin {v} wird auch von [{s.name}] ({os.path.basename(s.file)}) benutzt – bitte prüfen")
 
+    hooks = []
+    plan = hook_plan(A["ctx"], cfg)
+    if not args.no_hooks:
+        for kind, desc in (("start", "LOADER_PRINT_START nach dem Aufheizen der Düse einfügen (lädt Filament, wenn der Toolhead leer ist)?"),
+                           ("end", "LOADER_PRINT_END vor TURN_OFF_HEATERS einfügen (entlädt nur, wenn unload_after_print = 1)?")):
+            p = plan[kind]
+            if not p["found"] or p.get("present"):
+                continue
+            if not p["inside"]:
+                warn(f"{p['name']} liegt außerhalb des Config-Ordners – Hook bitte manuell einfügen")
+            elif p.get("line") is None:
+                warn(f"{p['name']}: keine passende Stelle gefunden (M109 / TURN_OFF_HEATERS) – Hook bitte manuell einfügen")
+            else:
+                info(f"{p['name']}: {'vor' if p['before'] else 'nach'} „{p['ref']}“ ({os.path.basename(p['file'])}:{p['line'] + 1})")
+                if asker.confirm(desc, True):
+                    hooks.append(kind)
     ks = False
     if A["ks_present"] and not A["ks_menu"] and not args.no_klipperscreen:
         ks = args.klipperscreen or asker.confirm("AutoLoader-Menü in KlipperScreen einbinden (Mehr → AutoLoader)?", False)
@@ -842,6 +958,8 @@ def do_install(env, A, args, ops, asker):
         info(f"[{s.name}] in {os.path.basename(s.file)} auskommentieren" if inside
              else f"[{s.name}] in {s.file} – liegt außerhalb des Config-Ordners, bitte manuell entfernen")
     info("Includes in printer.cfg ergänzen")
+    if hooks:
+        info("Druck-Hooks in PRINT_START / PRINT_END einfügen")
     if web:
         info("Web-Oberfläche in nginx einbinden und Menüeintrag in Mainsail anlegen")
     info("Update-Manager in moonraker.conf eintragen (falls per git clone installiert)")
@@ -878,6 +996,8 @@ def do_install(env, A, args, ops, asker):
             ops.write(cfg / f"{SETTINGS_NAME}.bak", (cfg / SETTINGS_NAME).read_text(errors="replace"))
         ops.write(cfg / SETTINGS_NAME, render_settings(V))
         ok(f"{SETTINGS_NAME} geschrieben")
+    else:
+        upgrade_settings(env, ops)
 
     inside = [s for s in A["conflicts"] if os.path.realpath(s.file).startswith(str(cfg) + os.sep)]
     if inside:
@@ -887,6 +1007,8 @@ def do_install(env, A, args, ops, asker):
             warn(f"[{s.name}] in {s.file} bitte manuell entfernen")
 
     add_includes(env["printer_cfg"], A, ops)
+    if hooks:
+        hooks_install(env, ops)
     if web and nginx_install(env, ops):
         navi_install(env, ops)
     um_changed = um_install(env, ops)
@@ -908,7 +1030,7 @@ def do_install(env, A, args, ops, asker):
     info("  2. LOADER_MOVE DIST=100     – Drehrichtung und rotation_distance prüfen")
     info("  3. Servo-Winkel klemmen/frei am Aufbau ermitteln und in den Einstellungen speichern")
     info("  4. Am Voron: tube_len, gear_offset, ext_to_nozzle messen, Sensor 2 aktivieren, Bench-Modus aus")
-    info("  5. FILAMENT_LOAD_COLD → FILAMENT_LOAD TEMP=… → FILAMENT_UNLOAD TEMP=…")
+    info("  5. FILAMENT_LOAD_COLD → FILAMENT_LOAD TEMP=… → FILAMENT_UNLOAD TEMP=… (mit Tip-Forming)")
     info(f"Bei Problemen: Backup liegt in {b}, Deinstallation mit ./uninstall.sh")
 
 
@@ -938,6 +1060,7 @@ def do_uninstall(env, A, args, ops, asker):
             ok(f"{SETTINGS_NAME} gelöscht")
     if asker.confirm("Vom Installer auskommentierte Sections wiederherstellen?", True):
         uncomment_all(cfg, ops)
+    hooks_remove(cfg, ops)
     ks_remove(env, A, ops)
     nginx_remove(env, ops)
     navi_remove(env, ops)
@@ -959,6 +1082,7 @@ def main():
     ap.add_argument("--config-dir", help="Config-Ordner / config folder (~/printer_data/config)")
     ap.add_argument("--nginx-site", help="nginx-Site von Mainsail / Mainsail nginx site file")
     ap.add_argument("--lang", choices=("de", "en"), help="Sprache der Ausgaben / language")
+    ap.add_argument("--no-hooks", action="store_true", help="PRINT_START/PRINT_END nicht ändern / don't touch PRINT_START/PRINT_END")
     ap.add_argument("--klipperscreen", action="store_true", help="KlipperScreen-Menü einbinden / add the KlipperScreen menu")
     ap.add_argument("--no-klipperscreen", action="store_true", help="kein KlipperScreen-Menü / no KlipperScreen menu")
     args = ap.parse_args()

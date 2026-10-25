@@ -107,6 +107,12 @@ PHRASES = [
     ("(Nein = behalten für spätere Neuinstallation)", "(No = keep for a later reinstall)"),
     ("Vom Installer auskommentierte Sections wiederherstellen?", "Restore sections commented out by the installer?"),
     ("Auskommentierte Zeilen in", "Commented-out lines in"),
+    ("LOADER_PRINT_START nach dem Aufheizen der Düse einfügen (lädt Filament, wenn der Toolhead leer ist)?",
+     "Insert LOADER_PRINT_START after the nozzle heat-up (loads filament if the toolhead is empty)?"),
+    ("LOADER_PRINT_END vor TURN_OFF_HEATERS einfügen (entlädt nur, wenn unload_after_print = 1)?",
+     "Insert LOADER_PRINT_END before TURN_OFF_HEATERS (only unloads if unload_after_print = 1)?"),
+    ("Druck-Hooks in PRINT_START / PRINT_END einfügen", "Insert the print hooks into PRINT_START / PRINT_END"),
+    ("(mit Tip-Forming)", "(with tip forming)"),
     ("schreibe ", "write "), ("entferne ", "remove "), ("Backup nach ", "backup to "),
 ]
 PHRASES.sort(key=lambda p: -len(p[0]))
@@ -121,6 +127,14 @@ RULES = [
     (r"^\[(.+)\] in (\S+) auskommentiert$", r"[\1] in \2 commented out"),
     (r"^alte (\S+) gesichert als (\S+)$", r"old \1 saved as \2"),
     (r"^(\S+) existiert – Werte neu abfragen", r"\1 exists – ask for the values again"),
+    (r"^(\S+) in (\S+) eingefügt \((.*)\)$", r"\1 inserted into \2 (\3)"),
+    (r"^Druck-Hooks aus (\S+) entfernt$", r"Print hooks removed from \1"),
+    (r"^(\S+) liegt außerhalb des Config-Ordners – Hook bitte manuell einfügen$", r"\1 is outside the config folder – please insert the hook manually"),
+    (r"^(\S+): keine passende Stelle gefunden \(M109 / TURN_OFF_HEATERS\) – Hook bitte manuell einfügen$", r"\1: no suitable place found (M109 / TURN_OFF_HEATERS) – please insert the hook manually"),
+    (r"^(\S+): vor „(.*)“ \((.*)\)$", r"\1: before “\2” (\3)"),
+    (r"^(\S+): nach „(.*)“ \((.*)\)$", r"\1: after “\2” (\3)"),
+    (r"^(\d+) neue Einstellungen in (\S+) ergänzt \(Tip-Forming, Druck-Hooks\)$", r"\1 new settings added to \2 (tip forming, print hooks)"),
+    (r"^\[gcode_macro _LOADER_VARS\] fehlt in (\S+) – neue Einstellungen übersprungen$", r"[gcode_macro _LOADER_VARS] missing in \1 – new settings skipped"),
     (r"^Pin (\S+) wird auch von \[(.+)\] \((.+)\) benutzt – bitte prüfen$", r"Pin \1 is also used by [\2] (\3) – please check"),
 ]
 

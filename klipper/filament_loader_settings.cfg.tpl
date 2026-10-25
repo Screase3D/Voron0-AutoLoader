@@ -1,4 +1,4 @@
-#@schema 1
+#@schema 2
 # =====================================================================
 # voron0-autoloader - Einstellungen (vom Installer erzeugt)
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -86,10 +86,25 @@ variable_purge_len: ${purge_len}          # mm Ausspuelen nach dem Laden
 variable_purge_speed: ${purge_speed}          # mm/s
 variable_default_temp: ${default_temp}      # Standard-Duesentemperatur
 # --- Entladen ---
-variable_unload_ext_len: ${unload_ext_len}      # mm Extruder zieht zurueck (Spitze bleibt in den Zahnraedern)
+variable_unload_ext_len: ${unload_ext_len}      # mm Extruder zieht insgesamt ab Duese zurueck (inkl. Tip-Forming)
 variable_unload_hold: ${unload_hold}         # mm Spitze bleibt im Loader-Griff
 # --- Auto-Trigger ---
 variable_auto_delay: ${auto_delay}         # s Zeit zum Nachschieben, bevor der Loader klemmt
 variable_bench_mode: ${bench_mode}          # 1 = Auto-Trigger macht nur den Bench-Test (klemmen, bench_dist fahren, loesen)
 variable_bench_dist: ${bench_dist}          # mm im Bench-Test
+# --- Tip-Forming beim Entladen (Startwerte fuer Sherpa Mini + Dragon, nach Happy Hare) ---
+variable_tip_enable: ${tip_enable}          # 1 = Spitze formen vor dem Entladen
+variable_tip_ram_len: ${tip_ram_len}         # mm rammen (extrudieren) vor dem Abreissen, 0 = aus
+variable_tip_temp: ${tip_temp}            # Temperatur fuer die Kuehlbewegungen, 0 = nicht aendern
+variable_tip_speed_start: ${tip_speed_start}     # mm/s erstes schnelles Zurueckziehen (15 mm)
+variable_tip_speed: ${tip_speed}          # mm/s weiter bis in die Kuehlzone
+variable_tip_cool_pos: ${tip_cool_pos}        # mm Duese -> Mitte der Kuehlzone (Heatbreak)
+variable_tip_cool_len: ${tip_cool_len}        # mm Weg einer Kuehlbewegung
+variable_tip_cool_moves: ${tip_cool_moves}       # Anzahl Kuehlbewegungen
+variable_tip_cool_start: ${tip_cool_start}      # mm/s erste Kuehlbewegung
+variable_tip_cool_end: ${tip_cool_end}        # mm/s letzte Kuehlbewegung
+variable_tip_eject_speed: ${tip_eject_speed}     # mm/s restliches Zurueckziehen bis unload_ext_len
+# --- Druck-Hooks ---
+variable_print_start_mode: ${print_start_mode}    # 0 = aus, 1 = nur pruefen (Abbruch ohne Filament), 2 = automatisch laden
+variable_unload_after_print: ${unload_after_print}  # 1 = nach dem Druck entladen (in PRINT_END)
 gcode:

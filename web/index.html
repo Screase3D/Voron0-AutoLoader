@@ -195,6 +195,7 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                   <tr><td>Servo</td><td id="s-servo">–</td></tr>
                   <tr><td>Hotend</td><td id="s-temp">–</td></tr>
                   <tr><td>Modus</td><td id="s-mode">–</td></tr>
+                  <tr><td>Druck-Hooks</td><td id="s-hooks">–</td></tr>
                   <tr><td>Letzte Meldung</td><td id="s-msg">–</td></tr>
                 </table>
                 <div class="btn-row mt-4">
@@ -235,6 +236,7 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                   <x-btn id="mv-fwd" act icon="mdiArrowRightBold">Vor</x-btn>
                   <x-btn id="mv-back" act icon="mdiArrowLeftBold">Zurück</x-btn>
                   <x-btn g="LOADER_BENCHTEST" act color="primary" icon="mdiFlask">Bench-Test</x-btn>
+                  <x-btn id="tip-test" act icon="mdiFire">Spitze formen</x-btn>
                 </div>
                 <div class="small muted mt-2">Der Bench-Test braucht nur Sensor 1: klemmen, Teststrecke fahren, lösen.</div>
               </div>
@@ -268,6 +270,20 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                 <div class="res mt-4" id="cal-res">–</div>
                 <div class="btn-row mt-4"><x-btn id="cal-apply" icon="mdiCheckCircleOutline">In Einstellungen übernehmen</x-btn></div>
               </div>
+              <hr role="separator" class="v-divider theme--dark">
+              <div class="v-card__text">
+                <div class="v-subheader theme--dark px-0">Längen messen</div>
+                <div class="small muted mb-3"><b>1. tube_len:</b> Filamentspitze bündig an die Loader-Zahnräder legen, dann „Bis Sensor 2“. Der Loader stoppt genau am Sensor und zeigt die gefahrene Strecke.</div>
+                <div class="btn-row"><x-btn id="ms-sensor" act icon="mdiArrowRightBold">Bis Sensor 2</x-btn><x-btn id="ms-tube" icon="mdiCheckCircleOutline">Als tube_len übernehmen</x-btn></div>
+                <div class="res mt-3" id="ms-tube-res">–</div>
+                <div class="small muted mt-4 mb-3"><b>2. gear_offset:</b> Danach in kleinen Schritten weiterschieben, bis die Spitze spürbar an den Extruder-Zahnrädern ansteht (Extruder-Hebel kurz anheben und loslassen hilft).</div>
+                <div class="btn-row"><x-btn id="ms-g1" act>+1 mm</x-btn><x-btn id="ms-g05" act>+0,5 mm</x-btn><x-btn id="ms-gear" icon="mdiCheckCircleOutline">Als gear_offset übernehmen</x-btn></div>
+                <div class="res mt-3" id="ms-gear-res">–</div>
+                <div class="small muted mt-4 mb-3"><b>3. ext_to_nozzle:</b> Nach „Laden kalt“ (Spitze in den Zahnrädern) mit heißer Düse extrudieren, bis Filament aus der Düse kommt. Nutzt die Temperatur aus dem Status-Panel.</div>
+                <div class="btn-row"><x-btn id="ms-e5" act>Extruder +5 mm</x-btn><x-btn id="ms-e1" act>+1 mm</x-btn><x-btn id="ms-e2n" icon="mdiCheckCircleOutline">Als ext_to_nozzle übernehmen</x-btn></div>
+                <div class="res mt-3" id="ms-e-res">–</div>
+                <div class="btn-row mt-3"><x-btn id="ms-reset" variant="text">Zähler zurücksetzen</x-btn></div>
+              </div>
             </x-panel>
 
             <x-panel p="history" icon="mdiHistory" title="Verlauf">
@@ -291,6 +307,7 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                     <a role="tab" class="v-tab" data-t="t-motion">Servo &amp; Stepper</a>
                     <a role="tab" class="v-tab" data-t="t-len">Längen</a>
                     <a role="tab" class="v-tab" data-t="t-auto">Laden &amp; Auto</a>
+                    <a role="tab" class="v-tab" data-t="t-tip">Tip &amp; Druck</a>
                   </div></div>
                 </div>
               </div>
@@ -355,6 +372,29 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                   <div class="small muted mt-3">Bench-Modus aus = Auto-Trigger lädt das Filament bis in den Extruder (FILAMENT_LOAD_COLD). Auto-Verzögerung: Zeit zum Nachschieben, bevor der Loader klemmt.</div>
                 </div>
 
+                <div class="tab hide" id="t-tip">
+                  <div class="mb-3"><x-check label="Spitze formen beim Entladen" k="tip_enable"></x-check></div>
+                  <div class="field-grid">
+                    <x-field label="Kühlzone" k="tip_cool_pos" type="number" step="1" min="5" suffix="mm"></x-field>
+                    <x-field label="Kühlweg" k="tip_cool_len" type="number" step="1" min="1" suffix="mm"></x-field>
+                    <x-field label="Kühlbewegungen" k="tip_cool_moves" type="number" step="1" min="0" max="20"></x-field>
+                    <x-field label="Kühlen Start" k="tip_cool_start" type="number" step="1" min="1" suffix="mm/s"></x-field>
+                    <x-field label="Kühlen Ende" k="tip_cool_end" type="number" step="1" min="1" suffix="mm/s"></x-field>
+                    <x-field label="Abreißen" k="tip_speed_start" type="number" step="5" min="1" suffix="mm/s"></x-field>
+                    <x-field label="Zurückziehen" k="tip_speed" type="number" step="1" min="1" suffix="mm/s"></x-field>
+                    <x-field label="Rammen" k="tip_ram_len" type="number" step="0.5" min="0" suffix="mm"></x-field>
+                    <x-field label="Kühltemperatur" k="tip_temp" type="number" step="5" min="0" suffix="°C"></x-field>
+                    <x-field label="Auswerfen" k="tip_eject_speed" type="number" step="1" min="1" suffix="mm/s"></x-field>
+                  </div>
+                  <div class="small muted mt-3">Ablauf: rammen (optional) → 15 mm schnell abreißen → langsamer bis in die Kühlzone → Kühlbewegungen mit steigendem Tempo → restliches Zurückziehen bis unload_ext_len. Startwerte nach Happy Hare; für den Dragon HF mit „Spitze formen“ testen und die Spitze ansehen: Faden → mehr Kühlbewegungen oder Kühlzone höher, Knubbel → Kühlzone tiefer oder Kühltemperatur senken. Kühlzone = Abstand Düse → Mitte der Kühlzone. Kühltemperatur 0 = Temperatur nicht ändern.</div>
+                  <hr role="separator" class="v-divider theme--dark my-4">
+                  <div class="field-grid">
+                    <x-select label="PRINT_START ohne Filament" k="print_start_mode" style="grid-column:span 2"><option value="2">automatisch laden</option><option value="1">nur prüfen (Abbruch)</option><option value="0">aus</option></x-select>
+                  </div>
+                  <div class="mt-3"><x-check label="Nach dem Druck entladen (PRINT_END)" k="unload_after_print"></x-check></div>
+                  <div class="small muted mt-3" id="hook-hint">LOADER_PRINT_START steht nach dem Aufheizen der Düse in PRINT_START, LOADER_PRINT_END vor TURN_OFF_HEATERS in PRINT_END. ./install.sh fügt beide auf Wunsch ein.</div>
+                </div>
+
                 <div class="prev hide" id="ed-prev"></div>
                 <div class="btn-row mt-4">
                   <x-btn id="ed-save" color="primary" icon="mdiContentSave">Speichern</x-btn>
@@ -406,7 +446,7 @@ const OFF = "#off# ";                            // prefix of deactivated config
 const TOOL = "filament_switch_sensor toolhead_in";
 const BASE = location.pathname.replace(/[^/]*$/, "") || "/autoloader/";   // /autoloader/ or /server/autoloader/
 const SELF_RE = /^\/(autoloader|server\/autoloader)\/?$/;
-const SCHEMA = 1;                                // version of the settings file format
+const SCHEMA = 2;                                // version of the settings file format
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const store = {
@@ -547,6 +587,41 @@ const T_EN = {
   "Loader zieht das Filament aus dem Extruder …": "Loader pulls the filament out of the extruder …",
   "Filament hängt an Sensor 2 – vor den Extruder-Zahnrädern (nicht gegriffen)": "Filament stuck at sensor 2 – in front of the extruder gears (not gripped)",
   "Filament an Sensor 2 – ob die Extruder-Zahnräder greifen, ist unbekannt": "Filament at sensor 2 – unknown whether the extruder gears grip it",
+  // Tip forming, hooks, measuring
+  "Tip & Druck": "Tip & print", "Spitze formen beim Entladen": "Form a tip when unloading", "Kühlzone": "Cooling zone",
+  "Kühlweg": "Cooling stroke", "Kühlbewegungen": "Cooling moves", "Kühlen Start": "Cooling start", "Kühlen Ende": "Cooling end",
+  "Abreißen": "Break-off", "Zurückziehen": "Retract", "Rammen": "Ramming", "Kühltemperatur": "Cooling temp.", "Auswerfen": "Eject",
+  "Ablauf: rammen (optional) → 15 mm schnell abreißen → langsamer bis in die Kühlzone → Kühlbewegungen mit steigendem Tempo → restliches Zurückziehen bis unload_ext_len. Startwerte nach Happy Hare; für den Dragon HF mit „Spitze formen“ testen und die Spitze ansehen: Faden → mehr Kühlbewegungen oder Kühlzone höher, Knubbel → Kühlzone tiefer oder Kühltemperatur senken. Kühlzone = Abstand Düse → Mitte der Kühlzone. Kühltemperatur 0 = Temperatur nicht ändern.":
+    "Sequence: ramming (optional) → fast 15 mm break-off → slower into the cooling zone → cooling moves with rising speed → remaining retraction up to unload_ext_len. Start values from Happy Hare; for the Dragon HF test with “Form tip” and inspect the tip: string → more cooling moves or a higher cooling zone, blob → lower cooling zone or a lower cooling temperature. Cooling zone = distance from the nozzle to the middle of the cooling zone. Cooling temp. 0 = keep the temperature.",
+  "PRINT_START ohne Filament": "PRINT_START without filament", "automatisch laden": "load automatically", "nur prüfen (Abbruch)": "check only (abort)", "aus": "off",
+  "Nach dem Druck entladen (PRINT_END)": "Unload after the print (PRINT_END)",
+  "LOADER_PRINT_START steht nach dem Aufheizen der Düse in PRINT_START, LOADER_PRINT_END vor TURN_OFF_HEATERS in PRINT_END. ./install.sh fügt beide auf Wunsch ein.":
+    "LOADER_PRINT_START goes into PRINT_START after the nozzle heat-up, LOADER_PRINT_END into PRINT_END before TURN_OFF_HEATERS. ./install.sh adds both on request.",
+  "Druck-Hooks": "Print hooks", "kein PRINT_START": "no PRINT_START", "LOADER_PRINT_START fehlt in PRINT_START – ./install.sh fügt ihn ein": "LOADER_PRINT_START is missing in PRINT_START – ./install.sh adds it",
+  "Spitze formen": "Form tip", "Messen": "Measure", "Neue Einstellungen": "New settings", "{n} Werte werden ergänzt": "{n} values will be added",
+  "unload_ext_len ist so groß, dass der Extruder die Spitze schon über Sensor 2 hinaus zieht – üblich ist etwas weniger als ext_to_nozzle.":
+    "unload_ext_len is so large that the extruder pulls the tip past sensor 2 – usually it is a bit less than ext_to_nozzle.",
+  "Die Kühlzone reicht bis an unload_ext_len – unload_ext_len sollte größer als Kühlzone + Kühlweg sein.":
+    "The cooling zone reaches unload_ext_len – unload_ext_len should be larger than cooling zone + cooling stroke.",
+  "Hotend auf {n} °C aufheizen, Spitze formen und Filament entladen?": "Heat the hotend to {n} °C, form the tip and unload the filament?",
+  "Hotend auf {n} °C aufheizen und nur die Spitze formen? Das Filament bleibt im Extruder – danach entladen oder von Hand ziehen und die Spitze ansehen.":
+    "Heat the hotend to {n} °C and only form the tip? The filament stays in the extruder – unload it afterwards or pull it out by hand and inspect the tip.",
+  "Längen messen": "Measure lengths", "Bis Sensor 2": "To sensor 2", "Als tube_len übernehmen": "Use as tube_len", "Als gear_offset übernehmen": "Use as gear_offset",
+  "Extruder +5 mm": "Extruder +5 mm", "Als ext_to_nozzle übernehmen": "Use as ext_to_nozzle", "Zähler zurücksetzen": "Reset counters",
+  "1. tube_len:": "1. tube_len:", "2. gear_offset:": "2. gear_offset:", "3. ext_to_nozzle:": "3. ext_to_nozzle:",
+  "Filamentspitze bündig an die Loader-Zahnräder legen, dann „Bis Sensor 2“. Der Loader stoppt genau am Sensor und zeigt die gefahrene Strecke.":
+    "Put the filament tip flush with the loader gears, then “To sensor 2”. The loader stops right at the sensor and shows the distance travelled.",
+  "Danach in kleinen Schritten weiterschieben, bis die Spitze spürbar an den Extruder-Zahnrädern ansteht (Extruder-Hebel kurz anheben und loslassen hilft).":
+    "Then push on in small steps until the tip noticeably touches the extruder gears (briefly lifting and releasing the extruder lever helps).",
+  "Nach „Laden kalt“ (Spitze in den Zahnrädern) mit heißer Düse extrudieren, bis Filament aus der Düse kommt. Nutzt die Temperatur aus dem Status-Panel.":
+    "After “Load cold” (tip in the gears) extrude with a hot nozzle until filament comes out of the nozzle. Uses the temperature from the status panel.",
+  "Gefahren bis Sensor 2: <b>{a} mm</b> (eingestellt: tube_len {b})": "Travelled to sensor 2: <b>{a} mm</b> (configured: tube_len {b})",
+  "Noch nicht gemessen.": "Not measured yet.",
+  "Nach Sensor 2 geschoben: <b>{a} mm</b> (eingestellt: gear_offset {b})": "Pushed past sensor 2: <b>{a} mm</b> (configured: gear_offset {b})",
+  "Extrudiert: <b>{a} mm</b> (eingestellt: ext_to_nozzle {b})": "Extruded: <b>{a} mm</b> (configured: ext_to_nozzle {b})",
+  "{k} = {v} übernommen – unter Einstellungen speichern.": "{k} = {v} applied – save it under Settings.",
+  "Filament steht an Sensor 2 (Messung)": "Filament at sensor 2 (measuring)", "Messfahrt bis Sensor 2 …": "Measuring run to sensor 2 …",
+  "Spitze wird geformt, Extruder zieht zurück …": "Forming the tip, extruder retracting …",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1000,8 +1075,8 @@ async function runUpdate() {
 async function gcode(script) {
   log("> " + script, "cmd");
   busy++; render();
-  try { await rpc("printer.gcode.script", { script }); }
-  catch (e) { log("!! " + e.message, "e"); snack(e.message); }
+  try { await rpc("printer.gcode.script", { script }); return true; }
+  catch (e) { log("!! " + e.message, "e"); snack(e.message); return false; }
   finally { busy--; render(); }
 }
 
@@ -1068,6 +1143,7 @@ function draw() {
   const ex = S.extruder || {};
   $("s-temp").textContent = ex.temperature === undefined ? "–" : `${dec(Number(ex.temperature).toFixed(0))} / ${dec(Number(ex.target || 0).toFixed(0))} °C`;
   $("s-mode").innerHTML = v.bench_mode === undefined ? "–" : Number(v.bench_mode) === 1 ? chip(t("Bench-Modus"), "warning--text") : chip(t("Normalbetrieb"), "success--text");
+  drawHooks();
   $("s-msg").innerHTML = st.msg ? `<span class="${st.result === "error" ? "error--text" : ""}">${esc(st.msg)}</span>` : "–";
 
   const lock = !ready || pr || busy > 0 || BUSY_STATES.includes(st.state);
@@ -1083,8 +1159,32 @@ function draw() {
   if (v.bench_mode !== undefined && busy === 0 && isChecked($("bench")) !== (Number(v.bench_mode) === 1)) setCheck($("bench"), Number(v.bench_mode) === 1);
 
   drawSetup();
+  drawMeasure();
   drawPath();
   calcRd();
+}
+
+/* are the print hooks in PRINT_START / PRINT_END? (from Klipper's parsed config) */
+function drawHooks() {
+  const find = (names) => names.map((n) => CFG["gcode_macro " + n]).find(Boolean);
+  const ps = find(["print_start", "start_print"]), pe = find(["print_end", "end_print"]);
+  const has = (m, rx) => m && rx.test(String(m.gcode || ""));
+  const a = has(ps, /(^|\n)\s*LOADER_PRINT_START\b/), b = has(pe, /(^|\n)\s*LOADER_PRINT_END\b/);
+  const html = !ps && !pe ? `<span class="muted">${esc(t("kein PRINT_START"))}</span>`
+    : chip("START", a ? "success--text" : "warning--text") + chip("END", b ? "success--text" : "muted");
+  if ($("s-hooks").dataset.h !== html) { $("s-hooks").innerHTML = html; $("s-hooks").dataset.h = html; $("s-hooks").title = a ? "" : t("LOADER_PRINT_START fehlt in PRINT_START – ./install.sh fügt ihn ein"); }
+}
+
+/* length measuring helper */
+const MS = { gear: 0, e: 0 };
+function drawMeasure() {
+  const st = ls(), fed = Number(st.fed || 0);
+  const set = (id, html) => { if ($(id).dataset.h !== html) { $(id).innerHTML = html; $(id).dataset.h = html; } };
+  set("ms-tube-res", fed > 0 ? t("Gefahren bis Sensor 2: <b>{a} mm</b> (eingestellt: tube_len {b})", { a: dec(fed.toFixed(1)), b: dec(String(lv().tube_len ?? "–")) }) : t("Noch nicht gemessen."));
+  set("ms-gear-res", t("Nach Sensor 2 geschoben: <b>{a} mm</b> (eingestellt: gear_offset {b})", { a: dec(MS.gear.toFixed(1)), b: dec(String(lv().gear_offset ?? "–")) }));
+  set("ms-e-res", t("Extrudiert: <b>{a} mm</b> (eingestellt: ext_to_nozzle {b})", { a: dec(MS.e.toFixed(1)), b: dec(String(lv().ext_to_nozzle ?? "–")) }));
+  setDis($("ms-tube"), !ED || !(fed > 0)); setDis($("ms-gear"), !ED || !(MS.gear > 0)); setDis($("ms-e2n"), !ED || !(MS.e > 0));
+  if (!hasTool) setDis($("ms-sensor"), true);
 }
 
 function bindAlerts() {
@@ -1145,7 +1245,7 @@ function calcRd() {
 // =====================================================================
 const HIST = { items: [], loaded: false, all: false };
 const HIST_NS = "autoloader", HIST_KEY = "history", HIST_MAX = 300;
-const OPS = { load_cold: "Laden (kalt)", load: "Laden (heiß)", unload: "Entladen", bench: "Bench-Test" };
+const OPS = { load_cold: "Laden (kalt)", load: "Laden (heiß)", unload: "Entladen", bench: "Bench-Test", measure: "Messen" };
 const locale = () => (LANG === "de" ? "de-DE" : "en-GB");
 const dMid = (s) => new Date(s * 1000).toLocaleString(locale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -1310,7 +1410,8 @@ function filamentModel() {
     tail = s1 ? 0 : 1.15;
     const push = ((+v.gear_offset || 8) + (+v.gear_push || 3)) / (+v.slow_speed || 10);
     const okLoad = st.result === "ok" && (st.op === "load_cold" || st.op === "load");
-    if (loading && !PATH.extT) {
+    if (st.op === "measure") { head = 3 + Math.min(1, MS.gear / ((+v.gear_offset || 8) + (+v.gear_push || 3))); text = "Filament steht an Sensor 2 (Messung)"; }
+    else if (loading && !PATH.extT) {
       // reached sensor 2 → loader pushes the tip into the extruder gears
       head = 3 + Math.min(1, sec(PATH.s2t) / push);
       moving = head < 4;
@@ -1319,7 +1420,7 @@ function filamentModel() {
     else if (unloading) {
       // extruder retracts unload_ext_len (tip stays in the gears), then the loader pulls
       head = hot ? Math.max(4, 5 - sec(PATH.extT || now) * esp / (+v.unload_ext_len || 65)) : 5;
-      moving = hot; dir = -1; text = hot ? "Extruder zieht zurück …" : "Hotend heizt auf …";
+      moving = hot; dir = -1; text = hot ? (+v.tip_enable !== 0 ? "Spitze wird geformt, Extruder zieht zurück …" : "Extruder zieht zurück …") : "Hotend heizt auf …";
       if (hot && head <= 4) { head = 3.95; text = "Loader zieht das Filament aus dem Extruder …"; }
     } else if (okLoad && st.op === "load") { head = 5; text = "Filament geladen bis zur Düse"; }
     else if (okLoad) { head = 4; text = "Filament in den Extruder-Zahnrädern"; }
@@ -1327,7 +1428,7 @@ function filamentModel() {
     else { head = 3.5; warnTxt = true; text = "Filament an Sensor 2 – ob die Extruder-Zahnräder greifen, ist unbekannt"; }
   } else if (s1) {
     head = 2; text = "Filament im Loader (Zahnräder)";
-    if (loading) { head = 2 + Math.min(0.97, sec(EV.t0) * sp / tube); moving = true; text = "Wird durch den PTFE-Schlauch gefördert …"; }
+    if (loading) { head = 2 + Math.min(0.97, sec(EV.t0) * sp / tube); moving = true; text = st.op === "measure" ? "Messfahrt bis Sensor 2 …" : "Wird durch den PTFE-Schlauch gefördert …"; }
     else if (unloading) { head = 3 - Math.min(0.95, sec(PATH.s2t) * sp / tube); moving = true; dir = -1; text = "Wird zurückgezogen …"; }
     else if (st.state === "testing") { head = 2.25; moving = true; text = "Bench-Test läuft …"; }
     else if (st.op === "unload" && st.result === "ok") text = "Entladen – Spitze im Loader-Griff";
@@ -1404,8 +1505,10 @@ const FIELDS = [
   ["lang", VARS, "variable_lang", "l"],
   ...["servo_clamp", "servo_release", "servo_settle", "speed", "slow_speed", "step_mm", "coarse_len", "tube_len", "overrun",
     "gear_offset", "gear_push", "ext_to_nozzle", "ext_speed", "purge_len", "purge_speed", "default_temp", "unload_ext_len",
-    "unload_hold", "auto_delay", "bench_dist"].map((k) => [k, VARS, "variable_" + k, "n"]),
+    "unload_hold", "auto_delay", "bench_dist", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
+    "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode"].map((k) => [k, VARS, "variable_" + k, "n"]),
   ["servo_off_released", VARS, "variable_servo_off_released", "b"], ["bench_mode", VARS, "variable_bench_mode", "b"],
+  ["tip_enable", VARS, "variable_tip_enable", "b"], ["unload_after_print", VARS, "variable_unload_after_print", "b"],
 ];
 const LABELS = {
   step_pin: "Stepper step_pin", dir_pin: "Stepper dir_pin", enable_pin: "Stepper enable_pin", microsteps: "Mikroschritte",
@@ -1417,7 +1520,14 @@ const LABELS = {
   gear_offset: "gear_offset", gear_push: "gear_push", ext_to_nozzle: "ext_to_nozzle", ext_speed: "Extruder-Tempo",
   purge_len: "Ausspülen", purge_speed: "Ausspül-Tempo", default_temp: "Standard-Düsentemperatur", unload_ext_len: "unload_ext_len",
   unload_hold: "unload_hold", auto_delay: "Auto-Verzögerung", bench_mode: "Bench-Modus", bench_dist: "Bench-Strecke",
+  tip_enable: "Spitze formen beim Entladen", tip_ram_len: "Rammen", tip_temp: "Kühltemperatur", tip_speed_start: "Abreißen",
+  tip_speed: "Zurückziehen", tip_cool_pos: "Kühlzone", tip_cool_len: "Kühlweg", tip_cool_moves: "Kühlbewegungen",
+  tip_cool_start: "Kühlen Start", tip_cool_end: "Kühlen Ende", tip_eject_speed: "Auswerfen",
+  print_start_mode: "PRINT_START ohne Filament", unload_after_print: "Nach dem Druck entladen (PRINT_END)",
 };
+/* new variables of newer versions: defaults when the settings file does not have them yet */
+const NEW_DEFAULTS = { tip_enable: 1, tip_ram_len: 0, tip_temp: 0, tip_speed_start: 80, tip_speed: 18, tip_cool_pos: 35, tip_cool_len: 10,
+  tip_cool_moves: 4, tip_cool_start: 10, tip_cool_end: 50, tip_eject_speed: 25, print_start_mode: 2, unload_after_print: 0 };
 const TYPES = Object.fromEntries(FIELDS.map((f) => [f[0], f[3]]).concat([["tool", "b"]]));
 let ED = null;   // { text, schema, base, model }
 
@@ -1461,12 +1571,13 @@ async function loadSettings() {
   const { sec, off, schema } = parseCfg(text), model = {};
   for (const [k, s, o, ty] of FIELDS) {
     let v = (sec[s] || {})[o];
+    if (v === undefined && NEW_DEFAULTS[k] !== undefined) v = String(NEW_DEFAULTS[k]);
     if (ty === "b") v = v !== undefined && parseFloat(v) ? 1 : 0;
     else if (ty === "l") v = String(v || "de").replace(/["']/g, "");
     model[k] = v === undefined ? "" : v;
   }
   model.tool = sec[TOOL] && !off.has(TOOL) ? 1 : 0;
-  ED = { text, schema, base: { ...model }, model: { ...model } };
+  ED = { text, schema, base: { ...model }, model: { ...model }, missing: FIELDS.filter(([k, s, o]) => (sec[s] || {})[o] === undefined && NEW_DEFAULTS[k] !== undefined).map((f) => f[0]) };
   $("ed-msg").innerHTML = "";
   fillEditor();
 }
@@ -1513,7 +1624,11 @@ function setOpt(L, sec, opt, val) {
     const m = re.exec(L[i]);
     if (m) { L[i] = (m[1] || "") + m[2] + m[3] + val + (m[5] || ""); return; }
   }
-  L.splice(r[0] + 1, 0, (L[r[0]].startsWith(OFF) ? OFF : "") + opt + ": " + val);
+  // missing option: add it at the end of the section's options (before "gcode:" of a macro)
+  let at = r[1];
+  for (let i = r[0] + 1; i < r[1]; i++) if (/^gcode\s*[:=]/.test(L[i])) { at = i; break; }
+  if (at === r[1]) while (at > r[0] + 1 && !L[at - 1].trim()) at--;
+  L.splice(at, 0, (L[r[0]].startsWith(OFF) ? OFF : "") + opt + ": " + val);
 }
 function setTool(L, on) {
   const r = secRange(L, TOOL);
@@ -1526,7 +1641,7 @@ function setTool(L, on) {
 function buildText(m) {
   const L = ED.text.split("\n");
   for (const [k, s, o, ty] of FIELDS) {
-    if (same(k, m[k], ED.base[k])) continue;
+    if (same(k, m[k], ED.base[k]) && !(ED.missing || []).includes(k)) continue;
     setOpt(L, s, o, ty === "l" ? `"${m[k]}"` : fmtV(k, m[k]));
   }
   if (!same("tool", m.tool, ED.base.tool)) setTool(L, !!+m.tool);
@@ -1550,6 +1665,8 @@ function validate(m) {
   if (depth > 100) warn.push(t("Die Sensorabfrage braucht rund {n} Makro-Aufrufe hintereinander (Limit ca. 100) – coarse_len erhöhen oder Schritt vergrößern.", { n: Math.round(depth) }));
   if (n("run_current") > 1) warn.push(t("Motorstrom über 1 A – für einen NEMA17 am Loader meist unnötig."));
   if (n("servo_clamp") === n("servo_release")) warn.push(t("Klemm- und Freiwinkel sind gleich."));
+  if (n("unload_ext_len") >= n("ext_to_nozzle") + n("gear_offset")) warn.push(t("unload_ext_len ist so groß, dass der Extruder die Spitze schon über Sensor 2 hinaus zieht – üblich ist etwas weniger als ext_to_nozzle."));
+  if (+m.tip_enable && n("tip_cool_pos") + n("tip_cool_len") >= n("unload_ext_len")) warn.push(t("Die Kühlzone reicht bis an unload_ext_len – unload_ext_len sollte größer als Kühlzone + Kühlweg sein."));
   return { err: null, warn };
 }
 
@@ -1564,7 +1681,8 @@ async function saveSettings() {
   const show = (k, x) => TYPES[k] === "b" ? t(+x ? "ja" : "nein") : TYPES[k] === "n" ? dec(numStr(x)) : TYPES[k] === "l" ? (x === "en" ? "English" : "Deutsch") : x === "" ? "–" : x;
   const diff = [];
   for (const k in LABELS) if (!same(k, m[k], ED.base[k])) diff.push([t(LABELS[k]), esc(show(k, ED.base[k])), esc(show(k, m[k]))]);
-  if (!diff.length) return snack(t("Keine Änderungen."));
+  if (!diff.length && !(ED.missing || []).length) return snack(t("Keine Änderungen."));
+  if ((ED.missing || []).length) diff.push([t("Neue Einstellungen"), "–", esc(t("{n} Werte werden ergänzt", { n: ED.missing.length }))]);
 
   let text;
   try { text = buildText(m); } catch (e) { return snack(e.message); }
@@ -1867,8 +1985,24 @@ function wire() {
     if (await dialog(t("Laden heiß"), esc(t("Hotend auf {n} °C aufheizen, Filament laden und bis in die Düse fördern?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_LOAD TEMP=${hotTemp()}`);
   };
   $("unload").onclick = async () => {
-    if (await dialog(t("Entladen"), esc(t("Hotend auf {n} °C aufheizen und Filament entladen?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_UNLOAD TEMP=${hotTemp()}`);
+    if (await dialog(t("Entladen"), esc(t("Hotend auf {n} °C aufheizen, Spitze formen und Filament entladen?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_UNLOAD TEMP=${hotTemp()}`);
   };
+  $("tip-test").onclick = async () => {
+    if (await dialog(t("Spitze formen"), esc(t("Hotend auf {n} °C aufheizen und nur die Spitze formen? Das Filament bleibt im Extruder – danach entladen oder von Hand ziehen und die Spitze ansehen.", { n: hotTemp() })), "OK")) gcode(`LOADER_FORM_TIP TEMP=${hotTemp()}`);
+  };
+  // length measuring
+  const apply = (k, v, tab) => { if (!ED) return; setField(k, Math.round(v * 10) / 10); openTab(tab); snack(t("{k} = {v} übernommen – unter Einstellungen speichern.", { k, v: dec(String(Math.round(v * 10) / 10)) })); };
+  $("ms-sensor").onclick = () => { MS.gear = 0; gcode("LOADER_TO_SENSOR"); };
+  $("ms-tube").onclick = () => apply("tube_len", Number(ls().fed || 0), "t-len");
+  const push = (d) => gcode(`LOADER_MOVE DIST=${d} SPEED=${Math.max(1, Number(lv().slow_speed) || 5)} CLAMP=1`).then((ok) => { if (ok) { MS.gear += d; render(); } });
+  $("ms-g1").onclick = () => push(1);
+  $("ms-g05").onclick = () => push(0.5);
+  $("ms-gear").onclick = () => apply("gear_offset", MS.gear, "t-len");
+  const ext = (d) => gcode(`LOADER_EXTRUDE DIST=${d} TEMP=${hotTemp()}`).then((ok) => { if (ok) { MS.e += d; render(); } });
+  $("ms-e5").onclick = () => ext(5);
+  $("ms-e1").onclick = () => ext(1);
+  $("ms-e2n").onclick = () => apply("ext_to_nozzle", MS.e, "t-len");
+  $("ms-reset").onclick = () => { MS.gear = 0; MS.e = 0; render(); };
 
   const mv = (sign) => gcode(`LOADER_MOVE DIST=${sign * Math.max(1, num("mv-d", 50))} SPEED=${Math.max(1, num("mv-s", 10))} CLAMP=${isChecked($("mv-clamp")) ? 1 : 0}`);
   $("mv-fwd").onclick = () => mv(1);
