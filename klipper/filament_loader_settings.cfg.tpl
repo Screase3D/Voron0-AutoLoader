@@ -1,4 +1,4 @@
-#@schema 5
+#@schema 6
 # =====================================================================
 # voron0-autoloader - Einstellungen (vom Installer erzeugt)
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -23,7 +23,7 @@ enable_pin: ${enable_pin}
 microsteps: ${microsteps}
 rotation_distance: ${rotation_distance}    # mm Filament pro Motorumdrehung - mit LOADER_MOVE DIST=100 nachmessen
 velocity: ${velocity}                  # Standardtempo, die Makros geben das Tempo immer selbst vor
-accel: ${accel}
+accel: ${accel}                     # mm/s^2 - mit voller 1-kg-Rolle 500 oder weniger
 
 [tmc2209 manual_stepper loader]
 uart_pin: ${uart_pin}                # gemeinsamer UART-Bus des Pico
@@ -77,6 +77,7 @@ variable_step_mm: ${step_mm}              # mm pro Schritt bei der Sensorsuche (
 variable_approach: ${approach}            # mm vor Sensor 2: ab hier Sensorsuche statt voller Fahrt
 variable_tube_len: ${tube_len}           # mm Loader-Zahnraeder -> Toolhead-Sensor
 variable_overrun: ${overrun}             # mm Reserve bis Timeout
+variable_slip_warn: ${slip_warn}           # mm: Warnung, wenn Sensor 2 so viel spaeter kommt als erwartet (Schlupf, z. B. volle Rolle)
 # --- Toolhead ---
 variable_gear_offset: ${gear_offset}          # mm Toolhead-Sensor -> Extruder-Zahnraeder
 variable_gear_push: ${gear_push}            # mm Loader schiebt ueber die Zahnraeder hinaus

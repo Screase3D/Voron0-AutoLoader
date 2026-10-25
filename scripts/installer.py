@@ -49,7 +49,7 @@ KS_NAME = "autoloader_klipperscreen.conf"
 KS_INCLUDE = f"[include {KS_NAME}]"
 KS_CREATED = "# created by voron0-autoloader"
 
-SETTINGS_SCHEMA = 5  # matches "#@schema" in filament_loader_settings.cfg.tpl
+SETTINGS_SCHEMA = 6  # matches "#@schema" in filament_loader_settings.cfg.tpl
 TOOL_SECTION = "filament_switch_sensor toolhead_in"
 
 # icon: Material Design Icons "printer-3d-nozzle" (Pictogrammers, Apache-2.0)
@@ -85,8 +85,8 @@ FIELDS = [
     "purge_len", "purge_speed", "default_temp", "unload_ext_len", "unload_hold", "auto_delay", "bench_mode",
     "bench_dist", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
-    "print_end_action", "park_dist", "auto_enable", "auto_target", "heater_off")]
-NEW_VARS_V2 = ["park_dist", "print_end_action", "auto_enable", "auto_target", "heater_off", "approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
+    "print_end_action", "park_dist", "auto_enable", "auto_target", "heater_off", "slip_warn")]
+NEW_VARS_V2 = ["slip_warn", "park_dist", "print_end_action", "auto_enable", "auto_target", "heater_off", "approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
                "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode"]
 
 HOOK_TAG = "# autoloader"
@@ -98,7 +98,7 @@ OFF_RE = re.compile(r"^\s*TURN_OFF_HEATERS\b", re.I)
 
 DEFAULTS = {
     "step_pin": "gpio14", "dir_pin": "!gpio13", "enable_pin": "!gpio15", "microsteps": "16",
-    "rotation_distance": "22.99646", "velocity": "150", "accel": "1500",
+    "rotation_distance": "22.99646", "velocity": "150", "accel": "500",
     "uart_pin": "gpio9", "tx_pin": "gpio8", "uart_address": "3", "run_current": "0.6", "stealth_speed": "60",
     "servo_pin": "gpio29", "loader_in_pin": "^gpio16", "toolhead_in_pin": "^nhk:gpio12",
     "lang": "de", "servo_clamp": "45", "servo_release": "170", "servo_settle": "0.5", "servo_off_released": "1",
@@ -109,7 +109,7 @@ DEFAULTS = {
     "tip_enable": "1", "tip_ram_len": "0", "tip_temp": "0", "tip_speed_start": "80", "tip_speed": "18",
     "tip_cool_pos": "35", "tip_cool_len": "10", "tip_cool_moves": "4", "tip_cool_start": "10", "tip_cool_end": "50",
     "tip_eject_speed": "25", "print_start_mode": "2", "print_end_action": "0", "park_dist": "20",
-    "auto_enable": "1", "auto_target": "cold", "heater_off": "1",
+    "auto_enable": "1", "auto_target": "cold", "heater_off": "1", "slip_warn": "10",
 }
 
 QUOTED = {"lang", "auto_target"}   # string variables, written with quotes

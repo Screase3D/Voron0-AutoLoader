@@ -239,6 +239,7 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                 <table class="kv">
                   <tr><td>Zustand</td><td id="s-state">–</td></tr>
                   <tr><td>Filament</td><td id="s-pos">–</td></tr>
+                  <tr><td>Abweichung beim letzten Laden</td><td id="s-slip">–</td></tr>
                   <tr><td>Sensor 1 · Loader-Eingang</td><td id="s-in">–</td></tr>
                   <tr><td>Sensor 2 · Toolhead-Eingang</td><td id="s-tool">–</td></tr>
                   <tr><td>Hotend</td><td id="s-temp">–</td></tr>
@@ -465,7 +466,7 @@ const OFF = "#off# ";                            // prefix of deactivated config
 const TOOL = "filament_switch_sensor toolhead_in";
 const BASE = location.pathname.replace(/[^/]*$/, "") || "/autoloader/";   // /autoloader/ or /server/autoloader/
 const SELF_RE = /^\/(autoloader|server\/autoloader)\/?$/;
-const SCHEMA = 2;                                // version of the settings file format
+const SCHEMA = 6;                                // version of the settings file format
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const store = {
@@ -696,6 +697,12 @@ const T_EN = {
   "Filament im Schlauch geparkt": "Filament parked in the tube", "Filament im Loader": "Filament in the loader", "(Stelle im Schlauch unbekannt)": "(position in the tube unknown)",
   "Wird in den Schlauch zurückgezogen …": "Pulling back into the tube …", "Längen messen": "Measure lengths",
   "muss kleiner als „Sensorsuche ab“ + Reserve − 5 mm sein": "must be smaller than “Search starts” + reserve − 5 mm",
+  // Slip
+  "Abweichung beim letzten Laden": "Deviation on the last load", "Abweichung": "deviation", "bei {n} mm/s": "at {n} mm/s",
+  "Abweichung {d} an Sensor 2: plus = später als erwartet (Schlupf oder Schrittverlust), minus = früher (tube_len zu groß).":
+    "Deviation {d} at sensor 2: plus = later than expected (slip or lost steps), minus = earlier (tube_len too large).",
+  "Beschleunigung über 1000 mm/s²: Mit voller 1-kg-Rolle muss die Rolle mitbeschleunigt werden und läuft beim Bremsen nach – 500 ist schonender und kostet nur Bruchteile einer Sekunde.":
+    "Acceleration above 1000 mm/s²: with a full 1 kg spool the spool has to be accelerated too and keeps turning when the loader stops – 500 is gentler and costs only a fraction of a second.",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1112,7 +1119,9 @@ function merge(o) {
       if (EV.last === null || st.event < EV.last) EV.last = st.event;
       else if (st.event > EV.last) {
         EV.last = st.event;
-        histAdd({ t: Date.now() / 1000, op: st.op || "", r: st.result || "", m: st.msg || "", d: EV.t0 ? Math.round((Date.now() - EV.t0) / 100) / 10 : null });
+        const it = { t: Date.now() / 1000, op: st.op || "", r: st.result || "", m: st.msg || "", d: EV.t0 ? Math.round((Date.now() - EV.t0) / 100) / 10 : null };
+        if (["load", "load_cold"].includes(st.op) && Number(st.slip) > -900) { it.sl = Number(st.slip); it.sp = Math.round(Number(st.slip_speed) || 0); }
+        histAdd(it);
         EV.t0 = 0;
       }
     }
@@ -1186,6 +1195,16 @@ function posHTML() {
   if (["loader", "tube"].includes(p) && st.tip != null) h += chip(t("{n} mm ab Loader", { n: Math.round(Number(st.tip)) }) + (+st.tip_known ? "" : " · " + t("ungenau")), +st.tip_known ? "muted" : "warning--text");
   return h;
 }
+/* deviation at sensor 2 on the last load: + = later than expected (slip / lost steps), - = earlier (tube_len too large) */
+const slipTxt = (d) => `${d > 0 ? "+" : ""}${dec(Number(d).toFixed(1))} mm`;
+function slipHTML(st, v) {
+  const d = Number(st.slip);
+  if (st.slip === undefined || !isFinite(d) || d <= -900) return "–";
+  const warn = Number(v.slip_warn ?? 10);
+  const tip = t("Abweichung {d} an Sensor 2: plus = später als erwartet (Schlupf oder Schrittverlust), minus = früher (tube_len zu groß).", { d: slipTxt(d) });
+  return `<span title="${esc(tip)}">` + chip(slipTxt(d), Math.abs(d) > warn ? "warning--text" : "success--text") +
+    (Number(st.slip_speed) > 0 ? chip(t("bei {n} mm/s", { n: Math.round(Number(st.slip_speed)) }), "muted") : "") + `</span>`;
+}
 /* position saved by Klipper vs. what the sensors say right now (filament moved by hand) */
 const SYNC = { since: 0, last: 0 };
 function posMismatch() {
@@ -1250,6 +1269,7 @@ function draw() {
   $("s-in").innerHTML = S["filament_switch_sensor loader_in"] ? sensorHTML("loader_in") : "–";
   $("s-tool").innerHTML = ready ? sensorHTML("toolhead_in") : "–";
   $("s-pos").innerHTML = st.pos === undefined ? "–" : posHTML();
+  $("s-slip").innerHTML = slipHTML(st, v);
   const psel = $("pos-sel");
   if (psel && psel.dataset.touched !== "1" && psel.value !== st.pos && [...psel.options].some((o) => o.value === st.pos)) psel.value = st.pos;
   $("s-persist").innerHTML = hasSV ? chip(t("aktiv – überlebt Neustart und Ausschalten"), "success--text") : chip(t("fehlt – ./install.sh ergänzt [save_variables]"), "warning--text");
@@ -1428,7 +1448,7 @@ function drawHistory() {
     `<div class="v-data-table v-data-table--dense theme--${TH} hlist"><div class="v-data-table__wrapper"><table><tbody>` +
     shown.map((e) => `<tr><td>${esc(dMid(e.t))}</td><td>${esc(t(OPS[e.op] || e.op || "–"))}</td>` +
       `<td>${e.r === "ok" ? chip(t("ok"), "success--text") : chip(t("Fehler"), "error--text")}</td>` +
-      `<td class="small muted">${esc(e.m || "")}${e.d != null ? ` · ${esc(dec(e.d))} s` : ""}</td></tr>`).join("") +
+      `<td class="small muted">${esc(e.m || "")}${e.d != null ? ` · ${esc(dec(e.d))} s` : ""}${e.sl != null ? ` · ${esc(t("Abweichung"))} ${esc(slipTxt(e.sl))}${e.sp ? ` @ ${esc(e.sp)} mm/s` : ""}` : ""}</td></tr>`).join("") +
     `</tbody></table></div></div>` +
     (items.length > 10 ? `<div class="mt-2"><button type="button" class="v-btn v-btn--text theme--${TH} v-size--small primary--text" id="hist-more"><span class="v-btn__content">${esc(HIST.all ? t("Weniger anzeigen") : t("Alle anzeigen ({n})", { n: items.length }))}</span></button></div>` : "");
   const more = $("hist-more");
@@ -1436,8 +1456,8 @@ function drawHistory() {
 }
 
 function histCsv() {
-  const rows = [["time", "operation", "result", "message", "duration_s"]].concat(
-    HIST.items.slice().sort((a, b) => a.t - b.t).map((e) => [new Date(e.t * 1000).toISOString(), e.op, e.r, e.m || "", e.d ?? ""]));
+  const rows = [["time", "operation", "result", "message", "duration_s", "deviation_mm", "speed_mm_s"]].concat(
+    HIST.items.slice().sort((a, b) => a.t - b.t).map((e) => [new Date(e.t * 1000).toISOString(), e.op, e.r, e.m || "", e.d ?? "", e.sl ?? "", e.sp ?? ""]));
   const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
@@ -1646,7 +1666,7 @@ const FIELDS = [
     "gear_offset", "gear_push", "ext_to_nozzle", "ext_speed", "purge_len", "purge_speed", "default_temp", "unload_ext_len",
     "unload_hold", "auto_delay", "bench_dist", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
-    "print_end_action", "park_dist"].map((k) => [k, VARS, "variable_" + k, "n"]),
+    "print_end_action", "park_dist", "slip_warn"].map((k) => [k, VARS, "variable_" + k, "n"]),
   ["servo_off_released", VARS, "variable_servo_off_released", "b"], ["bench_mode", VARS, "variable_bench_mode", "b"],
   ["tip_enable", VARS, "variable_tip_enable", "b"],
   ["auto_enable", VARS, "variable_auto_enable", "b"], ["heater_off", VARS, "variable_heater_off", "b"],
@@ -1655,7 +1675,7 @@ const FIELDS = [
 const TYPES = Object.fromEntries(FIELDS.map((f) => [f[0], f[3]]).concat([["tool", "b"]]));
 /* defaults – same as scripts/installer.py DEFAULTS */
 const DEF = {
-  step_pin: "gpio14", dir_pin: "!gpio13", enable_pin: "!gpio15", microsteps: 16, rotation_distance: 22.6789511, velocity: 150, accel: 1500,
+  step_pin: "gpio14", dir_pin: "!gpio13", enable_pin: "!gpio15", microsteps: 16, rotation_distance: 22.99646, velocity: 150, accel: 500,
   uart_pin: "gpio9", tx_pin: "gpio8", uart_address: 3, run_current: 0.6, stealth_speed: 60, servo_pin: "gpio29",
   loader_in_pin: "^gpio16", toolhead_in_pin: "^nhk:gpio12", tool: 0, lang: "de",
   servo_clamp: 45, servo_release: 170, servo_settle: 0.5, servo_off_released: 1, speed: 150, slow_speed: 30, step_mm: 2,
@@ -1663,11 +1683,11 @@ const DEF = {
   purge_speed: 3, default_temp: 220, unload_ext_len: 65, unload_hold: 15, auto_delay: 2, bench_mode: 1, bench_dist: 50,
   tip_enable: 1, tip_ram_len: 0, tip_temp: 0, tip_speed_start: 80, tip_speed: 18, tip_cool_pos: 35, tip_cool_len: 10,
   tip_cool_moves: 4, tip_cool_start: 10, tip_cool_end: 50, tip_eject_speed: 25, print_start_mode: 2, print_end_action: 0, park_dist: 20,
-  auto_enable: 1, auto_target: "cold", heater_off: 1,
+  auto_enable: 1, auto_target: "cold", heater_off: 1, slip_warn: 10,
 };
 /* variables of newer versions – defaults when the settings file does not have them yet */
 const NEW_KEYS = ["auto_enable", "auto_target", "heater_off", "approach", "stealth_speed", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
-  "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "print_end_action", "park_dist"];
+  "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "print_end_action", "park_dist", "slip_warn"];
 const NEW_DEFAULTS = Object.fromEntries(NEW_KEYS.map((k) => [k, DEF[k]]));
 
 const L2 = (x) => Array.isArray(x) ? x[LANG === "en" ? 1 : 0] : x;
@@ -1692,11 +1712,12 @@ const GROUPS = [
   { id: "speed", t: ["Tempo", "Speed"], presets: true, f: [
     F("speed", ["Fördern", "Feed"], "mm/s", ["Volle Fahrt durch den PTFE-Schlauch", "Full speed through the PTFE tube"], { min: 10, max: 400, st: 10 }),
     F("slow_speed", ["Sensorsuche", "Sensor search"], "mm/s", ["Letztes Stück vor Sensor 2 und Übergabe an den Extruder", "Last part before sensor 2 and hand-over to the extruder"], { min: 5, max: 100, st: 5 }),
-    F("accel", ["Beschleunigung", "Acceleration"], "mm/s²", ["Höher = schneller auf Tempo, braucht mehr Kraft", "Higher = reaches speed sooner, needs more torque"], { min: 100, max: 10000, st: 100 }),
+    F("accel", ["Beschleunigung", "Acceleration"], "mm/s²", ["Anfahren und Bremsen. Mit voller 1-kg-Rolle 500 oder weniger – die Rolle muss mitbeschleunigt werden und läuft beim Bremsen nach", "Start and stop. With a full 1 kg spool 500 or less – the spool has to be accelerated too and keeps turning when the loader stops"], { min: 100, max: 10000, st: 100 }),
     F("run_current", ["Motorstrom", "Motor current"], "A", ["Mehr Strom = mehr Kraft bei hohem Tempo, wärmerer Motor", "More current = more torque at high speed, warmer motor"], { min: 0.2, max: 1.5, st: 0.05 }),
     F("ext_speed", ["Extruder beim Laden", "Extruder while loading"], "mm/s", ["Extruder schiebt bis zur Düse", "Extruder pushes to the nozzle"], { min: 0.5, max: 30, st: 0.5 }),
     F("stealth_speed", ["Leise bis", "Quiet up to"], "mm/s", ["Darunter leise (StealthChop), darüber kräftig (SpreadCycle). 0 = immer kräftig", "Below: quiet (StealthChop), above: strong (SpreadCycle). 0 = always strong"], { min: 0, max: 999999, st: 10, adv: true }),
     F("purge_speed", ["Ausspül-Tempo", "Purge speed"], "mm/s", ["Tempo beim Ausspülen nach dem Laden", "Speed of the purge after loading"], { min: 0.5, max: 20, st: 0.5, adv: true }),
+    F("slip_warn", ["Schlupf-Warnung ab", "Slip warning from"], "mm", ["Warnung, wenn Sensor 2 beim Laden so viel später kommt als erwartet (Schlupf oder Schrittverlust)", "Warning when sensor 2 comes this much later than expected while loading (slip or lost steps)"], { min: 2, max: 200, st: 1, adv: true }),
     F("step_mm", ["Suchschritt", "Search step"], "mm", ["Genauigkeit der Sensorsuche – kleiner = genauer, aber langsamer", "Resolution of the sensor search – smaller = more precise but slower"], { min: 0.5, max: 10, st: 0.5, adv: true }),
   ] },
   { id: "len", t: ["Längen", "Lengths"], diagram: true, f: [
@@ -1750,9 +1771,9 @@ const GROUPS = [
 const FDEF = Object.fromEntries(GROUPS.flatMap((g) => g.f.map((f) => [f.k, f])));
 const LABELS = Object.fromEntries(Object.values(FDEF).map((f) => [f.k, f.l]));
 const PRESETS = [
-  { id: "quiet", t: ["Leise", "Quiet"], v: { speed: 60, slow_speed: 15, accel: 600, stealth_speed: 200 } },
-  { id: "normal", t: ["Normal", "Normal"], v: { speed: 150, slow_speed: 30, accel: 1500, stealth_speed: 60 } },
-  { id: "fast", t: ["Schnell", "Fast"], v: { speed: 250, slow_speed: 40, accel: 3000, stealth_speed: 0 } },
+  { id: "quiet", t: ["Leise", "Quiet"], v: { speed: 60, slow_speed: 15, accel: 300, stealth_speed: 200 } },
+  { id: "normal", t: ["Normal", "Normal"], v: { speed: 150, slow_speed: 30, accel: 500, stealth_speed: 60 } },
+  { id: "fast", t: ["Schnell", "Fast"], v: { speed: 250, slow_speed: 40, accel: 1000, stealth_speed: 0 } },
 ];
 let ED = null;   // { text, schema, base, model, missing }
 
@@ -1927,6 +1948,7 @@ function validate(m) {
   const depth = (n("approach") + n("overrun")) / n("step_mm");
   if (depth > 150) warn.push(t("Die Sensorsuche kann bis zu {n} Schritte brauchen – das dauert. Suchschritt vergrößern oder „Sensorsuche ab“ / Reserve verkleinern.", { n: Math.round(depth) }));
   if (n("speed") > 200 && n("run_current") < 0.7) warn.push(t("Über 200 mm/s braucht der NEMA17 meist 0,7 A oder mehr, sonst verliert er Schritte."));
+  if (n("accel") > 1000) warn.push(t("Beschleunigung über 1000 mm/s²: Mit voller 1-kg-Rolle muss die Rolle mitbeschleunigt werden und läuft beim Bremsen nach – 500 ist schonender und kostet nur Bruchteile einer Sekunde."));
   if (n("speed") > 100 && n("stealth_speed") >= n("speed")) warn.push(t("„Leise bis“ liegt über dem Fördertempo – der Treiber fährt die volle Fahrt im leisen, aber schwächeren StealthChop."));
   if (n("servo_clamp") === n("servo_release")) err.servo_release = t("gleich wie der Klemmwinkel");
   return { err, warn };

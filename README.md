@@ -27,6 +27,8 @@ right above the extruder gears – tell Klipper where the filament is.
 - **Unload with tip forming** – ramming, break-off and cooling moves (ERCF / Happy Hare approach).
 - **Remembers the filament position** across restarts and power-off; at start-up it is checked against the sensors.
 - **Fast** – 150 mm/s by default, only the last centimetres are searched slowly.
+- **Slip check** – every load compares where sensor 2 triggers with where it should; slip or lost steps (e.g. with a
+  heavy spool) are shown on the page and in the history.
 - **Auto load** when filament is inserted, **print hooks** for `PRINT_START` / `PRINT_END`, Mainsail and
   KlipperScreen buttons `LOAD_FILAMENT` / `UNLOAD_FILAMENT`.
 - **Mainsail page** with an *Operate* mode for daily use and a separate *Setup & calibration* mode.
@@ -109,6 +111,13 @@ park `park_dist` behind sensor 2, or unload to `unload_hold` inside the loader. 
 (`print_start_mode`). `LOADER_PRINT_END` (before `TURN_OFF_HEATERS`) does nothing, parks or unloads
 (`print_end_action` 0/1/2).
 
+**Full spools.** The loader has to accelerate the spool, and the spool keeps turning when the loader stops. A gentle
+acceleration (`accel` 500 mm/s², default) avoids both and costs only a fraction of a second. Every load reports the
+deviation at sensor 2 (*Deviation on the last load*): a few mm are normal, more than `slip_warn` triggers a warning.
+If it grows with the speed, lower `accel` or `speed`, or check the clamp angle; if it is the same at every speed,
+measure `tube_len` again. A spool holder with bearings and a light brake helps, and a straight path from the spool
+into the loader. A full unload pushes about `tube_len` of filament back towards the spool – parking avoids that.
+
 **Tip tuning.** Thin string → more cooling moves or higher `tip_cool_pos`. Blob or fat tip → lower `tip_cool_pos`
 or a lower `tip_temp`. The defaults are Happy Hare's starting values.
 
@@ -135,6 +144,7 @@ directly in `filament_loader_settings.cfg`, where every value is commented. The 
 | Variable | Default | Meaning |
 |---|---|---|
 | `speed` / `slow_speed` | 150 / 30 | mm/s fast feed / sensor search |
+| `accel` | 500 | mm/s² start and stop of the loader (gentle on full spools) |
 | `tube_len` | 300 | mm loader gears → sensor 2 (measure it) |
 | `gear_offset` / `gear_push` | 8 / 3 | mm sensor 2 → extruder gears / extra push |
 | `ext_to_nozzle` | 70 | mm extruder gears → nozzle |
@@ -142,6 +152,7 @@ directly in `filament_loader_settings.cfg`, where every value is commented. The 
 | `park_dist` / `unload_hold` | 20 / 15 | mm behind sensor 2 when parking / left in the loader |
 | `auto_enable` / `auto_target` | 1 / "cold" | auto load and its target (`cold` / `hot`) |
 | `print_start_mode` / `print_end_action` | 2 / 0 | print hooks (see above) |
+| `slip_warn` | 10 | mm deviation at sensor 2 before a warning |
 
 For high speeds the stepper needs SpreadCycle (`stealthchop_threshold` below the feed speed) and 0.6–0.8 A. If it
 skips: lower `speed` or `accel` first, then raise `run_current`.
@@ -151,6 +162,7 @@ skips: lower `speed` or `accel` first, then raise `run_current`.
 - **Sensor shows filament with nothing inserted** – wiring; with NC switches a broken wire reads as "filament".
 - **Loader runs backwards** – invert `dir_pin`.
 - **Timeout before sensor 2** – measure `tube_len`, check friction in the tube.
+- **Deviation warning** – see *Full spools* above.
 - **"Sensor 2 reached during the full-speed move"** – `tube_len` too large or wrong stored position.
 - **Position notice after power-on** – filament was moved while off; check it or correct it under *Manual & test*.
 - **Filament stuck after unloading** – tune the tip forming.
