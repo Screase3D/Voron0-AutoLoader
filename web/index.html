@@ -1,0 +1,1702 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#121212">
+<title>Loader</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/img/icons/favicon-32x32.png">
+<style>
+/* ------------------------------------------------------------------
+   voronv0-filament-loader web UI
+   SPDX-License-Identifier: GPL-3.0-or-later
+
+   At runtime this page loads the stylesheets of the installed Mainsail
+   version and uses the same Vuetify class names. This block only holds
+   a few component-scoped rules mirrored from Mainsail (marked below,
+   Mainsail © mainsail-crew, GPL-3.0) plus page-specific additions.
+   ------------------------------------------------------------------ */
+html { overflow-y: auto; }
+body { margin: 0; background: #121212; }
+html.theme--light body { background: #fff; }
+body.loading { visibility: hidden; }
+.hide { display: none !important; }
+
+/* Topbar / Sidebar (Mainsail: TheTopbar.vue, TheSidebar.vue, SidebarItem.vue) */
+.topbar .v-toolbar__content { padding-top: 0 !important; padding-bottom: 0 !important; }
+.topbar .v-btn { height: 100% !important; max-height: none; }
+.topbar .v-btn.v-btn--icon { width: var(--topbar-icon-btn-width) !important; }
+.topbar .button-min-width-auto { min-width: auto !important; }
+.topbar .nav-logo { height: 32px; width: auto; display: flex; align-items: center; }
+.topbar .nav-logo svg, .topbar .nav-logo img { height: 32px; width: auto; }
+header.topbar { z-index: 8 !important; }
+.small-list-item { height: var(--sidebar-menu-item-height); }
+.active-nav-item { border-right: 4px solid var(--v-primary-base); }
+.menu-item-icon { opacity: .85; }
+.menu-item-title { line-height: 30px; font-size: 14px; font-weight: 600; text-transform: uppercase; opacity: .85; }
+.v-navigation-drawer__content { z-index: 10; padding-bottom: 1em; }
+.nav-foot { position: absolute; bottom: 0; left: 0; right: 0; z-index: 11; padding: 8px 16px; font-size: 11px; opacity: .5; }
+.v-navigation-drawer--mini-variant .menu-item-title, .v-navigation-drawer--mini-variant .nav-foot { display: none; }
+
+/* Panel (Mainsail: ui/Panel.vue) */
+.panel.expanded header.v-toolbar { border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }
+.btn-collapsible > * { will-change: transform; transition: transform 500ms; }
+.icon-rotate-90 { transform: rotate(90deg); }
+.panel-toolbar { overflow-y: hidden; cursor: default; }
+.panel-toolbar .v-btn { height: 100% !important; max-height: none; }
+.panel.accent-panel { box-shadow: 0 0 0 2px var(--v-primary-base) !important; }
+
+/* Button groups (Mainsail: ToolheadControls) */
+._btn-group { border-radius: 4px; display: inline-flex; flex-wrap: nowrap; max-width: 100%; min-width: 100%; width: 100%; }
+._btn-group .v-btn { border-radius: 0; border-color: rgba(255,255,255,.12); border-style: solid; border-width: thin; box-shadow: none; height: 28px !important; opacity: .8; min-width: auto !important; flex: 1 1 0; padding: 0 4px !important; }
+._btn-group .v-btn.primary { opacity: 1; flex: 0 0 40px; }
+._btn-group .v-btn:first-child { border-top-left-radius: inherit; border-bottom-left-radius: inherit; }
+._btn-group .v-btn:last-child { border-top-right-radius: inherit; border-bottom-right-radius: inherit; }
+._btn-group .v-btn:not(:first-child) { border-left-width: 0; }
+html.theme--light ._btn-group .v-btn { border-color: rgba(0,0,0,.12); }
+
+/* Page-specific building blocks */
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-row + .btn-row { margin-top: 8px; }
+.field-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px 12px; }
+.field-grid .v-input { margin: 0; }
+.kv { width: 100%; border-collapse: collapse; }
+.kv td { padding: 6px 0; border-bottom: thin solid rgba(255,255,255,.12); font-size: .875rem; }
+html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
+.kv tr:last-child td { border-bottom: 0; }
+.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.v-application .kv td:first-child { opacity: .7; }
+.chip { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 11px; font-size: 12px; font-weight: 500; position: relative; overflow: hidden; }
+.chip::before { content: ""; position: absolute; inset: 0; background: currentColor; opacity: .16; }
+.mono { font-family: "Roboto Mono", ui-monospace, monospace; }
+.muted { opacity: .7; }
+.small { font-size: .8125rem; }
+
+/* Loader-specific */
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; background: currentColor; opacity: .35; }
+.dot.on { opacity: 1; }
+.kv td:last-child .chip + .chip { margin-left: 6px; }
+.range { width: 100%; accent-color: var(--v-primary-base); }
+.res { border-radius: 4px; padding: 8px 12px; font-size: .875rem; position: relative; }
+.res::before { content: ""; position: absolute; inset: 0; background: currentColor; opacity: .06; border-radius: inherit; pointer-events: none; }
+.step-row { cursor: pointer; }
+.step-ic.auto { cursor: default; }
+
+.step-ic { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 2px solid currentColor; opacity: .55; cursor: pointer; }
+.step-ic.done { opacity: 1; border: 0; }
+.v-list-item__subtitle.wrap { white-space: normal; -webkit-line-clamp: unset; }
+
+#log { height: 280px; overflow: auto; padding: 8px 12px; font: 13px/1.5 "Roboto Mono", ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; }
+#log .cmd { color: var(--v-primary-base); }
+#log .e { color: var(--v-error-base); }
+.screw-row { display: grid; grid-template-columns: 1.6fr 1fr 1fr auto auto; gap: 10px; align-items: center; margin-bottom: 16px; }
+.prev { border-radius: 4px; padding: 8px 12px; font-size: .8125rem; margin-top: 16px; position: relative; }
+.prev::before { content: ""; position: absolute; inset: 0; background: currentColor; opacity: .05; border-radius: inherit; pointer-events: none; }
+.prev div { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+.prev div span:first-child { opacity: .7; }
+.chg fieldset { border-color: var(--v-warning-base) !important; }
+.seg { display: inline-flex; flex-wrap: nowrap; border: thin solid rgba(255,255,255,.12); border-radius: 4px; overflow: hidden; max-width: 100%; }
+html.theme--light .seg { border-color: rgba(0,0,0,.12); }
+.seg .v-btn { border-radius: 0 !important; box-shadow: none !important; height: 30px !important; min-width: 0 !important; padding: 0 12px !important; }
+.seg .v-btn + .v-btn { border-left: thin solid rgba(255,255,255,.12); }
+html.theme--light .seg .v-btn + .v-btn { border-left-color: rgba(0,0,0,.12); }
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; margin-bottom: 16px; }
+.kpi { position: relative; border-radius: 4px; padding: 8px 12px; }
+.kpi::before { content: ""; position: absolute; inset: 0; background: currentColor; opacity: .05; border-radius: inherit; pointer-events: none; }
+.kpi .l { font-size: 12px; opacity: .7; }
+.kpi .v { font-size: 1.25rem; font-weight: 500; line-height: 1.6; }
+.hlist td { font-size: 13px !important; }
+.hlist td { height: auto !important; padding-top: 6px !important; padding-bottom: 6px !important; }
+.hlist td:first-child { white-space: nowrap; }
+.hlist td .small { font-variant-numeric: tabular-nums; }
+.kbd { display: inline-block; padding: 0 5px; border: 1px solid currentColor; border-radius: 3px; font-size: 11px; opacity: .7; }
+
+/* Fallback style if Mainsail's CSS cannot be loaded */
+body.no-mainsail { font-family: Roboto, system-ui, sans-serif; color: #fff; }
+body.no-mainsail .v-card, body.no-mainsail .v-sheet { background: #1e1e1e; border-radius: 4px; }
+body.no-mainsail .v-toolbar { background: #272727; display: flex; align-items: center; }
+body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radius: 4px; padding: 6px 12px; margin: 2px; }
+</style>
+</head>
+<body class="loading">
+<div data-app="true" id="app" class="v-application v-application--is-ltr theme--dark">
+<div class="v-application--wrap">
+
+  <header class="topbar pa-0 v-sheet theme--dark v-toolbar v-app-bar v-app-bar--clipped v-app-bar--fixed" style="height:48px;margin-top:0;transform:translateY(0);left:0;right:0;">
+    <div class="v-toolbar__content" style="height:48px;">
+      <button type="button" id="menu" class="v-app-bar__nav-icon v-btn v-btn--icon v-btn--round v-btn--tile theme--dark v-size--default"><span class="v-btn__content" data-icon="mdiMenu"></span></button>
+      <a href="/" class="d-none d-sm-flex"><span id="logo" class="nav-logo ml-2 mr-1"></span></a>
+      <div class="v-toolbar__title text-no-wrap ml-0 pl-2 mr-2" id="pname">Mainsail</div>
+      <div class="spacer"></div>
+      <button type="button" id="lang" title="Sprache / Language" class="button-min-width-auto px-3 v-btn v-btn--text v-btn--tile theme--dark v-size--default"><span class="v-btn__content"><span data-icon="mdiTranslate" data-icon-cls="mr-md-2"></span><span class="d-none d-md-inline" id="lang-t">EN</span></span></button>
+      <button type="button" id="restart" title="Klipper neu starten (FIRMWARE_RESTART)" class="v-btn v-btn--icon v-btn--round v-btn--tile theme--dark v-size--default"><span class="v-btn__content" data-icon="mdiRestart"></span></button>
+      <button type="button" id="estop" title="Notaus" class="button-min-width-auto px-3 emergency-button v-btn v-btn--text v-btn--tile theme--dark v-size--default error--text"><span class="v-btn__content"><span data-icon="mdiAlertOctagonOutline" data-icon-cls="mr-md-2"></span><span class="d-none d-md-inline">Notaus</span></span></button>
+    </div>
+  </header>
+
+  <nav id="nav" class="v-navigation-drawer v-navigation-drawer--clipped v-navigation-drawer--fixed v-navigation-drawer--open theme--dark" style="top:48px;height:calc(100% - 48px);max-height:calc(100% - 48px);width:220px;transform:translateX(0%);">
+    <div class="v-navigation-drawer__image"><div class="v-image v-responsive theme--dark" style="height:100%;"><div class="v-image__image v-image__image--cover" id="nav-bg" style="background-position:center center;"></div></div></div>
+    <div class="v-navigation-drawer__content"><div class="v-list pr-0 pt-0 ml-0 v-sheet theme--dark" id="navlist"></div></div>
+    <div class="nav-foot"><label class="d-flex align-center" style="gap:6px;cursor:pointer;opacity:1;" title="Mainsail im Hintergrund vorladen – Seitenwechsel ohne Wartezeit"><input type="checkbox" id="shell-on" style="accent-color:var(--v-primary-base);margin:0;"><span id="shell-l">Schneller Wechsel</span></label><div id="nav-foot" class="mt-1">voronv0-filament-loader</div></div>
+    <div class="v-navigation-drawer__border"></div>
+  </nav>
+  <div id="scrim" class="v-overlay v-overlay--active theme--dark hide" style="z-index:6;"><div class="v-overlay__scrim" style="opacity:.46;background-color:rgb(33,33,33);border-color:rgb(33,33,33);"></div></div>
+
+  <main class="v-main" id="content" style="padding:48px 0 0 220px;">
+    <div class="v-main__wrap">
+      <div class="container container--fluid px-3 px-sm-6 py-sm-6 mx-auto" id="page-container">
+        <div id="alerts"></div>
+        <div class="row">
+          <!-- Columns: panels are distributed by JS depending on the width -->
+          <div class="col" id="col1">
+            <x-panel p="status" icon="mdiPrinter3dNozzle" title="Status">
+              <div class="v-card__text">
+                <table class="kv">
+                  <tr><td>Zustand</td><td id="s-state">–</td></tr>
+                  <tr><td>Sensor 1 · Loader-Eingang</td><td id="s-in">–</td></tr>
+                  <tr><td>Sensor 2 · Toolhead-Eingang</td><td id="s-tool">–</td></tr>
+                  <tr><td>Servo</td><td id="s-servo">–</td></tr>
+                  <tr><td>Hotend</td><td id="s-temp">–</td></tr>
+                  <tr><td>Modus</td><td id="s-mode">–</td></tr>
+                  <tr><td>Letzte Meldung</td><td id="s-msg">–</td></tr>
+                </table>
+                <div class="btn-row mt-4">
+                  <x-btn g="FILAMENT_LOAD_COLD" act color="primary" icon="mdiSnowflake">Laden kalt</x-btn>
+                  <x-btn id="load-hot" act color="primary" icon="mdiFire">Laden heiß</x-btn>
+                  <x-btn id="unload" act icon="mdiArrowUpBold">Entladen</x-btn>
+                </div>
+                <div class="d-flex align-center flex-wrap mt-4" style="gap:12px">
+                  <x-field label="Düse °C" id="temp" type="number" min="0" max="300" step="5" value="220" style="width:110px"></x-field>
+                  <x-btn g="LOADER_CLAMP" act icon="mdiLockOutline">Klemmen</x-btn>
+                  <x-btn g="LOADER_RELEASE" act icon="mdiLockOpenVariantOutline">Lösen</x-btn>
+                  <x-btn g="LOADER_STATUS" act variant="text">Status</x-btn>
+                </div>
+                <div class="d-flex flex-wrap mt-4" style="gap:8px 24px">
+                  <x-check label="Auto-Laden bei Filament am Eingang" id="auto"></x-check>
+                  <x-check label="Bench-Modus (nur Testfahrt)" id="bench"></x-check>
+                </div>
+                <div class="small muted mt-2">Auto-Laden und Bench-Modus gelten bis zum nächsten Neustart. Dauerhaft: Einstellungen → Laden &amp; Auto.</div>
+              </div>
+            </x-panel>
+
+            <x-panel p="setup" icon="mdiFormatListChecks" title="Einrichtung">
+              <x-tools><x-btn variant="icon" id="setup-reset" title="Zurücksetzen" icon="mdiReload"></x-btn></x-tools>
+              <div class="v-list v-sheet theme--dark v-list--dense py-0" id="setup-list"></div>
+            </x-panel>
+          </div>
+
+          <div class="col" id="col2">
+            <x-panel p="manual" icon="mdiRotateRight" title="Manuell &amp; Test">
+              <div class="v-card__text">
+                <div class="v-subheader theme--dark px-0">Stepper</div>
+                <div class="d-flex align-center flex-wrap" style="gap:12px">
+                  <x-field label="Strecke" id="mv-d" type="number" min="1" max="500" value="50" suffix="mm" style="width:130px"></x-field>
+                  <x-field label="Tempo" id="mv-s" type="number" min="1" max="60" value="10" suffix="mm/s" style="width:130px"></x-field>
+                  <x-check label="Klemmen" id="mv-clamp" checked></x-check>
+                </div>
+                <div class="btn-row mt-4">
+                  <x-btn id="mv-fwd" act icon="mdiArrowRightBold">Vor</x-btn>
+                  <x-btn id="mv-back" act icon="mdiArrowLeftBold">Zurück</x-btn>
+                  <x-btn g="LOADER_BENCHTEST" act color="primary" icon="mdiFlask">Bench-Test</x-btn>
+                </div>
+                <div class="small muted mt-2">Der Bench-Test braucht nur Sensor 1: klemmen, Teststrecke fahren, lösen.</div>
+              </div>
+              <hr role="separator" class="v-divider theme--dark">
+              <div class="v-card__text">
+                <div class="v-subheader theme--dark px-0">Servo</div>
+                <div class="d-flex align-center" style="gap:12px">
+                  <x-field label="Winkel" id="sv-a" type="number" min="0" max="180" step="1" value="45" suffix="°" style="width:110px"></x-field>
+                  <input type="range" id="sv-r" class="range" min="0" max="180" step="1" value="45" aria-label="Servo">
+                </div>
+                <div class="btn-row mt-4">
+                  <x-btn id="sv-go" act icon="mdiPlay">Anfahren</x-btn>
+                  <x-btn id="sv-off" act variant="text">Servo aus</x-btn>
+                </div>
+                <div class="btn-row mt-2">
+                  <x-btn cls="sv-set" data-f="servo_clamp" icon="mdiLockOutline">Als Klemmwinkel</x-btn>
+                  <x-btn cls="sv-set" data-f="servo_release" icon="mdiLockOpenVariantOutline">Als Freiwinkel</x-btn>
+                </div>
+                <div class="small muted mt-2">Winkel anfahren, bis der Hebel klemmt bzw. das Filament frei läuft, dann übernehmen und unter Einstellungen speichern.</div>
+              </div>
+            </x-panel>
+
+            <x-panel p="cal" icon="mdiRuler" title="Stepper kalibrieren">
+              <div class="v-card__text">
+                <div class="small muted mb-4">Filament klemmen, die Strecke fahren und die tatsächlich geförderte Länge nachmessen (Markierung am Filament). Daraus wird rotation_distance berechnet.</div>
+                <div class="d-flex align-center flex-wrap" style="gap:12px">
+                  <x-field label="Befohlen" id="cal-d" type="number" min="10" max="500" value="100" suffix="mm" style="width:130px"></x-field>
+                  <x-btn id="cal-run" act icon="mdiPlay">Fahren</x-btn>
+                  <x-field label="Gemessen" id="cal-m" type="number" min="1" step="0.1" suffix="mm" style="width:130px"></x-field>
+                </div>
+                <div class="res mt-4" id="cal-res">–</div>
+                <div class="btn-row mt-4"><x-btn id="cal-apply" icon="mdiCheckCircleOutline">In Einstellungen übernehmen</x-btn></div>
+              </div>
+            </x-panel>
+
+            <x-panel p="history" icon="mdiHistory" title="Verlauf">
+              <x-tools>
+                <x-btn variant="icon" id="hist-csv" title="Als CSV exportieren" icon="mdiDownload"></x-btn>
+                <x-btn variant="icon" id="hist-clear" title="Verlauf löschen" icon="mdiDelete"></x-btn>
+              </x-tools>
+              <div class="v-card__text">
+                <div id="hist-body"></div>
+              </div>
+            </x-panel>
+          </div>
+
+          <div class="col" id="col3">
+            <x-panel p="settings" icon="mdiCog" title="Einstellungen">
+              <div class="v-tabs v-tabs--fixed-tabs theme--dark" id="tabs">
+                <div role="tablist" class="v-item-group theme--dark v-slide-group v-tabs-bar primary--text">
+                  <div class="v-slide-group__wrapper"><div class="v-slide-group__content v-tabs-bar__content">
+                    <div class="v-tabs-slider-wrapper" style="height:2px;left:0;width:0;"><div class="v-tabs-slider"></div></div>
+                    <a role="tab" class="v-tab v-tab--active" data-t="t-hw">Hardware</a>
+                    <a role="tab" class="v-tab" data-t="t-motion">Servo &amp; Stepper</a>
+                    <a role="tab" class="v-tab" data-t="t-len">Längen</a>
+                    <a role="tab" class="v-tab" data-t="t-auto">Laden &amp; Auto</a>
+                  </div></div>
+                </div>
+              </div>
+              <div class="v-card__text">
+                <div id="ed-msg"></div>
+                <div class="tab" id="t-hw">
+                  <div class="field-grid">
+                    <x-field label="Stepper step_pin" k="step_pin" type="text"></x-field>
+                    <x-field label="Stepper dir_pin" k="dir_pin" type="text"></x-field>
+                    <x-field label="Stepper enable_pin" k="enable_pin" type="text"></x-field>
+                    <x-field label="Mikroschritte" k="microsteps" type="number" step="1" min="1"></x-field>
+                    <x-field label="rotation_distance" k="rotation_distance" type="number" step="0.00001" min="0.001" suffix="mm" style="grid-column:span 2"></x-field>
+                    <x-field label="Motorstrom" k="run_current" type="number" step="0.05" min="0.1" suffix="A"></x-field>
+                    <x-field label="UART-Pin" k="uart_pin" type="text"></x-field>
+                    <x-field label="UART TX-Pin" k="tx_pin" type="text"></x-field>
+                    <x-field label="UART-Adresse" k="uart_address" type="number" step="1" min="0" max="3"></x-field>
+                    <x-field label="Servo-Pin" k="servo_pin" type="text"></x-field>
+                    <x-field label="Sensor 1 Pin" k="loader_in_pin" type="text"></x-field>
+                    <x-field label="Sensor 2 Pin" k="toolhead_in_pin" type="text"></x-field>
+                  </div>
+                  <div class="mt-3"><x-check label="Sensor 2 aktiv (verdrahtet)" k="tool"></x-check></div>
+                  <div class="small muted mt-3">Sensoren sind Öffner (NC): kein Filament = Kontakt geschlossen. „^“ = Pull-up, „!“ = invertiert. Der MCU-Name von Sensor 2 muss zu [mcu …] in nitehawk-sb.cfg passen. Pin-Änderungen wirken nach dem Neustart.</div>
+                </div>
+                <div class="tab hide" id="t-motion">
+                  <div class="field-grid">
+                    <x-field label="Klemmwinkel" k="servo_clamp" type="number" step="1" min="0" max="180" suffix="°"></x-field>
+                    <x-field label="Freiwinkel" k="servo_release" type="number" step="1" min="0" max="180" suffix="°"></x-field>
+                    <x-field label="Servo-Wartezeit" k="servo_settle" type="number" step="0.1" min="0" suffix="s"></x-field>
+                    <x-field label="Tempo" k="speed" type="number" step="1" min="1" suffix="mm/s"></x-field>
+                    <x-field label="Tempo fein" k="slow_speed" type="number" step="1" min="1" suffix="mm/s"></x-field>
+                    <x-field label="Schritt bei Abfrage" k="step_mm" type="number" step="0.5" min="0.5" suffix="mm"></x-field>
+                    <x-field label="Max. Tempo" k="velocity" type="number" step="1" min="1" suffix="mm/s"></x-field>
+                    <x-field label="Beschleunigung" k="accel" type="number" step="10" min="10" suffix="mm/s²"></x-field>
+                  </div>
+                  <div class="mt-3"><x-check label="Servo nach dem Lösen abschalten" k="servo_off_released"></x-check></div>
+                  <div class="small muted mt-3">Die Sensor-Abfrage läuft in Schritten von „Schritt bei Abfrage“. Kleinere Schritte reagieren genauer, brauchen aber mehr Makro-Aufrufe.</div>
+                </div>
+                <div class="tab hide" id="t-len">
+                  <div class="field-grid">
+                    <x-field label="tube_len" k="tube_len" type="number" step="1" min="1" suffix="mm"></x-field>
+                    <x-field label="coarse_len" k="coarse_len" type="number" step="1" min="0" suffix="mm"></x-field>
+                    <x-field label="Reserve (overrun)" k="overrun" type="number" step="1" min="1" suffix="mm"></x-field>
+                    <x-field label="gear_offset" k="gear_offset" type="number" step="0.5" min="0" suffix="mm"></x-field>
+                    <x-field label="gear_push" k="gear_push" type="number" step="0.5" min="0" suffix="mm"></x-field>
+                    <x-field label="ext_to_nozzle" k="ext_to_nozzle" type="number" step="1" min="1" suffix="mm"></x-field>
+                    <x-field label="unload_ext_len" k="unload_ext_len" type="number" step="1" min="1" suffix="mm"></x-field>
+                    <x-field label="unload_hold" k="unload_hold" type="number" step="1" min="0" suffix="mm"></x-field>
+                  </div>
+                  <div class="small muted mt-3">tube_len: Loader-Zahnräder bis Toolhead-Sensor. coarse_len: Strecke ohne Sensorabfrage (kleiner als tube_len). gear_offset: Sensor 2 bis Extruder-Zahnräder. gear_push: Loader schiebt so weit darüber hinaus. ext_to_nozzle: Extruder-Zahnräder bis Düse. unload_hold: Filamentspitze bleibt so weit im Loader-Griff.</div>
+                </div>
+                <div class="tab hide" id="t-auto">
+                  <div class="field-grid">
+                    <x-field label="Standard-Düsentemperatur" k="default_temp" type="number" step="5" min="0" max="300" suffix="°C"></x-field>
+                    <x-field label="Extruder-Tempo" k="ext_speed" type="number" step="0.5" min="0.5" suffix="mm/s"></x-field>
+                    <x-field label="Ausspülen" k="purge_len" type="number" step="1" min="0" suffix="mm"></x-field>
+                    <x-field label="Ausspül-Tempo" k="purge_speed" type="number" step="0.5" min="0.5" suffix="mm/s"></x-field>
+                    <x-field label="Auto-Verzögerung" k="auto_delay" type="number" step="0.5" min="0" suffix="s"></x-field>
+                    <x-field label="Bench-Strecke" k="bench_dist" type="number" step="5" min="1" suffix="mm"></x-field>
+                    <x-select label="Klipper-Meldungen" k="lang"><option value="de">Deutsch</option><option value="en">English</option></x-select>
+                  </div>
+                  <div class="mt-3"><x-check label="Bench-Modus (Auto-Trigger fährt nur die Teststrecke)" k="bench_mode"></x-check></div>
+                  <div class="small muted mt-3">Bench-Modus aus = Auto-Trigger lädt das Filament bis in den Extruder (FILAMENT_LOAD_COLD). Auto-Verzögerung: Zeit zum Nachschieben, bevor der Loader klemmt.</div>
+                </div>
+
+                <div class="prev hide" id="ed-prev"></div>
+                <div class="btn-row mt-4">
+                  <x-btn id="ed-save" color="primary" icon="mdiContentSave">Speichern</x-btn>
+                  <x-btn id="ed-reset" variant="text">Verwerfen</x-btn>
+                </div>
+              </div>
+            </x-panel>
+          </div>
+        </div>
+
+        <div class="row"><div class="col-12 pt-0">
+          <x-panel p="console" icon="mdiConsoleLine" title="Konsole">
+            <div class="v-card__text pb-0">
+              <form id="cons" class="d-flex align-center" style="gap:8px">
+                <x-field label="G-Code" id="cons-in" type="text" placeholder="z. B. LOADER_STATUS" style="flex:1"></x-field>
+                <x-btn id="cons-send" color="primary" icon="mdiSend"></x-btn>
+              </form>
+            </div>
+            <div id="log"></div>
+          </x-panel>
+        </div></div>
+      </div>
+    </div>
+  </main>
+
+
+  <!-- Dialog -->
+  <div id="modal" class="v-dialog__content hide" style="z-index:204;">
+    <div class="v-dialog v-dialog--active" style="max-width:560px;">
+      <x-panel p="dlg" icon="mdiInformationOutline" title="" fixed>
+        <x-tools><x-btn variant="icon" id="m-x" icon="mdiCloseThick"></x-btn></x-tools>
+        <div class="v-card__text pt-4" id="m-body"></div>
+        <div class="v-card__actions"><div class="spacer"></div><x-btn variant="text" id="m-no">Abbrechen</x-btn><x-btn variant="text" color="primary" id="m-yes">OK</x-btn></div>
+      </x-panel>
+    </div>
+  </div>
+  <div id="overlay" class="v-overlay v-overlay--active theme--dark hide" style="z-index:201;"><div class="v-overlay__scrim" style="opacity:.46;background-color:rgb(33,33,33);border-color:rgb(33,33,33);"></div></div>
+
+  <div class="v-snack v-snack--bottom v-snack--has-background" style="padding-bottom:0;"><div class="v-snack__wrapper v-sheet theme--dark" id="snack" style="display:none;"><div role="status" aria-live="polite" class="v-snack__content" id="snack-t"></div></div></div>
+</div>
+</div>
+
+<script>
+"use strict";
+const ICON = {"mdiAlertCircleOutline":"M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z","mdiAlertOctagonOutline":"M8.27,3L3,8.27V15.73L8.27,21H15.73C17.5,19.24 21,15.73 21,15.73V8.27L15.73,3M9.1,5H14.9L19,9.1V14.9L14.9,19H9.1L5,14.9V9.1M11,15H13V17H11V15M11,7H13V13H11V7","mdiAlertOutline":"M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16","mdiArrowCollapseDown":"M19.92,12.08L12,20L4.08,12.08L5.5,10.67L11,16.17V2H13V16.17L18.5,10.66L19.92,12.08M12,20H2V22H22V20H12Z","mdiArrowDownBold":"M9,4H15V12H19.84L12,19.84L4.16,12H9V4Z","mdiArrowExpandUp":"M2,20V22H22V20H13V5.83L18.5,11.33L19.92,9.92L12,2L4.08,9.92L5.5,11.33L11,5.83V20H2Z","mdiArrowLeftBold":"M20,9V15H12V19.84L4.16,12L12,4.16V9H20Z","mdiArrowRightBold":"M4,15V9H12V4.16L19.84,12L12,19.84V15H4Z","mdiArrowUpBold":"M15,20H9V12H4.16L12,4.16L19.84,12H15V20Z","mdiChartBellCurve":"M9.96,11.31C10.82,8.1 11.5,6 13,6C14.5,6 15.18,8.1 16.04,11.31C17,14.92 18.1,19 22,19V17C19.8,17 19,14.54 17.97,10.8C17.08,7.46 16.15,4 13,4C9.85,4 8.92,7.46 8.03,10.8C7.03,14.54 6.2,17 4,17V2H2V22H22V20H4V19C7.9,19 9,14.92 9.96,11.31Z","mdiCheckCircle":"M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z","mdiCheckCircleOutline":"M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M12 20C7.59 20 4 16.41 4 12S7.59 4 12 4 20 7.59 20 12 16.41 20 12 20M16.59 7.58L10 14.17L7.41 11.59L6 13L10 17L18 9L16.59 7.58Z","mdiCheckboxBlankOutline":"M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z","mdiCheckboxMarked":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z","mdiChevronDown":"M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z","mdiChevronLeft":"M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z","mdiChevronRight":"M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z","mdiChevronTripleLeft":"M9.42,7.41L4.83,12L9.42,16.59L8,18L2,12L8,6L9.42,7.41M15.42,7.41L10.83,12L15.42,16.59L14,18L8,12L14,6L15.42,7.41M21.42,7.41L16.83,12L21.42,16.59L20,18L14,12L20,6L21.42,7.41Z","mdiChevronTripleRight":"M14.58,16.59L19.17,12L14.58,7.41L16,6L22,12L16,18L14.58,16.59M8.58,16.59L13.17,12L8.58,7.41L10,6L16,12L10,18L8.58,16.59M2.58,16.59L7.17,12L2.58,7.41L4,6L10,12L4,18L2.58,16.59Z","mdiCloseCircleOutline":"M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2M14.59,8L12,10.59L9.41,8L8,9.41L10.59,12L8,14.59L9.41,16L12,13.41L14.59,16L16,14.59L13.41,12L16,9.41L14.59,8Z","mdiCloseThick":"M20 6.91L17.09 4L12 9.09L6.91 4L4 6.91L9.09 12L4 17.09L6.91 20L12 14.91L17.09 20L20 17.09L14.91 12L20 6.91Z","mdiCog":"M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z","mdiConsoleLine":"M13,19V16H21V19H13M8.5,13L2.47,7H6.71L11.67,11.95C12.25,12.54 12.25,13.5 11.67,14.07L6.74,19H2.5L8.5,13Z","mdiContentSave":"M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z","mdiCrosshairsGps":"M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z","mdiDelete":"M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z","mdiDownload":"M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z","mdiFileDocumentMultipleOutline":"M16 0H8C6.9 0 6 .9 6 2V18C6 19.1 6.9 20 8 20H20C21.1 20 22 19.1 22 18V6L16 0M20 18H8V2H15V7H20V18M4 4V22H20V24H4C2.9 24 2 23.1 2 22V4H4M10 10V12H18V10H10M10 14V16H15V14H10Z","mdiFire":"M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13 3.23 12.17 3.75 11.46 4.32C8.87 6.4 7.85 10.07 9.07 13.22C9.11 13.32 9.15 13.42 9.15 13.55C9.15 13.77 9 13.97 8.8 14.05C8.57 14.15 8.33 14.09 8.14 13.93C8.08 13.88 8.04 13.83 8 13.76C6.87 12.33 6.69 10.28 7.45 8.64C5.78 10 4.87 12.3 5 14.47C5.06 14.97 5.12 15.47 5.29 15.97C5.43 16.57 5.7 17.17 6 17.7C7.08 19.43 8.95 20.67 10.96 20.92C13.1 21.19 15.39 20.8 17.03 19.32C18.86 17.66 19.5 15 18.56 12.72L18.43 12.46C18.22 12 17.66 11.2 17.66 11.2M14.5 17.5C14.22 17.74 13.76 18 13.4 18.1C12.28 18.5 11.16 17.94 10.5 17.28C11.69 17 12.4 16.12 12.61 15.23C12.78 14.43 12.46 13.77 12.33 13C12.21 12.26 12.23 11.63 12.5 10.94C12.69 11.32 12.89 11.7 13.13 12C13.9 13 15.11 13.44 15.37 14.8C15.41 14.94 15.43 15.08 15.43 15.23C15.46 16.05 15.1 16.95 14.5 17.5H14.5Z","mdiFlask":"M6,22A3,3 0 0,1 3,19C3,18.4 3.18,17.84 3.5,17.37L9,7.81V6A1,1 0 0,1 8,5V4A2,2 0 0,1 10,2H14A2,2 0 0,1 16,4V5A1,1 0 0,1 15,6V7.81L20.5,17.37C20.82,17.84 21,18.4 21,19A3,3 0 0,1 18,22H6M5,19A1,1 0 0,0 6,20H18A1,1 0 0,0 19,19C19,18.79 18.93,18.59 18.82,18.43L16.53,14.47L14,17L8.93,11.93L5.18,18.43C5.07,18.59 5,18.79 5,19M13,10A1,1 0 0,0 12,11A1,1 0 0,0 13,12A1,1 0 0,0 14,11A1,1 0 0,0 13,10Z","mdiFormatListChecks":"M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z","mdiGrid":"M10,4V8H14V4H10M16,4V8H20V4H16M16,10V14H20V10H16M16,16V20H20V16H16M14,20V16H10V20H14M8,20V16H4V20H8M8,14V10H4V14H8M8,8V4H4V8H8M10,14H14V10H10V14M4,2H20A2,2 0 0,1 22,4V20A2,2 0 0,1 20,22H4C2.92,22 2,21.1 2,20V4A2,2 0 0,1 4,2Z","mdiHistory":"M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3","mdiHome":"M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z","mdiInformationOutline":"M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z","mdiLockOpenVariantOutline":"M10 13C11.1 13 12 13.89 12 15C12 16.11 11.11 17 10 17S8 16.11 8 15 8.9 13 10 13M18 1C15.24 1 13 3.24 13 6V8H4C2.9 8 2 8.9 2 10V20C2 21.1 2.9 22 4 22H16C17.1 22 18 21.1 18 20V10C18 8.9 17.1 8 16 8H15V6C15 4.34 16.34 3 18 3S21 4.34 21 6V8H23V6C23 3.24 20.76 1 18 1M16 10V20H4V10H16Z","mdiLockOutline":"M12,17C10.89,17 10,16.1 10,15C10,13.89 10.89,13 12,13A2,2 0 0,1 14,15A2,2 0 0,1 12,17M18,20V10H6V20H18M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z","mdiMapMarker":"M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z","mdiMenu":"M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z","mdiMinusThick":"M20 14H4V10H20","mdiMonitorDashboard":"M21,16V4H3V16H21M21,2A2,2 0 0,1 23,4V16A2,2 0 0,1 21,18H14V20H16V22H8V20H10V18H3C1.89,18 1,17.1 1,16V4C1,2.89 1.89,2 3,2H21M5,6H14V11H5V6M15,6H19V8H15V6M19,9V14H15V9H19M5,12H9V14H5V12M10,12H14V14H10V12Z","mdiPlay":"M8,5.14V19.14L19,12.14L8,5.14Z","mdiPlus":"M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z","mdiPlusThick":"M20 14H14V20H10V14H4V10H10V4H14V10H20V14Z","mdiPrinter3dNozzle":"M7,2H17V8H19V13H16.5L13,17H11L7.5,13H5V8H7V2M10,22H2V20H10A1,1 0 0,0 11,19V18H13V19A3,3 0 0,1 10,22Z","mdiPrinter3dNozzleHeat":"M4 2H14V7H16V13H13.5L10 17H8L4.5 13H2V7H4V2M23 14.5L21.6 16.7L23 18.9L21 22L19.2 21.1L20.7 18.9L19.2 16.7L21.2 13.6L23 14.5M18.7 14.5L17.2 16.7L18.7 18.9L16.7 22L14.9 21.1L16.3 18.9L14.9 16.7L16.9 13.6L18.7 14.5","mdiProgressCheck":"M13,2.03V2.05L13,4.05C17.39,4.59 20.5,8.58 19.96,12.97C19.5,16.61 16.64,19.5 13,19.93V21.93C18.5,21.38 22.5,16.5 21.95,11C21.5,6.25 17.73,2.5 13,2.03M11,2.06C9.05,2.25 7.19,3 5.67,4.26L7.1,5.74C8.22,4.84 9.57,4.26 11,4.06V2.06M4.26,5.67C3,7.19 2.25,9.04 2.05,11H4.05C4.24,9.58 4.8,8.23 5.69,7.1L4.26,5.67M15.5,8.5L10.62,13.38L8.5,11.26L7.44,12.32L10.62,15.5L16.56,9.56L15.5,8.5M2.06,13C2.26,14.96 3.03,16.81 4.27,18.33L5.69,16.9C4.81,15.77 4.24,14.42 4.06,13H2.06M7.1,18.37L5.67,19.74C7.18,21 9.04,21.79 11,22V20C9.58,19.82 8.23,19.25 7.1,18.37Z","mdiRadioboxBlank":"M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z","mdiRadioboxMarked":"M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7Z","mdiReload":"M2 12C2 16.97 6.03 21 11 21C13.39 21 15.68 20.06 17.4 18.4L15.9 16.9C14.63 18.25 12.86 19 11 19C4.76 19 1.64 11.46 6.05 7.05C10.46 2.64 18 5.77 18 12H15L19 16H19.1L23 12H20C20 7.03 15.97 3 11 3C6.03 3 2 7.03 2 12Z","mdiRestart":"M12,4C14.1,4 16.1,4.8 17.6,6.3C20.7,9.4 20.7,14.5 17.6,17.6C15.8,19.5 13.3,20.2 10.9,19.9L11.4,17.9C13.1,18.1 14.9,17.5 16.2,16.2C18.5,13.9 18.5,10.1 16.2,7.7C15.1,6.6 13.5,6 12,6V10.6L7,5.6L12,0.6V4M6.3,17.6C3.7,15 3.3,11 5.1,7.9L6.6,9.4C5.5,11.6 5.9,14.4 7.8,16.2C8.3,16.7 8.9,17.1 9.6,17.4L9,19.4C8,19 7.1,18.4 6.3,17.6Z","mdiRotateRight":"M16.89,15.5L18.31,16.89C19.21,15.73 19.76,14.39 19.93,13H17.91C17.77,13.87 17.43,14.72 16.89,15.5M13,17.9V19.92C14.39,19.75 15.74,19.21 16.9,18.31L15.46,16.87C14.71,17.41 13.87,17.76 13,17.9M19.93,11C19.76,9.61 19.21,8.27 18.31,7.11L16.89,8.53C17.43,9.28 17.77,10.13 17.91,11M15.55,5.55L11,1V4.07C7.06,4.56 4,7.92 4,12C4,16.08 7.05,19.44 11,19.93V17.91C8.16,17.43 6,14.97 6,12C6,9.03 8.16,6.57 11,6.09V10L15.55,5.55Z","mdiRuler":"M1.39,18.36L3.16,16.6L4.58,18L5.64,16.95L4.22,15.54L5.64,14.12L8.11,16.6L9.17,15.54L6.7,13.06L8.11,11.65L9.53,13.06L10.59,12L9.17,10.59L10.59,9.17L13.06,11.65L14.12,10.59L11.65,8.11L13.06,6.7L14.47,8.11L15.54,7.05L14.12,5.64L15.54,4.22L18,6.7L19.07,5.64L16.6,3.16L18.36,1.39L22.61,5.64L5.64,22.61L1.39,18.36Z","mdiScrewdriver":"M18,1.83C17.5,1.83 17,2 16.59,2.41C13.72,5.28 8,11 8,11L9.5,12.5L6,16H4L2,20L4,22L8,20V18L11.5,14.5L13,16C13,16 18.72,10.28 21.59,7.41C22.21,6.5 22.37,5.37 21.59,4.59L19.41,2.41C19,2 18.5,1.83 18,1.83M18,4L20,6L13,13L11,11L18,4Z","mdiSend":"M2,21L23,12L2,3V10L17,12L2,14V21Z","mdiSnowflake":"M20.79,13.95L18.46,14.57L16.46,13.44V10.56L18.46,9.43L20.79,10.05L21.31,8.12L19.54,7.65L20,5.88L18.07,5.36L17.45,7.69L15.45,8.82L13,7.38V5.12L14.71,3.41L13.29,2L12,3.29L10.71,2L9.29,3.41L11,5.12V7.38L8.5,8.82L6.5,7.69L5.92,5.36L4,5.88L4.47,7.65L2.7,8.12L3.22,10.05L5.55,9.43L7.55,10.56V13.45L5.55,14.58L3.22,13.96L2.7,15.89L4.47,16.36L4,18.12L5.93,18.64L6.55,16.31L8.55,15.18L11,16.62V18.88L9.29,20.59L10.71,22L12,20.71L13.29,22L14.7,20.59L13,18.88V16.62L15.5,15.17L17.5,16.3L18.12,18.63L20,18.12L19.53,16.35L21.3,15.88L20.79,13.95M9.5,10.56L12,9.11L14.5,10.56V13.44L12,14.89L9.5,13.44V10.56Z","mdiStopCircleOutline":"M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4M9,9V15H15V9","mdiSwapHorizontal":"M21,9L17,5V8H10V10H17V13M7,11L3,15L7,19V16H14V14H7V11Z","mdiTimelapse":"M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.24,7.76C15.07,6.58 13.53,6 12,6V12L7.76,16.24C10.1,18.58 13.9,18.58 16.24,16.24C18.59,13.9 18.59,10.1 16.24,7.76Z","mdiToggleSwitch":"M17,7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7M17,15A3,3 0 0,1 14,12A3,3 0 0,1 17,9A3,3 0 0,1 20,12A3,3 0 0,1 17,15Z","mdiTranslate":"M12.87,15.07L10.33,12.56L10.36,12.53C12.1,10.59 13.34,8.36 14.07,6H17V4H10V2H8V4H1V6H12.17C11.5,7.92 10.44,9.75 9,11.35C8.07,10.32 7.3,9.19 6.69,8H4.69C5.42,9.63 6.42,11.17 7.67,12.56L2.58,17.58L4,19L9,14L12.11,17.11L12.87,15.07M18.5,10H16.5L12,22H14L15.12,19H19.87L21,22H23L18.5,10M15.88,17L17.5,12.67L19.12,17H15.88Z","mdiTune":"M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z","mdiUpdate":"M21,10.12H14.22L16.96,7.3C14.23,4.6 9.81,4.5 7.08,7.2C4.35,9.91 4.35,14.28 7.08,17C9.81,19.7 14.23,19.7 16.96,17C18.32,15.65 19,14.08 19,12.1H21C21,14.08 20.12,16.65 18.36,18.39C14.85,21.87 9.15,21.87 5.64,18.39C2.14,14.92 2.11,9.28 5.62,5.81C9.13,2.34 14.76,2.34 18.27,5.81L21,3V10.12M12.5,8V12.25L16,14.33L15.28,15.54L11,13V8H12.5Z","mdiVideo3d":"M5,7H9A2,2 0 0,1 11,9V15A2,2 0 0,1 9,17H5V15H9V13H6V11H9V9H5V7M13,7H16A3,3 0 0,1 19,10V14A3,3 0 0,1 16,17H13V7M16,15A1,1 0 0,0 17,14V10A1,1 0 0,0 16,9H15V15H16Z","mdiWebcam":"M12,2A7,7 0 0,1 19,9A7,7 0 0,1 12,16A7,7 0 0,1 5,9A7,7 0 0,1 12,2M12,4A5,5 0 0,0 7,9A5,5 0 0,0 12,14A5,5 0 0,0 17,9A5,5 0 0,0 12,4M12,6A3,3 0 0,1 15,9A3,3 0 0,1 12,12A3,3 0 0,1 9,9A3,3 0 0,1 12,6M6,22A2,2 0 0,1 4,20C4,19.62 4.1,19.27 4.29,18.97L6.11,15.81C7.69,17.17 9.75,18 12,18C14.25,18 16.31,17.17 17.89,15.81L19.71,18.97C19.9,19.27 20,19.62 20,20A2,2 0 0,1 18,22H6Z","mdiWrench":"M22.7,19L13.6,9.9C14.5,7.6 14,4.9 12.1,3C10.1,1 7.1,0.6 4.7,1.7L9,6L6,9L1.6,4.7C0.4,7.1 0.9,10.1 2.9,12.1C4.8,14 7.5,14.5 9.8,13.6L18.9,22.7C19.3,23.1 19.9,23.1 20.3,22.7L22.6,20.4C23.1,20 23.1,19.3 22.7,19Z"};
+const VERSION_KEY = "voronv0-filament-loader";   // name of the update_manager entry
+const SETTINGS = "filament_loader_settings.cfg";
+const OFF = "#off# ";                            // prefix of deactivated config lines (Sensor 2)
+const TOOL = "filament_switch_sensor toolhead_in";
+const BASE = location.pathname.replace(/[^/]*$/, "") || "/loader/";   // /loader/ or /server/loader/
+const SELF_RE = /^\/(loader|server\/loader)\/?$/;
+const SCHEMA = 1;                                // version of the settings file format
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("loader." + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("loader." + k, JSON.stringify(v)); } catch { /* ignore */ } },
+};
+let TH = "dark";                                // Mainsail mode: dark / light
+
+
+// =====================================================================
+// Language – German is the source text, English via dictionary
+// =====================================================================
+const T_EN = {
+  // Frame
+  "Loader": "Loader", "Notaus": "Emergency Stop", "Sprache / Language": "Language / Sprache",
+  "Klipper neu starten (FIRMWARE_RESTART)": "Restart Klipper (FIRMWARE_RESTART)",
+  "Dashboard": "Dashboard", "Webcam": "Webcam", "Konsole": "Console", "Heightmap": "Heightmap", "G-Code Dateien": "G-Code Files",
+  "G-Code-Betrachter": "G-Code Viewer", "Verlauf": "History", "Zeitraffer": "Timelapse", "Maschine": "Machine",
+  "getrennt": "disconnected", "Fehler": "Error", "startet": "starting", "Shutdown": "shutdown",
+  "Verbindung getrennt": "Connection lost", "Schneller Wechsel": "Fast switching",
+  "Mainsail im Hintergrund vorladen – Seitenwechsel ohne Wartezeit": "Preload Mainsail in the background – switch pages without waiting",
+  // Notices
+  "Klipper: {m}": "Klipper: {m}", "Loader: {m}": "Loader: {m}",
+  "Die Filament-Loader-Makros wurden in Klipper nicht gefunden. Installation prüfen (./install.sh --analyze).":
+    "The filament loader macros were not found in Klipper. Check the installation (./install.sh --analyze).",
+  "Während eines Drucks sind Loader-Vorgänge und Einstellungen gesperrt.": "Loader operations and settings are locked while printing.",
+  "Sensor 2 (Toolhead) ist nicht aktiv – Laden und Entladen sind gesperrt. Nach dem Verdrahten unter Einstellungen → Hardware aktivieren.":
+    "Sensor 2 (toolhead) is not active – hot load and unload are disabled. Enable it under Settings → Hardware after wiring it.",
+  "Bench-Modus aktiv: Der Auto-Trigger klemmt nur, fährt die Teststrecke und löst.": "Bench mode active: the auto trigger only clamps, runs the test distance and releases.",
+  "Ungespeicherte Kalibrierwerte – erst nach SAVE_CONFIG dauerhaft. Klipper startet dabei neu.":
+    "Unsaved calibration values – they only persist after SAVE_CONFIG. Klipper restarts while saving.",
+  "Konfiguration speichern und Klipper neu starten?": "Save configuration and restart Klipper?", "Save Config": "Save Config",
+  "Update verfügbar: {v} ({n} neue Änderungen).": "Update available: {v} ({n} new changes).",
+  "Jetzt aktualisieren": "Update now", "Update-Manager": "Update Manager", "Aktualisierung läuft …": "Updating …",
+  "Update auf {v} installieren? Klipper wird danach neu gestartet.": "Install update {v}? Klipper restarts afterwards.",
+  "Das Repo hat lokale Änderungen – Updates sind blockiert. Im Update-Manager zurücksetzen (Recover).":
+    "The repo has local changes – updates are blocked. Reset it in the Update Manager (Recover).",
+  "Neue Einstellungsfelder verfügbar. Unter Einstellungen einmal speichern, um sie zu ergänzen.":
+    "New settings fields are available. Save once under Settings to add them.",
+  // Status
+  "Status": "Status", "Zustand": "State", "Sensor 1 · Loader-Eingang": "Sensor 1 · loader entrance",
+  "Sensor 2 · Toolhead-Eingang": "Sensor 2 · toolhead entrance", "Servo": "Servo", "Hotend": "Hotend", "Modus": "Mode",
+  "Letzte Meldung": "Last message", "nicht konfiguriert": "not configured", "Filament": "Filament", "leer": "empty", "Auto aus": "auto off",
+  "klemmt": "clamped", "frei": "free", "Bench-Modus": "Bench mode", "Normalbetrieb": "Normal operation",
+  "bereit": "ready", "lädt …": "loading …", "entlädt …": "unloading …", "Test läuft …": "testing …",
+  "Laden kalt": "Load cold", "Laden heiß": "Load hot", "Entladen": "Unload", "Düse °C": "Nozzle °C",
+  "Klemmen": "Clamp", "Lösen": "Release",
+  "Auto-Laden bei Filament am Eingang": "Auto load when filament enters", "Bench-Modus (nur Testfahrt)": "Bench mode (test run only)",
+  "Auto-Laden und Bench-Modus gelten bis zum nächsten Neustart. Dauerhaft: Einstellungen → Laden & Auto.":
+    "Auto load and bench mode apply until the next restart. Permanent: Settings → Load & Auto.",
+  "Hotend auf {n} °C aufheizen, Filament laden und bis in die Düse fördern?": "Heat the hotend to {n} °C, load the filament and feed it to the nozzle?",
+  "Hotend auf {n} °C aufheizen und Filament entladen?": "Heat the hotend to {n} °C and unload the filament?",
+  // Setup
+  "Einrichtung": "Setup", "Zurücksetzen": "Reset", "Einrichtung zurücksetzen?": "Reset the setup checklist?",
+  "Sensor 1 prüfen": "Check sensor 1", "Filament einlegen und entfernen – der Status oben wechselt.": "Insert and remove filament – the status above changes.",
+  "Stepper kalibrieren": "Calibrate stepper", "Richtung und rotation_distance (Panel Stepper kalibrieren).": "Direction and rotation_distance (Calibrate stepper panel).",
+  "Servo-Winkel": "Servo angles", "Klemm- und Freiwinkel am Aufbau ermitteln und speichern.": "Find and save the clamp and release angles on the rig.",
+  "Bench-Test": "Bench test", "Klemmen, Teststrecke fahren, lösen.": "Clamp, run the test distance, release.",
+  "Sensor 2 aktivieren": "Enable sensor 2", "Am Toolhead verdrahten und unter Einstellungen aktivieren.": "Wire it at the toolhead and enable it under Settings.",
+  "Längen messen": "Measure lengths", "tube_len, gear_offset und ext_to_nozzle am Voron messen.": "Measure tube_len, gear_offset and ext_to_nozzle on the Voron.",
+  "Bench-Modus ausschalten": "Turn bench mode off", "Danach lädt der Auto-Trigger bis in den Extruder.": "Afterwards the auto trigger loads all the way into the extruder.",
+  "Filament sitzt in den Extruder-Zahnrädern.": "Filament is seated in the extruder gears.",
+  "Filament bis in die Düse, Ausspülen.": "Filament all the way to the nozzle, purge.",
+  "Filament wird vollständig zurückgezogen.": "Filament is pulled back completely.",
+  // Manual / calibration
+  "Manuell & Test": "Manual & test", "Stepper": "Stepper", "Strecke": "Distance", "Tempo": "Speed", "Vor": "Forward", "Zurück": "Back",
+  "Der Bench-Test braucht nur Sensor 1: klemmen, Teststrecke fahren, lösen.": "The bench test only needs sensor 1: clamp, run the test distance, release.",
+  "Winkel": "Angle", "Anfahren": "Move to", "Servo aus": "Servo off", "Als Klemmwinkel": "Use as clamp angle", "Als Freiwinkel": "Use as release angle",
+  "Winkel anfahren, bis der Hebel klemmt bzw. das Filament frei läuft, dann übernehmen und unter Einstellungen speichern.":
+    "Move to an angle until the lever clamps or the filament runs free, then apply it and save under Settings.",
+  "Winkel {a}° übernommen – unter Einstellungen speichern.": "Angle {a}° applied – save it under Settings.",
+  "Filament klemmen, die Strecke fahren und die tatsächlich geförderte Länge nachmessen (Markierung am Filament). Daraus wird rotation_distance berechnet.":
+    "Clamp the filament, run the distance and measure the length actually fed (mark the filament). rotation_distance is calculated from it.",
+  "Befohlen": "Commanded", "Gemessen": "Measured", "Fahren": "Run", "In Einstellungen übernehmen": "Apply to settings",
+  "rotation_distance {a} → <b>{b}</b> (Abweichung {p} %)": "rotation_distance {a} → <b>{b}</b> (deviation {p} %)",
+  "Aktuell: rotation_distance {a}. Gemessene Länge eintragen.": "Current: rotation_distance {a}. Enter the measured length.",
+  "rotation_distance {b} übernommen – unter Einstellungen speichern.": "rotation_distance {b} applied – save it under Settings.",
+  // History
+  "Als CSV exportieren": "Export as CSV", "Verlauf löschen": "Clear history", "Verlauf: {m}": "History: {m}",
+  "Alle Einträge des Verlaufs löschen? Das betrifft alle Browser.": "Delete all history entries? This affects all browsers.", "Löschen": "Delete",
+  "Noch keine Einträge. Laden, Entladen und Bench-Tests werden hier aufgezeichnet.": "No entries yet. Loads, unloads and bench tests are recorded here.",
+  "Laden (kalt)": "Load (cold)", "Laden (heiß)": "Load (hot)", "Laden": "Loads", "Letzte Dauer": "Last duration", "ok": "ok",
+  "Weniger anzeigen": "Show less", "Alle anzeigen ({n})": "Show all ({n})",
+  // Settings
+  "Einstellungen": "Settings", "Hardware": "Hardware", "Servo & Stepper": "Servo & stepper", "Längen": "Lengths", "Laden & Auto": "Load & auto",
+  "Stepper step_pin": "Stepper step_pin", "Stepper dir_pin": "Stepper dir_pin", "Stepper enable_pin": "Stepper enable_pin",
+  "Mikroschritte": "Microsteps", "rotation_distance": "rotation_distance", "Motorstrom": "Motor current", "UART-Pin": "UART pin",
+  "UART TX-Pin": "UART TX pin", "UART-Adresse": "UART address", "Servo-Pin": "Servo pin", "Sensor 1 Pin": "Sensor 1 pin", "Sensor 2 Pin": "Sensor 2 pin",
+  "Sensor 2 aktiv (verdrahtet)": "Sensor 2 active (wired)",
+  "Sensoren sind Öffner (NC): kein Filament = Kontakt geschlossen. „^“ = Pull-up, „!“ = invertiert. Der MCU-Name von Sensor 2 muss zu [mcu …] in nitehawk-sb.cfg passen. Pin-Änderungen wirken nach dem Neustart.":
+    "Sensors are normally closed (NC): no filament = contact closed. “^” = pull-up, “!” = inverted. The MCU name of sensor 2 must match [mcu …] in nitehawk-sb.cfg. Pin changes take effect after the restart.",
+  "Klemmwinkel": "Clamp angle", "Freiwinkel": "Release angle", "Servo-Wartezeit": "Servo settle time", "Tempo fein": "Fine speed",
+  "Schritt bei Abfrage": "Step per check", "Max. Tempo": "Max. speed", "Beschleunigung": "Acceleration",
+  "Servo nach dem Lösen abschalten": "Switch servo off after release",
+  "Die Sensor-Abfrage läuft in Schritten von „Schritt bei Abfrage“. Kleinere Schritte reagieren genauer, brauchen aber mehr Makro-Aufrufe.":
+    "The sensor is checked in steps of “Step per check”. Smaller steps react more precisely but need more macro calls.",
+  "Reserve (overrun)": "Reserve (overrun)", "gear_offset": "gear_offset", "gear_push": "gear_push", "ext_to_nozzle": "ext_to_nozzle",
+  "unload_ext_len": "unload_ext_len", "unload_hold": "unload_hold", "tube_len": "tube_len", "coarse_len": "coarse_len",
+  "tube_len: Loader-Zahnräder bis Toolhead-Sensor. coarse_len: Strecke ohne Sensorabfrage (kleiner als tube_len). gear_offset: Sensor 2 bis Extruder-Zahnräder. gear_push: Loader schiebt so weit darüber hinaus. ext_to_nozzle: Extruder-Zahnräder bis Düse. unload_hold: Filamentspitze bleibt so weit im Loader-Griff.":
+    "tube_len: loader gears to toolhead sensor. coarse_len: distance without sensor checks (shorter than tube_len). gear_offset: sensor 2 to extruder gears. gear_push: the loader pushes this far beyond. ext_to_nozzle: extruder gears to nozzle. unload_hold: the filament tip stays this far inside the loader grip.",
+  "Standard-Düsentemperatur": "Default nozzle temperature", "Extruder-Tempo": "Extruder speed", "Ausspülen": "Purge", "Ausspül-Tempo": "Purge speed",
+  "Auto-Verzögerung": "Auto delay", "Bench-Strecke": "Bench distance", "Klipper-Meldungen": "Klipper messages", "Deutsch": "Deutsch", "English": "English",
+  "Bench-Modus (Auto-Trigger fährt nur die Teststrecke)": "Bench mode (auto trigger only runs the test distance)",
+  "Bench-Modus aus = Auto-Trigger lädt das Filament bis in den Extruder (FILAMENT_LOAD_COLD). Auto-Verzögerung: Zeit zum Nachschieben, bevor der Loader klemmt.":
+    "Bench mode off = the auto trigger loads the filament into the extruder (FILAMENT_LOAD_COLD). Auto delay: time to push the filament in before the loader clamps.",
+  "Speichern": "Save", "Verwerfen": "Discard", "ja": "yes", "nein": "no",
+  "{f} nicht lesbar (HTTP {s})": "{f} could not be read (HTTP {s})", "{f} konnte nicht gespeichert werden (HTTP {s})": "{f} could not be saved (HTTP {s})",
+  "Section [{s}] fehlt in {f}": "Section [{s}] missing in {f}",
+  "Ungültiger Wert: {k}": "Invalid value: {k}", "Pin sieht ungültig aus: {k}": "Pin looks invalid: {k}",
+  "{k} muss zwischen 0 und 180 liegen.": "{k} must be between 0 and 180.",
+  "Tempo, Schritt und rotation_distance müssen größer als 0 sein.": "Speed, step and rotation_distance must be greater than 0.",
+  "coarse_len sollte kleiner als tube_len sein, sonst fehlt die Sensorabfrage vor dem Ziel.": "coarse_len should be smaller than tube_len, otherwise the sensor is not checked before the target.",
+  "Die Sensorabfrage braucht rund {n} Makro-Aufrufe hintereinander (Limit ca. 100) – coarse_len erhöhen oder Schritt vergrößern.":
+    "The sensor check needs about {n} chained macro calls (limit about 100) – increase coarse_len or the step size.",
+  "Motorstrom über 1 A – für einen NEMA17 am Loader meist unnötig.": "Motor current above 1 A – usually unnecessary for a NEMA17 on the loader.",
+  "Klemm- und Freiwinkel sind gleich.": "Clamp and release angle are identical.",
+  "Während eines Drucks gesperrt.": "Locked while printing.", "Erst speichern": "Save first",
+  "Es gibt ungespeicherte Kalibrierwerte (SAVE_CONFIG ausstehend). Bitte zuerst Save Config ausführen – ein Neustart würde sie verwerfen.":
+    "There are unsaved calibration values (SAVE_CONFIG pending). Please run Save Config first – a restart would discard them.",
+  "Keine Änderungen.": "No changes.",
+  "Gespeichert wird in {f} (vorherige Version als .bak). Danach startet Klipper neu.": "Saved to {f} (previous version as .bak). Klipper restarts afterwards.",
+  "Nach Änderungen an Pins, Richtung oder Winkeln: erste Fahrt beobachten, Hand am Notaus.": "After changing pins, direction or angles: watch the first move, hand on the emergency stop.",
+  "Änderungen speichern": "Save changes", "Speichern & Neustart": "Save & restart", "Gespeichert – Klipper startet neu …": "Saved – Klipper is restarting …",
+  "Fehler beim Speichern": "Error while saving", "Bestätigen": "Confirm", "Abbrechen": "Cancel", "OK": "OK", "Neustart": "Restart",
+  "Klipper per FIRMWARE_RESTART neu starten?": "Restart Klipper via FIRMWARE_RESTART?",
+  "Sprache der Klipper-Meldungen auf {l} gesetzt.": "Klipper message language set to {l}.",
+  // Console
+  "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
+};
+
+let LANG = "de";
+
+function t(s, v) {
+  let r = LANG === "en" && T_EN[s] !== undefined ? T_EN[s] : s;
+  if (v) r = r.replace(/\{(\w+)\}/g, (m, k) => (v[k] !== undefined ? v[k] : m));
+  return r;
+}
+const dec = (s) => LANG === "de" ? String(s).replace(".", ",") : String(s);
+
+/* translate static texts (only German → English is needed) */
+function translateStatic(root = document.body) {
+  if (LANG !== "en") return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [];
+  while (w.nextNode()) nodes.push(w.currentNode);
+  for (const n of nodes) {
+    if (n.parentElement && n.parentElement.closest("script, style, #log")) continue;
+    const raw = n.nodeValue, key = raw.trim();
+    if (key && T_EN[key] !== undefined) n.nodeValue = raw.replace(key, T_EN[key]);
+  }
+  root.querySelectorAll("[title], [placeholder], [aria-label]").forEach((el) => {
+    for (const a of ["title", "placeholder", "aria-label"]) {
+      const v = el.getAttribute(a);
+      if (v && T_EN[v] !== undefined) el.setAttribute(a, T_EN[v]);
+    }
+  });
+}
+// =====================================================================
+// Vuetify building blocks (same classes as Mainsail so its CSS applies)
+// =====================================================================
+const icon = (n, cls = "", px = 0) => {
+  const st = px ? ` style="font-size:${px}px;height:${px}px;width:${px}px;"` : "";
+  return `<span aria-hidden="true" class="v-icon notranslate theme--${TH} ${cls}"${st}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-hidden="true" class="v-icon__svg"${st}><path d="${ICON[n] || ""}"></path></svg></span>`;
+};
+
+function btnHTML(o) {
+  const v = o.variant || "", size = o.size || (v === "icon" ? "default" : "small");
+  const cls = ["v-btn"];
+  if (v === "text") cls.push("v-btn--text");
+  else if (v === "icon") cls.push("v-btn--icon", "v-btn--round");
+  else cls.push("v-btn--is-elevated", "v-btn--has-bg");
+  if (o.block) cls.push("v-btn--block");
+  cls.push(`theme--${TH}`, `v-size--${size}`);
+  if (o.color) cls.push(v === "text" || v === "icon" ? `${o.color}--text` : o.color);
+  if (o.cls) cls.push(o.cls);
+  if (o.act) cls.push("act");
+  const attrs = [`type="button"`, `class="${cls.join(" ")}"`];
+  for (const a of ["id", "title"]) if (o[a]) attrs.push(`${a}="${esc(o[a])}"`);
+  if (o.g) attrs.push(`data-g="${esc(o.g)}"`);
+  if (o.confirm) attrs.push(`data-confirm="${esc(o.confirm)}"`);
+  for (const k in o.data || {}) attrs.push(`data-${k}="${esc(o.data[k])}"`);
+  const ipx = size === "small" || size === "x-small" ? 16 : 0;
+  let inner = "";
+  if (o.icon) inner += icon(o.icon, o.text ? (v === "icon" ? "" : "mr-1") : "", ipx);
+  if (o.icon2) inner += icon(o.icon2, "", ipx);
+  if (o.text) inner += `<span>${o.text}</span>`;
+  return `<button ${attrs.join(" ")}><span class="v-btn__content">${inner}</span></button>`;
+}
+
+function fieldHTML(o) {
+  const attrs = [`type="${o.type === "number" ? "number" : "text"}"`];
+  for (const a of ["id", "step", "min", "max", "placeholder"]) if (o[a] != null) attrs.push(`${a}="${esc(o[a])}"`);
+  if (o.k) attrs.push(`data-k="${esc(o.k)}"`);
+  if (o.s) attrs.push(`data-s="${esc(o.s)}"`);
+  if (o.value != null) attrs.push(`value="${esc(o.value)}"`);
+  attrs.push(`autocomplete="off"`);
+  const ctl = o.options
+    ? `<select ${attrs.filter((a) => !/^type=/.test(a)).join(" ")} style="width:100%;background:transparent;color:inherit;border:0;outline:0;font:inherit;padding:8px 0;">${o.options}</select>`
+    : `<input ${attrs.join(" ")}>`;
+  return `<div class="v-input v-input--hide-details v-input--is-label-active v-input--is-dirty v-input--dense theme--${TH} v-text-field v-text-field--is-booted v-text-field--enclosed v-text-field--outlined ${o.cls || ""}"${o.style ? ` style="${o.style}"` : ""}>` +
+    `<div class="v-input__control"><div class="v-input__slot"><fieldset aria-hidden="true"><legend style="width:0px;"><span class="notranslate">​</span></legend></fieldset>` +
+    `<div class="v-text-field__slot"><label class="v-label v-label--active theme--${TH}" style="left:0px;right:auto;position:absolute;">${o.label || ""}</label>${ctl}</div>` +
+    (o.suffix ? `<div class="v-text-field__suffix">${esc(o.suffix)}</div>` : "") +
+    `</div></div></div>`;
+}
+
+function checkHTML(o) {
+  const on = !!o.checked;
+  return `<div class="v-input v-input--hide-details v-input--dense theme--${TH} v-input--selection-controls v-input--checkbox ${on ? "v-input--is-label-active v-input--is-dirty primary--text" : ""}" data-check ${o.id ? `id="${esc(o.id)}"` : ""} ${o.k ? `data-k="${esc(o.k)}"` : ""} data-on="${on ? 1 : 0}" style="margin:0;padding:0;">` +
+    `<div class="v-input__control"><div class="v-input__slot" style="cursor:pointer;"><div class="v-input--selection-controls__input">${icon(on ? "mdiCheckboxMarked" : "mdiCheckboxBlankOutline", on ? "primary--text" : "")}` +
+    `<div class="v-input--selection-controls__ripple ${on ? "primary--text" : ""}"></div></div><label class="v-label theme--${TH}" style="left:0px;right:auto;position:relative;cursor:pointer;">${o.label}</label></div></div></div>`;
+}
+function setCheck(el, on) {
+  el.dataset.on = on ? "1" : "0";
+  el.classList.toggle("v-input--is-label-active", on); el.classList.toggle("v-input--is-dirty", on); el.classList.toggle("primary--text", on);
+  el.querySelector(".v-input--selection-controls__input").firstElementChild.outerHTML = icon(on ? "mdiCheckboxMarked" : "mdiCheckboxBlankOutline", on ? "primary--text" : "");
+}
+const isChecked = (el) => el.dataset.on === "1";
+
+function alertHTML(type, ic, html, extra = "") {
+  return `<div role="alert" class="v-alert v-sheet theme--${TH} v-alert--dense v-alert--text v-alert--border v-alert--border-left ${type}--text mb-3">` +
+    `<div class="v-alert__wrapper">${icon(ic, "v-alert__icon")}<div class="v-alert__content d-flex align-center flex-wrap" style="gap:8px 16px;"><div style="flex:1;min-width:200px;">${html}</div>${extra}</div>` +
+    `<div class="v-alert__border v-alert__border--left"></div></div></div>`;
+}
+
+function panelHTML(o) {
+  const closed = !o.fixed && (store.get("closed", {})[o.p] || false);
+  return `<div class="v-card v-sheet theme--${TH} panel ${o.margin === false ? "" : "mb-3 mb-md-6"} ${closed ? "expanded" : ""}" data-p="${esc(o.p)}"${o.id ? ` id="${o.id}"` : ""}>` +
+    `<header class="panel-toolbar v-sheet theme--${TH} v-toolbar v-toolbar--dense v-toolbar--flat ${o.fixed ? "" : "collapsible"}" style="height:48px;"><div class="v-toolbar__content" style="height:48px;">` +
+    `<div class="v-toolbar__title d-flex align-center">${icon(o.icon, "v-icon--left")}<span class="subheading">${o.title}</span></div><div class="spacer"></div>` +
+    `<div class="v-toolbar__items"><div class="d-flex align-center">${o.tools || ""}</div>` +
+    (o.fixed ? "" : `<button type="button" class="btn-collapsible v-btn v-btn--icon v-btn--round theme--${TH} v-size--default"><span class="v-btn__content">${icon("mdiChevronDown", closed ? "icon-rotate-90" : "")}</span></button>`) +
+    `</div></div></header><div class="panel-body"${closed ? ' style="display:none"' : ""}>${o.body}</div></div>`;
+}
+
+/* turn <x-…> placeholders in the HTML into Vuetify markup */
+function expand(root = document) {
+  const attr = (el, n) => el.getAttribute(n);
+  root.querySelectorAll("x-btn").forEach((el) => {
+    const data = {}; for (const a of el.attributes) if (a.name.startsWith("data-")) data[a.name.slice(5)] = a.value;
+    el.outerHTML = btnHTML({ variant: attr(el, "variant"), size: attr(el, "size"), color: attr(el, "color"), cls: attr(el, "cls"), act: el.hasAttribute("act"),
+      id: attr(el, "id"), title: attr(el, "title"), g: attr(el, "g"), icon: attr(el, "icon"), icon2: attr(el, "icon2"), text: el.innerHTML.trim(), data });
+  });
+  root.querySelectorAll("x-field, x-select").forEach((el) => {
+    el.outerHTML = fieldHTML({ label: attr(el, "label"), id: attr(el, "id"), k: attr(el, "k"), type: attr(el, "type"), step: attr(el, "step"), min: attr(el, "min"),
+      max: attr(el, "max"), value: attr(el, "value"), placeholder: attr(el, "placeholder"), suffix: attr(el, "suffix"), style: attr(el, "style"),
+      options: el.tagName === "X-SELECT" ? el.innerHTML : null });
+  });
+  root.querySelectorAll("x-check").forEach((el) => {
+    el.outerHTML = checkHTML({ label: attr(el, "label"), id: attr(el, "id"), k: attr(el, "k"), checked: el.hasAttribute("checked") });
+  });
+  root.querySelectorAll("[data-icon]").forEach((el) => { el.outerHTML = icon(el.dataset.icon, el.dataset.iconCls || ""); });
+  // panels last (their content is already converted)
+  [...root.querySelectorAll("x-panel")].reverse().forEach((el) => {
+    const tools = el.querySelector(":scope > x-tools");
+    const toolsHTML = tools ? tools.innerHTML : "";
+    if (tools) tools.remove();
+    el.outerHTML = panelHTML({ p: attr(el, "p"), icon: attr(el, "icon"), title: attr(el, "title"), fixed: el.hasAttribute("fixed"),
+      margin: el.closest(".v-dialog") ? false : true, tools: toolsHTML, body: el.innerHTML });
+  });
+}
+
+/* width of the outline legend (Vuetify: label width × 0.75 + 6) */
+function fixLegends(root = document) {
+  root.querySelectorAll(".v-text-field--outlined").forEach((f) => {
+    const lab = f.querySelector(".v-label"), leg = f.querySelector("legend");
+    if (lab && leg) leg.style.width = (lab.textContent.trim() ? lab.scrollWidth * 0.75 + 6 : 0) + "px";
+  });
+}
+
+function setDis(el, dis) {
+  if (!el) return;
+  el.disabled = !!dis;
+  el.classList.toggle("v-btn--disabled", !!dis);
+}
+// =====================================================================
+// Adopt the Mainsail theme
+// =====================================================================
+/* colour variants like Vuetify (CIELAB) */
+const LAB = (() => {
+  const d = 6 / 29, f = (x) => x > d ** 3 ? Math.cbrt(x) : x / (3 * d * d) + 4 / 29, fi = (x) => x > d ? x ** 3 : 3 * d * d * (x - 4 / 29);
+  const M = [[3.2406, -1.5372, -0.4986], [-0.9689, 1.8758, 0.0415], [0.0557, -0.204, 1.057]];
+  const Mi = [[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]];
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4, gam = (c) => c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055;
+  const toXYZ = (n) => { const r = lin((n >> 16 & 255) / 255), g = lin((n >> 8 & 255) / 255), b = lin((n & 255) / 255); return Mi.map((m) => m[0] * r + m[1] * g + m[2] * b); };
+  const fromXYZ = (x) => M.map((m) => Math.round(Math.max(0, Math.min(1, gam(m[0] * x[0] + m[1] * x[1] + m[2] * x[2]))) * 255)).reduce((a, c) => (a << 8) + c, 0);
+  const shift = (n, amt) => {
+    const x = toXYZ(n), fy = f(x[1]);
+    const L = 116 * fy - 16 + amt * 10, A = 500 * (f(x[0] / 0.95047) - fy), B = 200 * (fy - f(x[2] / 1.08883));
+    const Ln = (L + 16) / 116;
+    return fromXYZ([fi(Ln + A / 500) * 0.95047, fi(Ln), fi(Ln - B / 200) * 1.08883]);
+  };
+  return { shift };
+})();
+const hex = (n) => "#" + n.toString(16).padStart(6, "0");
+const parseHex = (s) => { const m = /^#?([0-9a-f]{6})$/i.exec(String(s).trim()); return m ? parseInt(m[1], 16) : null; };
+
+function applyColors(primary) {
+  const base = { primary: parseHex(primary) ?? 0x2196f3, secondary: 0x424242, accent: 0xff4081, error: 0xff5252, info: 0x2196f3, success: 0x4caf50, warning: 0xfb8c00 };
+  let vars = `--v-anchor-base:${hex(base.primary)};`, rules = ".v-application a{color:var(--v-anchor-base);}";
+  for (const [name, c] of Object.entries(base)) {
+    vars += `--v-${name}-base:${hex(c)};`;
+    for (let i = 5; i >= 1; i--) vars += `--v-${name}-lighten${i}:${hex(LAB.shift(c, i))};`;
+    for (let i = 1; i <= 4; i++) vars += `--v-${name}-darken${i}:${hex(LAB.shift(c, -i))};`;
+    rules += `.v-application .${name}{background-color:var(--v-${name}-base)!important;border-color:var(--v-${name}-base)!important;}` +
+      `.v-application .${name}--text{color:var(--v-${name}-base)!important;caret-color:var(--v-${name}-base)!important;}`;
+  }
+  let st = $("vuetify-theme-stylesheet");
+  if (!st) { st = document.createElement("style"); st.id = "vuetify-theme-stylesheet"; document.head.appendChild(st); }
+  st.textContent = `:root{${vars}}` + rules;
+  const p = base.primary, lum = ((p >> 16 & 255) * 299 + (p >> 8 & 255) * 587 + (p & 255) * 114) / 1000;
+  const app = $("app");
+  app.style.setProperty("--v-btn-text-primary", lum > 160 ? "#000" : "#fff");
+  app.style.setProperty("--color-primary", hex(p));
+  for (const [k, v] of [["--panel-toolbar-icon-btn-width", "48px"], ["--panel-toolbar-text-btn-height", "48px"], ["--topbar-icon-btn-width", "48px"], ["--sidebar-menu-item-height", "48px"]])
+    app.style.setProperty(k, v);
+}
+
+function applyMode(mode) {
+  const next = mode === "light" ? "light" : "dark";
+  if (next === TH) return;
+  const prev = TH; TH = next;
+  document.querySelectorAll(`.theme--${prev}`).forEach((el) => { el.classList.remove(`theme--${prev}`); el.classList.add(`theme--${next}`); });
+  document.documentElement.className = next === "light" ? "theme--light" : "";
+  document.querySelectorAll(".v-overlay__scrim").forEach((s) => { s.style.backgroundColor = next === "light" ? "rgb(33,33,33)" : "rgb(33,33,33)"; });
+  render();
+}
+
+/* load Mainsail's own stylesheets (Vuetify, Mainsail) */
+async function loadMainsailCss() {
+  try {
+    const html = await (await fetch("/", { cache: "no-store" })).text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const hrefs = [...doc.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.getAttribute("href")).filter((h) => h && !/overlayscrollbars/i.test(h));
+    if (!hrefs.length) throw new Error("keine Stylesheets");
+    await Promise.all(hrefs.map((h) => new Promise((res) => {
+      const l = document.createElement("link"); l.rel = "stylesheet"; l.href = h; l.onload = l.onerror = res;
+      document.head.insertBefore(l, document.head.querySelector("style"));
+    })));
+    return true;
+  } catch { document.body.classList.add("no-mainsail"); return false; }
+}
+
+let themeFiles = {};
+async function loadThemeFiles() {
+  try {
+    const r = await rpc("server.files.get_directory", { path: "config/.theme", extended: false });
+    for (const f of r.files || []) themeFiles[f.filename.replace(/\.[^.]+$/, "").toLowerCase()] = `/server/files/config/.theme/${encodeURIComponent(f.filename)}?timestamp=${f.modified}`;
+  } catch { /* no .theme folder */ }
+  if (themeFiles["custom"]) {
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = themeFiles["custom"]; document.head.appendChild(l);
+  }
+  if (themeFiles["main-background"]) $("content").style.backgroundImage = `url(${themeFiles["main-background"]})`;
+}
+
+const THEMES = { klipper: 1, voron: 1, ldo: 1, yumi: 1, vzbot: 1, prusa: 1, btt: 1, multec: 1 };
+async function applyMainsailLook(ui) {
+  const theme = ui.theme || "mainsail";
+  applyColors(ui.primary || "#2196f3");
+  applyMode(ui.mode || "dark");
+  if (ui.navigationStyle === "iconsOnly") NAV.mini = true;
+  // sidebar background
+  let bg = themeFiles["sidebar-background"];
+  if (!bg) bg = theme === "vzbot" ? "/img/themes/sidebarBackground-vzbot.png" : (TH === "light" ? "/img/sidebar-background-light.svg" : "/img/sidebar-background.svg");
+  $("nav-bg").style.backgroundImage = `url("${bg}")`;
+  if (theme === "vzbot") { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/css/themes/vzbot.css"; document.head.appendChild(l); }
+  // logo (same lookup order as Mainsail)
+  const logoColor = ui.logo || "#D41216";
+  let url = themeFiles["sidebar-logo"] || "";
+  if (!url && THEMES[theme]) url = `/img/themes/sidebarLogo-${theme}.svg`;
+  if (!url) url = "/img/logo.svg";
+  try {
+    if (/\.svg(\?|$)/.test(url)) {
+      let svg = await (await fetch(url)).text();
+      svg = svg.replace(/fill="var\(--color-logo, #[0-9a-fA-F]{6}\)"/g, `fill="${logoColor}"`);
+      if (url === "/img/logo.svg") svg = svg.replace(/fill="#d41216"/gi, `fill="${logoColor}"`);
+      $("logo").innerHTML = svg;
+    } else $("logo").innerHTML = `<img src="${url}" alt="">`;
+  } catch { /* no logo */ }
+}
+// =====================================================================
+// Navigation (Mainsail's sidebar)
+// =====================================================================
+const NAV = { open: true, mini: false };
+const isMobile = () => window.innerWidth < 1264;
+function layoutNav() {
+  const nav = $("nav"), mobile = isMobile(), w = NAV.mini && !mobile ? 56 : 220;
+  nav.style.width = w + "px";
+  nav.classList.toggle("v-navigation-drawer--mini-variant", NAV.mini && !mobile);
+  nav.classList.toggle("v-navigation-drawer--is-mobile", mobile);
+  nav.classList.toggle("v-navigation-drawer--temporary", mobile);
+  nav.classList.toggle("v-navigation-drawer--close", !NAV.open);
+  nav.classList.toggle("v-navigation-drawer--open", NAV.open);
+  nav.style.transform = NAV.open ? "translateX(0%)" : "translateX(-100%)";
+  nav.style.zIndex = mobile ? 7 : 6;
+  $("scrim").classList.toggle("hide", !(mobile && NAV.open));
+  $("content").style.paddingLeft = !mobile && NAV.open ? w + "px" : "0";
+}
+
+
+let lastAvail = null;
+async function buildNav(avail) {
+  lastAvail = avail;
+  let webcams = 0;
+  try { webcams = ((await rpc("server.webcams.list")).webcams || []).length; } catch { /* ignore */ }
+  const items = [
+    { t: t("Dashboard"), h: "/", i: "mdiMonitorDashboard", p: 10 },
+    webcams && { t: t("Webcam"), h: "/cam", i: "mdiWebcam", p: 20 },
+    { t: t("Konsole"), h: "/console", i: "mdiConsoleLine", p: 30 },
+    avail.includes("bed_mesh") && { t: t("Heightmap"), h: "/heightmap", i: "mdiGrid", p: 40 },
+    { t: t("G-Code Dateien"), h: "/files", i: "mdiFileDocumentMultipleOutline", p: 50 },
+    { t: t("G-Code-Betrachter"), h: "/viewer", i: "mdiVideo3d", p: 60 },
+    components.includes("history") && { t: t("Verlauf"), h: "/history", i: "mdiHistory", p: 70 },
+    components.includes("timelapse") && { t: t("Zeitraffer"), h: "/timelapse", i: "mdiTimelapse", p: 80 },
+    { t: t("Maschine"), h: "/config", i: "mdiWrench", p: 90 },
+  ].filter(Boolean);
+  if (themeFiles["navi"]) {
+    try {
+      for (const e of await (await fetch(themeFiles["navi"], { cache: "no-store" })).json()) {
+        const self = SELF_RE.test(e.href || "");
+        items.push({ t: self ? t("Loader") : e.title, h: e.href, target: e.target, path: e.icon, p: e.position ?? 1000, active: self });
+      }
+    } catch { /* invalid navi.json */ }
+  }
+  if (!items.some((x) => x.active)) items.push({ t: t("Loader"), h: BASE, i: "mdiPrinter3dNozzle", p: 46, active: true });
+  items.sort((a, b) => a.p - b.p);
+  $("navlist").innerHTML = items.map((x) => {
+    const ic = x.path ? `<span aria-hidden="true" class="v-icon notranslate theme--${TH}"><svg viewBox="0 0 24 24" class="v-icon__svg"><path d="${esc(x.path)}"></path></svg></span>` : icon(x.i);
+    return `<div><a href="${esc(x.h)}"${x.target === "_blank" ? ' target="_blank" rel="noopener"' : ""} class="${x.active ? "v-list-item--active " : ""}v-list-item v-list-item--link theme--${TH} small-list-item${x.active ? " active-nav-item" : ""}" title="${esc(x.t)}">` +
+      `<div class="v-list-item__icon my-3 mr-3 menu-item-icon">${ic}</div><div class="v-list-item__content"><div class="v-list-item__title menu-item-title">${esc(x.t)}</div></div></a></div>`;
+  }).join("");
+}
+
+// =====================================================================
+// Connection to Moonraker
+// =====================================================================
+const S = {};
+let CFG = {}, ws = null, rid = 0, busy = 0, klippy = "disconnected", components = [], installed = true, hasTool = false;
+const pending = new Map();
+
+function connect() {
+  ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/websocket`);
+  ws.onopen = () => init();
+  ws.onclose = () => {
+    setKlippy("disconnected");
+    pending.forEach((p) => p.rej(new Error(t("Verbindung getrennt")))); pending.clear();
+    setTimeout(connect, 2000);
+  };
+  ws.onmessage = (ev) => {
+    const m = JSON.parse(ev.data);
+    if (m.id !== undefined && pending.has(m.id)) {
+      const p = pending.get(m.id); pending.delete(m.id);
+      m.error ? p.rej(new Error(m.error.message || "Fehler")) : p.res(m.result);
+      return;
+    }
+    switch (m.method) {
+      case "notify_status_update": merge(m.params[0]); break;
+      case "notify_gcode_response": onResponse(m.params[0]); break;
+      case "notify_klippy_ready": checkKlippy(); break;
+      case "notify_klippy_shutdown": setKlippy("shutdown"); break;
+      case "notify_klippy_disconnected": setKlippy("disconnected"); setTimeout(checkKlippy, 2000); break;
+      case "notify_update_refreshed": case "notify_update_response": loadUpdate(); break;
+    }
+  };
+}
+
+function rpc(method, params) {
+  return new Promise((res, rej) => {
+    if (!ws || ws.readyState !== 1) return rej(new Error("nicht verbunden"));
+    const id = ++rid; pending.set(id, { res, rej });
+    ws.send(JSON.stringify({ jsonrpc: "2.0", method, params, id }));
+  });
+}
+
+let booted = false;
+async function init() {
+  if (!booted) {
+    booted = true;
+    await loadThemeFiles();
+    const get = (key) => rpc("server.database.get_item", { namespace: "mainsail", key }).then((r) => r.value).catch(() => null);
+    const [ui, gen] = await Promise.all([get("uiSettings"), get("general")]);
+    await applyMainsailLook(ui || {});
+    const name = (gen && gen.printername) || location.hostname || "Mainsail";
+    $("pname").textContent = name;
+    document.title = `${t("Loader")} – ${name}`;
+    const saved = store.get("lang", null);
+    setLang(saved || detectLang(gen && gen.language));
+    layoutNav();
+    reveal();
+  }
+  checkKlippy();
+  loadUpdate();
+}
+
+async function checkKlippy() {
+  try {
+    const info = await rpc("server.info");
+    components = info.components || [];
+    setKlippy(info.klippy_state);
+    if (info.klippy_state === "ready") await subscribe();
+    else setTimeout(checkKlippy, 2000);
+  } catch (e) { log(e.message, "e"); }
+}
+
+async function subscribe() {
+  const avail = (await rpc("printer.objects.list")).objects;
+  const want = {
+    extruder: ["temperature", "target"],
+    "filament_switch_sensor loader_in": ["filament_detected", "enabled"],
+    "filament_switch_sensor toolhead_in": ["filament_detected", "enabled"],
+    "gcode_macro _LOADER_STATE": null, "gcode_macro _LOADER_VARS": null,
+    configfile: ["save_config_pending"], print_stats: ["state"], webhooks: ["state", "state_message"],
+  };
+  const objects = {};
+  for (const k in want) if (avail.includes(k)) objects[k] = want[k];
+  EV.last = null;
+  merge((await rpc("printer.objects.subscribe", { objects })).status);
+  CFG = (await rpc("printer.objects.query", { objects: { configfile: ["settings"] } })).status.configfile.settings || {};
+  installed = avail.includes("gcode_macro _LOADER_STATE");
+  hasTool = avail.includes("filament_switch_sensor toolhead_in");
+  await buildNav(avail);
+  await loadSettings();
+  if (!tempInit && lv().default_temp != null) { $("temp").value = lv().default_temp; tempInit = true; }
+  render();
+  if (!HIST.loaded) histLoad();
+}
+let tempInit = false;
+
+function setKlippy(st) { klippy = st; render(); }
+
+/* a finished operation = _LOADER_STATE.event counts up */
+const EV = { last: null, t0: 0 };
+function merge(o) {
+  const prevState = (S["gcode_macro _LOADER_STATE"] || {}).state;
+  for (const k in o) S[k] = Object.assign(S[k] || {}, o[k]);
+  const st = S["gcode_macro _LOADER_STATE"];
+  if (st) {
+    if (["loading", "unloading", "testing"].includes(st.state) && st.state !== prevState) EV.t0 = Date.now();
+    if (st.event !== undefined) {
+      if (EV.last === null || st.event < EV.last) EV.last = st.event;
+      else if (st.event > EV.last) {
+        EV.last = st.event;
+        histAdd({ t: Date.now() / 1000, op: st.op || "", r: st.result || "", m: st.msg || "", d: EV.t0 ? Math.round((Date.now() - EV.t0) / 100) / 10 : null });
+        EV.t0 = 0;
+      }
+    }
+  }
+  render();
+}
+
+// =====================================================================
+// Update notice (Moonraker update_manager)
+// =====================================================================
+let UPD = null;
+async function loadUpdate() {
+  try {
+    const r = await rpc("machine.update.status", {});
+    const vi = r.version_info || {};
+    UPD = vi[VERSION_KEY] || Object.values(vi).find((x) => /filament-loader/i.test(`${x.repo_name || ""} ${x.name || ""}`)) || null;
+    if (UPD && !UPD.name) UPD.name = VERSION_KEY;
+  } catch { UPD = null; }
+  $("nav-foot").textContent = UPD ? `filament-loader ${UPD.version || ""}` : "voronv0-filament-loader";
+  render();
+}
+
+async function runUpdate() {
+  if (!UPD) return;
+  if (!(await dialog(t("Update-Manager"), esc(t("Update auf {v} installieren? Klipper wird danach neu gestartet.", { v: UPD.remote_version || "" })), t("Jetzt aktualisieren")))) return;
+  snack(t("Aktualisierung läuft …"));
+  try { await rpc("machine.update.upgrade", { name: UPD.name }); }
+  catch { try { await rpc("machine.update.client", { name: UPD.name }); } catch (e) { return dialog(t("Fehler"), esc(e.message), null); } }
+  setTimeout(() => location.reload(), 4000);
+}
+
+// =====================================================================
+// G-code and responses
+// =====================================================================
+async function gcode(script) {
+  log("> " + script, "cmd");
+  busy++; render();
+  try { await rpc("printer.gcode.script", { script }); }
+  catch (e) { log("!! " + e.message, "e"); snack(e.message); }
+  finally { busy--; render(); }
+}
+
+function onResponse(raw) {
+  const line = String(raw).replace(/^\/\/\s?/, "");      // Klipper info lines start with "// "
+  log(line, line.startsWith("!!") ? "e" : "");
+}
+
+let raf = 0;
+function render() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); }
+
+
+// =====================================================================
+// Drawing
+// =====================================================================
+const printing = () => ["printing", "paused"].includes((S.print_stats || {}).state);
+const BUSY_STATES = ["loading", "unloading", "testing"];
+const ls = () => S["gcode_macro _LOADER_STATE"] || {};
+const lv = () => S["gcode_macro _LOADER_VARS"] || {};
+const chip = (txt, cls = "") => `<span class="chip ${cls}">${esc(txt)}</span>`;
+
+function sensorHTML(name) {
+  const s = S["filament_switch_sensor " + name];
+  if (!s) return chip(t("nicht konfiguriert"), "warning--text");
+  return (s.filament_detected ? chip(t("Filament"), "success--text") : chip(t("leer"), "muted")) +
+    (s.enabled === false ? chip(t("Auto aus"), "warning--text") : "");
+}
+
+function draw() {
+  if (SHELL.visible) return;
+  const ready = klippy === "ready", pr = printing();
+  const st = ls(), v = lv();
+  setDis($("restart"), pr);
+
+  // Notices
+  const al = [];
+  if (ready && !installed) al.push(alertHTML("error", "mdiAlertCircleOutline", esc(t("Die Filament-Loader-Makros wurden in Klipper nicht gefunden. Installation prüfen (./install.sh --analyze)."))));
+  if (!ready) al.push(alertHTML("error", "mdiAlertCircleOutline", esc(t("Klipper: {m}", { m: (S.webhooks || {}).state_message || t({ disconnected: "getrennt", shutdown: "Shutdown", startup: "startet", error: "Fehler" }[klippy] || klippy) }))));
+  if (pr) al.push(alertHTML("info", "mdiInformationOutline", esc(t("Während eines Drucks sind Loader-Vorgänge und Einstellungen gesperrt."))));
+  if (ready && installed && !hasTool)
+    al.push(alertHTML("info", "mdiInformationOutline", esc(t("Sensor 2 (Toolhead) ist nicht aktiv – Laden und Entladen sind gesperrt. Nach dem Verdrahten unter Einstellungen → Hardware aktivieren."))));
+  if (ready && installed && Number(v.bench_mode) === 1)
+    al.push(alertHTML("info", "mdiInformationOutline", esc(t("Bench-Modus aktiv: Der Auto-Trigger klemmt nur, fährt die Teststrecke und löst."))));
+  if (st.state === "error" && st.msg) al.push(alertHTML("error", "mdiAlertCircleOutline", esc(t("Loader: {m}", { m: st.msg }))));
+  if ((S.configfile || {}).save_config_pending)
+    al.push(alertHTML("warning", "mdiContentSave", esc(t("Ungespeicherte Kalibrierwerte – erst nach SAVE_CONFIG dauerhaft. Klipper startet dabei neu.")),
+      btnHTML({ text: t("Save Config"), color: "warning", g: "SAVE_CONFIG", confirm: t("Konfiguration speichern und Klipper neu starten?"), cls: pr ? "v-btn--disabled" : "" })));
+  if (UPD && UPD.is_dirty) al.push(alertHTML("warning", "mdiAlertOutline", esc(t("Das Repo hat lokale Änderungen – Updates sind blockiert. Im Update-Manager zurücksetzen (Recover)."))));
+  else if (UPD && (UPD.commits_behind_count || (UPD.commits_behind || []).length) > 0) {
+    const n = UPD.commits_behind_count ?? UPD.commits_behind.length;
+    al.push(alertHTML("info", "mdiUpdate", esc(t("Update verfügbar: {v} ({n} neue Änderungen).", { v: UPD.remote_version || "", n })),
+      btnHTML({ text: t("Jetzt aktualisieren"), color: "primary", id: "upd-run", cls: pr ? "v-btn--disabled" : "" }) + btnHTML({ text: t("Update-Manager"), variant: "text", color: "primary", id: "upd-open" })));
+  }
+  if (ED && ED.schema < SCHEMA) al.push(alertHTML("info", "mdiInformationOutline", esc(t("Neue Einstellungsfelder verfügbar. Unter Einstellungen einmal speichern, um sie zu ergänzen."))));
+  const alHTML = al.join("");
+  if ($("alerts").dataset.h !== alHTML) { $("alerts").innerHTML = alHTML; $("alerts").dataset.h = alHTML; bindAlerts(); }
+
+  // status
+  const stateTxt = { idle: ["bereit", "success--text"], loading: ["lädt …", "info--text"], unloading: ["entlädt …", "info--text"], testing: ["Test läuft …", "info--text"], error: ["Fehler", "error--text"] }[st.state];
+  $("s-state").innerHTML = stateTxt ? chip(t(stateTxt[0]), stateTxt[1]) : "–";
+  $("s-in").innerHTML = S["filament_switch_sensor loader_in"] ? sensorHTML("loader_in") : "–";
+  $("s-tool").innerHTML = ready ? sensorHTML("toolhead_in") : "–";
+  $("s-servo").innerHTML = st.clamped === undefined ? "–" : st.clamped ? chip(t("klemmt"), "warning--text") : chip(t("frei"), "success--text");
+  const ex = S.extruder || {};
+  $("s-temp").textContent = ex.temperature === undefined ? "–" : `${dec(Number(ex.temperature).toFixed(0))} / ${dec(Number(ex.target || 0).toFixed(0))} °C`;
+  $("s-mode").innerHTML = v.bench_mode === undefined ? "–" : Number(v.bench_mode) === 1 ? chip(t("Bench-Modus"), "warning--text") : chip(t("Normalbetrieb"), "success--text");
+  $("s-msg").innerHTML = st.msg ? `<span class="${st.result === "error" ? "error--text" : ""}">${esc(st.msg)}</span>` : "–";
+
+  const lock = !ready || pr || busy > 0 || BUSY_STATES.includes(st.state);
+  document.querySelectorAll(".act").forEach((b) => setDis(b, lock));
+  // hot operations additionally need sensor 2
+  setDis($("load-hot"), lock || !hasTool);
+  setDis($("unload"), lock || !hasTool);
+  setDis($("ed-save"), !ED || !ready || pr || busy > 0);
+
+  // switches follow Klipper
+  const si = S["filament_switch_sensor loader_in"];
+  if (si && si.enabled !== undefined && busy === 0 && isChecked($("auto")) !== !!si.enabled) setCheck($("auto"), !!si.enabled);
+  if (v.bench_mode !== undefined && busy === 0 && isChecked($("bench")) !== (Number(v.bench_mode) === 1)) setCheck($("bench"), Number(v.bench_mode) === 1);
+
+  drawSetup();
+  calcRd();
+}
+
+function bindAlerts() {
+  const u = $("upd-run"); if (u) u.onclick = () => !u.disabled && runUpdate();
+  const o = $("upd-open"); if (o) o.onclick = () => showMainsail("/config");
+}
+
+// =====================================================================
+// Setup checklist
+// =====================================================================
+const histOk = (op) => HIST.items.some((e) => e.op === op && e.r === "ok");
+const STEPS = [
+  { id: "s1", t: "Sensor 1 prüfen", d: "Filament einlegen und entfernen – der Status oben wechselt." },
+  { id: "stepper", t: "Stepper kalibrieren", d: "Richtung und rotation_distance (Panel Stepper kalibrieren)." },
+  { id: "servo", t: "Servo-Winkel", d: "Klemm- und Freiwinkel am Aufbau ermitteln und speichern." },
+  { id: "bench", t: "Bench-Test", d: "Klemmen, Teststrecke fahren, lösen.", auto: () => histOk("bench") },
+  { id: "s2", t: "Sensor 2 aktivieren", d: "Am Toolhead verdrahten und unter Einstellungen aktivieren.", auto: () => hasTool },
+  { id: "len", t: "Längen messen", d: "tube_len, gear_offset und ext_to_nozzle am Voron messen." },
+  { id: "normal", t: "Bench-Modus ausschalten", d: "Danach lädt der Auto-Trigger bis in den Extruder.", auto: () => lv().bench_mode !== undefined && Number(lv().bench_mode) === 0 },
+  { id: "cold", t: "Laden kalt", d: "Filament sitzt in den Extruder-Zahnrädern.", auto: () => histOk("load_cold") },
+  { id: "hot", t: "Laden heiß", d: "Filament bis in die Düse, Ausspülen.", auto: () => histOk("load") },
+  { id: "unload", t: "Entladen", d: "Filament wird vollständig zurückgezogen.", auto: () => histOk("unload") },
+];
+
+function drawSetup() {
+  const saved = store.get("setup", {});
+  const html = STEPS.map((s, i) => {
+    const auto = s.auto && s.auto(), done = !!saved[s.id] || !!auto;
+    return `<div class="v-list-item theme--${TH} step-row" data-step="${s.id}"><div class="v-list-item__icon mr-3 my-2">` +
+      `<span class="step-ic${done ? " done success" : ""}${auto ? " auto" : ""}">${done ? icon("mdiCheckCircleOutline", "", 18) : i + 1}</span></div>` +
+      `<div class="v-list-item__content"><div class="v-list-item__title">${esc(t(s.t))}</div><div class="v-list-item__subtitle wrap">${esc(t(s.d))}</div></div></div>`;
+  }).join("");
+  const box = $("setup-list");
+  if (box.dataset.h !== html) { box.innerHTML = html; box.dataset.h = html; }
+}
+
+// =====================================================================
+// Stepper calibration
+// =====================================================================
+const currentRd = () => {
+  const c = (CFG["manual_stepper loader"] || {}).rotation_distance;
+  return c != null ? Number(c) : ED ? parseFloat(ED.base.rotation_distance) : null;
+};
+const rdNew = () => {
+  const cur = currentRd(), cmd = parseFloat($("cal-d").value), meas = parseFloat($("cal-m").value);
+  return cur && cmd > 0 && meas > 0 ? { cur, val: cur * meas / cmd, pct: (meas / cmd - 1) * 100 } : null;
+};
+function calcRd() {
+  const r = rdNew(), box = $("cal-res");
+  const html = r ? t("rotation_distance {a} → <b>{b}</b> (Abweichung {p} %)", { a: dec(r.cur.toFixed(5)), b: dec(r.val.toFixed(5)), p: dec(r.pct.toFixed(1)) })
+    : currentRd() ? t("Aktuell: rotation_distance {a}. Gemessene Länge eintragen.", { a: dec(Number(currentRd()).toFixed(5)) }) : "–";
+  if (box.dataset.h !== html) { box.innerHTML = html; box.dataset.h = html; }
+  setDis($("cal-apply"), !r || !ED);
+}
+
+// =====================================================================
+// History (Moonraker database, shared between browsers)
+// =====================================================================
+const HIST = { items: [], loaded: false, all: false };
+const HIST_NS = "filament-loader", HIST_KEY = "history", HIST_MAX = 300;
+const OPS = { load_cold: "Laden (kalt)", load: "Laden (heiß)", unload: "Entladen", bench: "Bench-Test" };
+const locale = () => (LANG === "de" ? "de-DE" : "en-GB");
+const dMid = (s) => new Date(s * 1000).toLocaleString(locale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+async function histRead() {
+  try { const r = await rpc("server.database.get_item", { namespace: HIST_NS, key: HIST_KEY }); return r.value; }
+  catch { return null; }
+}
+const histWrite = (items) => rpc("server.database.post_item", { namespace: HIST_NS, key: HIST_KEY, value: { v: 1, items } });
+
+async function histLoad() {
+  const cur = await histRead();
+  HIST.items = cur && Array.isArray(cur.items) ? cur.items : [];
+  HIST.loaded = true;
+  drawHistory(); render();
+}
+
+async function histAdd(it) {
+  HIST.items.push(it);
+  drawHistory(); render();
+  try {
+    const cur = await histRead();
+    const items = cur && Array.isArray(cur.items) ? cur.items : [];
+    // another open browser may have recorded the same event already
+    if (!items.some((x) => x.op === it.op && x.r === it.r && Math.abs(x.t - it.t) < 6)) items.push(it);
+    items.sort((a, b) => a.t - b.t);
+    const trimmed = items.slice(-HIST_MAX);
+    await histWrite(trimmed);
+    HIST.items = trimmed; drawHistory(); render();
+  } catch (e) { log(t("Verlauf: {m}", { m: e.message }), "e"); }
+}
+
+async function histClear() {
+  if (!(await dialog(t("Verlauf löschen"), esc(t("Alle Einträge des Verlaufs löschen? Das betrifft alle Browser.")), t("Löschen")))) return;
+  try { await histWrite([]); HIST.items = []; drawHistory(); render(); }
+  catch (e) { snack(e.message); }
+}
+
+function drawHistory() {
+  const box = $("hist-body");
+  if (!box) return;
+  const items = HIST.items.slice().sort((a, b) => b.t - a.t);
+  if (!items.length) { box.innerHTML = `<div class="small muted">${esc(t("Noch keine Einträge. Laden, Entladen und Bench-Tests werden hier aufgezeichnet."))}</div>`; return; }
+  const n = (f) => items.filter(f).length;
+  const kpi = (l, v) => `<div class="kpi"><div class="l">${esc(t(l))}</div><div class="v">${v}</div></div>`;
+  const last = items.find((e) => e.d != null);
+  const shown = HIST.all ? items : items.slice(0, 10);
+  box.innerHTML = `<div class="kpi-row">` +
+    kpi("Laden", n((e) => (e.op === "load" || e.op === "load_cold") && e.r === "ok")) +
+    kpi("Entladen", n((e) => e.op === "unload" && e.r === "ok")) +
+    kpi("Fehler", n((e) => e.r === "error")) +
+    kpi("Letzte Dauer", last ? `${dec(last.d)} s` : "–") + `</div>` +
+    `<div class="v-data-table v-data-table--dense theme--${TH} hlist"><div class="v-data-table__wrapper"><table><tbody>` +
+    shown.map((e) => `<tr><td>${esc(dMid(e.t))}</td><td>${esc(t(OPS[e.op] || e.op || "–"))}</td>` +
+      `<td>${e.r === "ok" ? chip(t("ok"), "success--text") : chip(t("Fehler"), "error--text")}</td>` +
+      `<td class="small muted">${esc(e.m || "")}${e.d != null ? ` · ${esc(dec(e.d))} s` : ""}</td></tr>`).join("") +
+    `</tbody></table></div></div>` +
+    (items.length > 10 ? `<div class="mt-2"><button type="button" class="v-btn v-btn--text theme--${TH} v-size--small primary--text" id="hist-more"><span class="v-btn__content">${esc(HIST.all ? t("Weniger anzeigen") : t("Alle anzeigen ({n})", { n: items.length }))}</span></button></div>` : "");
+  const more = $("hist-more");
+  if (more) more.onclick = () => { HIST.all = !HIST.all; drawHistory(); };
+}
+
+function histCsv() {
+  const rows = [["time", "operation", "result", "message", "duration_s"]].concat(
+    HIST.items.slice().sort((a, b) => a.t - b.t).map((e) => [new Date(e.t * 1000).toISOString(), e.op, e.r, e.m || "", e.d ?? ""]));
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "filament-loader-history.csv";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+
+// =====================================================================
+// Settings editor (filament_loader_settings.cfg)
+// Edits the file in place: comments and custom lines are preserved.
+// =====================================================================
+const VARS = "gcode_macro _loader_vars";
+const FIELDS = [
+  ["step_pin", "manual_stepper loader", "step_pin", "s"], ["dir_pin", "manual_stepper loader", "dir_pin", "s"],
+  ["enable_pin", "manual_stepper loader", "enable_pin", "s"], ["microsteps", "manual_stepper loader", "microsteps", "n"],
+  ["rotation_distance", "manual_stepper loader", "rotation_distance", "n"], ["velocity", "manual_stepper loader", "velocity", "n"],
+  ["accel", "manual_stepper loader", "accel", "n"],
+  ["uart_pin", "tmc2209 manual_stepper loader", "uart_pin", "s"], ["tx_pin", "tmc2209 manual_stepper loader", "tx_pin", "s"],
+  ["uart_address", "tmc2209 manual_stepper loader", "uart_address", "n"], ["run_current", "tmc2209 manual_stepper loader", "run_current", "n"],
+  ["servo_pin", "servo loader_clamp", "pin", "s"],
+  ["loader_in_pin", "filament_switch_sensor loader_in", "switch_pin", "s"],
+  ["toolhead_in_pin", TOOL, "switch_pin", "s"],
+  ["lang", VARS, "variable_lang", "l"],
+  ...["servo_clamp", "servo_release", "servo_settle", "speed", "slow_speed", "step_mm", "coarse_len", "tube_len", "overrun",
+    "gear_offset", "gear_push", "ext_to_nozzle", "ext_speed", "purge_len", "purge_speed", "default_temp", "unload_ext_len",
+    "unload_hold", "auto_delay", "bench_dist"].map((k) => [k, VARS, "variable_" + k, "n"]),
+  ["servo_off_released", VARS, "variable_servo_off_released", "b"], ["bench_mode", VARS, "variable_bench_mode", "b"],
+];
+const LABELS = {
+  step_pin: "Stepper step_pin", dir_pin: "Stepper dir_pin", enable_pin: "Stepper enable_pin", microsteps: "Mikroschritte",
+  rotation_distance: "rotation_distance", velocity: "Max. Tempo", accel: "Beschleunigung", uart_pin: "UART-Pin", tx_pin: "UART TX-Pin",
+  uart_address: "UART-Adresse", run_current: "Motorstrom", servo_pin: "Servo-Pin", loader_in_pin: "Sensor 1 Pin",
+  toolhead_in_pin: "Sensor 2 Pin", tool: "Sensor 2 aktiv (verdrahtet)", lang: "Klipper-Meldungen", servo_clamp: "Klemmwinkel",
+  servo_release: "Freiwinkel", servo_settle: "Servo-Wartezeit", servo_off_released: "Servo nach dem Lösen abschalten", speed: "Tempo",
+  slow_speed: "Tempo fein", step_mm: "Schritt bei Abfrage", coarse_len: "coarse_len", tube_len: "tube_len", overrun: "Reserve (overrun)",
+  gear_offset: "gear_offset", gear_push: "gear_push", ext_to_nozzle: "ext_to_nozzle", ext_speed: "Extruder-Tempo",
+  purge_len: "Ausspülen", purge_speed: "Ausspül-Tempo", default_temp: "Standard-Düsentemperatur", unload_ext_len: "unload_ext_len",
+  unload_hold: "unload_hold", auto_delay: "Auto-Verzögerung", bench_mode: "Bench-Modus", bench_dist: "Bench-Strecke",
+};
+const TYPES = Object.fromEntries(FIELDS.map((f) => [f[0], f[3]]).concat([["tool", "b"]]));
+let ED = null;   // { text, schema, base, model }
+
+const numStr = (v) => String(Math.round(Number(v) * 1e6) / 1e6);
+const fmtV = (k, v) => TYPES[k] === "n" ? numStr(v) : TYPES[k] === "b" ? (+v ? "1" : "0") : String(v).trim();
+const same = (k, a, b) => fmtV(k, a) === fmtV(k, b);
+
+async function fetchCfg(name) {
+  const r = await fetch(`/server/files/config/${encodeURIComponent(name)}`, { cache: "no-store" });
+  if (!r.ok) throw new Error(t("{f} nicht lesbar (HTTP {s})", { f: name, s: r.status }));
+  return r.text();
+}
+async function uploadCfg(name, text) {
+  const fd = new FormData();
+  fd.append("root", "config");
+  fd.append("file", new Blob([text], { type: "text/plain" }), name);
+  const r = await fetch("/server/files/upload", { method: "POST", body: fd });
+  if (!r.ok) throw new Error(t("{f} konnte nicht gespeichert werden (HTTP {s})", { f: name, s: r.status }));
+}
+
+function parseCfg(text) {
+  const sec = {}, off = new Set();
+  let cur = null, schema = 1;
+  for (const raw of text.split("\n")) {
+    if (raw.startsWith("#*#")) break;
+    const sm = /^#@schema\s+(\d+)/.exec(raw);
+    if (sm) { schema = +sm[1]; continue; }
+    const isOff = raw.startsWith(OFF), line = isOff ? raw.slice(OFF.length) : raw;
+    const h = line.match(/^\[([^\]]+)\]/);
+    if (h) { cur = h[1].trim().toLowerCase(); sec[cur] = sec[cur] || {}; if (isOff) off.add(cur); continue; }
+    const o = cur && !/^[\s#;]/.test(line) && line.match(/^([A-Za-z0-9_]+)\s*[:=]\s*(.*?)\s*$/);
+    if (o) sec[cur][o[1].toLowerCase()] = o[2].split(/\s[#;]/)[0].trim();
+  }
+  return { sec, off, schema };
+}
+
+async function loadSettings() {
+  let text;
+  try { text = await fetchCfg(SETTINGS); }
+  catch (e) { ED = null; $("ed-msg").innerHTML = alertHTML("warning", "mdiAlertOutline", esc(e.message)); return; }
+  const { sec, off, schema } = parseCfg(text), model = {};
+  for (const [k, s, o, ty] of FIELDS) {
+    let v = (sec[s] || {})[o];
+    if (ty === "b") v = v !== undefined && parseFloat(v) ? 1 : 0;
+    else if (ty === "l") v = String(v || "de").replace(/["']/g, "");
+    model[k] = v === undefined ? "" : v;
+  }
+  model.tool = sec[TOOL] && !off.has(TOOL) ? 1 : 0;
+  ED = { text, schema, base: { ...model }, model: { ...model } };
+  $("ed-msg").innerHTML = "";
+  fillEditor();
+}
+
+const edInputs = () => document.querySelectorAll(".panel[data-p=settings] [data-k]");
+function fillEditor() {
+  if (!ED) return;
+  edInputs().forEach((el) => {
+    const v = ED.model[el.dataset.k];
+    if (el.hasAttribute("data-check")) setCheck(el, !!+v);
+    else if (v !== undefined) el.value = v;
+  });
+  fixLegends();
+}
+function setField(k, val) {
+  const el = document.querySelector(`.panel[data-p=settings] [data-k="${k}"]`);
+  if (el) el.value = val;
+  if (ED) ED.model[k] = val;
+}
+function readEditor() {
+  if (!ED) return;
+  edInputs().forEach((el) => {
+    const k = el.dataset.k;
+    ED.model[k] = el.hasAttribute("data-check") ? (isChecked(el) ? 1 : 0) : String(el.value).trim().replace(/,/g, TYPES[k] === "n" ? "." : ",");
+  });
+}
+
+/* ---- edit the file in place ---- */
+function secRange(L, name) {
+  let s = -1;
+  for (let i = 0; i < L.length; i++) {
+    if (L[i].startsWith("#*#")) return s >= 0 ? [s, i] : null;
+    const line = L[i].startsWith(OFF) ? L[i].slice(OFF.length) : L[i];
+    const h = line.match(/^\[([^\]]+)\]/);
+    if (h) { if (s >= 0) return [s, i]; if (h[1].trim().toLowerCase() === name) s = i; }
+  }
+  return s >= 0 ? [s, L.length] : null;
+}
+function setOpt(L, sec, opt, val) {
+  const r = secRange(L, sec);
+  if (!r) throw new Error(t("Section [{s}] fehlt in {f}", { s: sec, f: SETTINGS }));
+  const re = new RegExp("^(" + OFF + ")?(" + opt + ")(\\s*[:=]\\s*)(.*?)(\\s+[#;].*)?$", "i");
+  for (let i = r[0] + 1; i < r[1]; i++) {
+    const m = re.exec(L[i]);
+    if (m) { L[i] = (m[1] || "") + m[2] + m[3] + val + (m[5] || ""); return; }
+  }
+  L.splice(r[0] + 1, 0, (L[r[0]].startsWith(OFF) ? OFF : "") + opt + ": " + val);
+}
+function setTool(L, on) {
+  const r = secRange(L, TOOL);
+  if (!r) throw new Error(t("Section [{s}] fehlt in {f}", { s: TOOL, f: SETTINGS }));
+  for (let i = r[0]; i < r[1] && L[i].trim(); i++) {
+    if (on && L[i].startsWith(OFF)) L[i] = L[i].slice(OFF.length);
+    else if (!on && !L[i].startsWith(OFF)) L[i] = OFF + L[i];
+  }
+}
+function buildText(m) {
+  const L = ED.text.split("\n");
+  for (const [k, s, o, ty] of FIELDS) {
+    if (same(k, m[k], ED.base[k])) continue;
+    setOpt(L, s, o, ty === "l" ? `"${m[k]}"` : fmtV(k, m[k]));
+  }
+  if (!same("tool", m.tool, ED.base.tool)) setTool(L, !!+m.tool);
+  if (ED.schema < SCHEMA) L[0] = L[0].replace(/^#@schema.*/, "#@schema " + SCHEMA);
+  return L.join("\n");
+}
+
+function validate(m) {
+  const err = [], warn = [];
+  for (const [k, , , ty] of FIELDS) {
+    if (ty === "n" && !isFinite(parseFloat(m[k]))) err.push(t("Ungültiger Wert: {k}", { k: t(LABELS[k]) }));
+    if (ty === "s" && !m[k] && !(k === "toolhead_in_pin" && !+m.tool)) err.push(t("Ungültiger Wert: {k}", { k: t(LABELS[k]) }));
+    if (ty === "s" && m[k] && !/^[\^~!]*([A-Za-z0-9_-]+:)?[A-Za-z0-9_]+$/.test(m[k]) && !(k === "toolhead_in_pin" && !+m.tool)) err.push(t("Pin sieht ungültig aus: {k}", { k: t(LABELS[k]) }));
+  }
+  if (err.length) return { err: err[0], warn };
+  const n = (k) => parseFloat(m[k]);
+  for (const k of ["servo_clamp", "servo_release"]) if (n(k) < 0 || n(k) > 180) return { err: t("{k} muss zwischen 0 und 180 liegen.", { k: t(LABELS[k]) }), warn };
+  if (n("rotation_distance") <= 0 || n("step_mm") <= 0 || n("speed") <= 0 || n("slow_speed") <= 0) return { err: t("Tempo, Schritt und rotation_distance müssen größer als 0 sein."), warn };
+  if (n("coarse_len") >= n("tube_len")) warn.push(t("coarse_len sollte kleiner als tube_len sein, sonst fehlt die Sensorabfrage vor dem Ziel."));
+  const depth = (n("tube_len") + n("overrun") - n("coarse_len")) / n("step_mm");
+  if (depth > 100) warn.push(t("Die Sensorabfrage braucht rund {n} Makro-Aufrufe hintereinander (Limit ca. 100) – coarse_len erhöhen oder Schritt vergrößern.", { n: Math.round(depth) }));
+  if (n("run_current") > 1) warn.push(t("Motorstrom über 1 A – für einen NEMA17 am Loader meist unnötig."));
+  if (n("servo_clamp") === n("servo_release")) warn.push(t("Klemm- und Freiwinkel sind gleich."));
+  return { err: null, warn };
+}
+
+async function saveSettings() {
+  if (!ED) return;
+  readEditor();
+  const m = ED.model, v = validate(m);
+  if (v.err) return snack(v.err);
+  if (printing()) return snack(t("Während eines Drucks gesperrt."));
+  if ((S.configfile || {}).save_config_pending) return dialog(t("Erst speichern"), esc(t("Es gibt ungespeicherte Kalibrierwerte (SAVE_CONFIG ausstehend). Bitte zuerst Save Config ausführen – ein Neustart würde sie verwerfen.")), null);
+
+  const show = (k, x) => TYPES[k] === "b" ? t(+x ? "ja" : "nein") : TYPES[k] === "n" ? dec(numStr(x)) : TYPES[k] === "l" ? (x === "en" ? "English" : "Deutsch") : x === "" ? "–" : x;
+  const diff = [];
+  for (const k in LABELS) if (!same(k, m[k], ED.base[k])) diff.push([t(LABELS[k]), esc(show(k, ED.base[k])), esc(show(k, m[k]))]);
+  if (!diff.length) return snack(t("Keine Änderungen."));
+
+  let text;
+  try { text = buildText(m); } catch (e) { return snack(e.message); }
+  const body = `<div class="v-data-table v-data-table--dense theme--${TH}"><div class="v-data-table__wrapper"><table><tbody>` +
+    diff.map(([a, b, c]) => `<tr><td>${esc(a)}</td><td class="muted" style="text-decoration:line-through">${b}</td><td class="success--text font-weight-bold">${c}</td></tr>`).join("") +
+    `</tbody></table></div></div>` +
+    v.warn.map((w) => `<div class="mt-3">${alertHTML("warning", "mdiAlertOutline", esc(w))}</div>`).join("") +
+    `<p class="mt-4 mb-1">${esc(t("Gespeichert wird in {f} (vorherige Version als .bak). Danach startet Klipper neu.", { f: SETTINGS }))}</p>` +
+    `<p class="mb-0">${esc(t("Nach Änderungen an Pins, Richtung oder Winkeln: erste Fahrt beobachten, Hand am Notaus."))}</p>`;
+  if (!(await dialog(t("Änderungen speichern"), body, t("Speichern & Neustart")))) return;
+
+  try {
+    await uploadCfg(SETTINGS + ".bak", ED.text);
+    await uploadCfg(SETTINGS, text);
+    snack(t("Gespeichert – Klipper startet neu …"));
+    await rpc("printer.restart");
+  } catch (e) { dialog(t("Fehler beim Speichern"), esc(e.message), null); }
+}
+
+/* switch the Klipper message language immediately and persistently (no restart) */
+async function syncMacroLang(l) {
+  if (!ED || ED.model.lang === l || printing()) return;
+  try {
+    if (lv().lang !== undefined)
+      await rpc("printer.gcode.script", { script: `SET_GCODE_VARIABLE MACRO=_LOADER_VARS VARIABLE=lang VALUE='"${l}"'` });
+    const L = ED.text.split("\n");
+    setOpt(L, VARS, "variable_lang", `"${l}"`);
+    const text = L.join("\n");
+    await uploadCfg(SETTINGS, text);
+    ED.text = text; ED.base.lang = l; ED.model.lang = l;
+    const el = document.querySelector('.panel[data-p=settings] [data-k="lang"]'); if (el) el.value = l;
+    snack(t("Sprache der Klipper-Meldungen auf {l} gesetzt.", { l: l === "en" ? "English" : "Deutsch" }));
+  } catch (e) { log("!! " + e.message, "e"); }
+}
+
+// =====================================================================
+// Dialog, snackbar, console, tabs
+// =====================================================================
+function dialog(title, html, okText) {
+  return new Promise((res) => {
+    const m = $("modal");
+    m.querySelector(".subheading").textContent = title;
+    $("m-body").innerHTML = html;
+    $("m-yes").querySelector("span:last-child").textContent = okText || "OK";
+    $("m-no").classList.toggle("hide", !okText);
+    m.classList.remove("hide"); $("overlay").classList.remove("hide");
+    const close = (v) => { m.classList.add("hide"); render(); res(v); };
+    $("m-yes").onclick = () => close(!!okText);
+    $("m-no").onclick = $("m-x").onclick = () => close(false);
+  });
+}
+let snackT = 0;
+function snack(txt) {
+  $("snack-t").textContent = txt; $("snack").style.display = "";
+  clearTimeout(snackT); snackT = setTimeout(() => { $("snack").style.display = "none"; }, 3500);
+}
+function log(text, cls) {
+  const el = $("log"), d = document.createElement("div");
+  if (cls) d.className = cls;
+  d.textContent = text;
+  el.appendChild(d);
+  while (el.childNodes.length > 400) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+function openTab(id) {
+  document.querySelectorAll("#tabs .v-tab").forEach((b) => b.classList.toggle("v-tab--active", b.dataset.t === id));
+  document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("hide", x.id !== id));
+  moveSlider();
+  fixLegends($(id));
+}
+function moveSlider() {
+  const a = document.querySelector("#tabs .v-tab--active"), w = document.querySelector("#tabs .v-tabs-slider-wrapper");
+  if (a && w) { w.style.left = a.offsetLeft + "px"; w.style.width = a.offsetWidth + "px"; }
+}
+// =====================================================================
+// Fast page switching: Mainsail runs in the background (hidden iframe) and is
+// only revealed when a menu entry is clicked – no re-initialisation.
+// Disable with ?shell=0 or the switch in the sidebar.
+// =====================================================================
+const SHELL = {
+  frame: null, ready: false, visible: false,
+  enabled: window.top === window && new URLSearchParams(location.search).get("shell") !== "0" && store.get("shell", true),
+};
+window.loaderShow = () => showLoader(true);
+
+function shellInit() {
+  if (!SHELL.enabled || SHELL.frame) return;
+  const f = document.createElement("iframe");
+  f.id = "ms-frame"; f.title = "Mainsail"; f.src = "/";
+  f.setAttribute("aria-hidden", "true"); f.inert = true; f.tabIndex = -1;
+  f.style.cssText = "position:fixed;inset:0;width:100%;height:100%;border:0;z-index:300;visibility:hidden;pointer-events:none;background:#121212;";
+  f.addEventListener("load", hookFrame);
+  document.body.appendChild(f);
+  SHELL.frame = f;
+}
+
+function frameDoc() { try { return SHELL.frame && SHELL.frame.contentDocument; } catch { return null; } }
+
+function hookFrame() {
+  const doc = frameDoc();
+  if (!doc || doc.__loaderHooked) return;
+  doc.__loaderHooked = true;
+  // intercept clicks on "Loader" in Mainsail's menu → show the loader page
+  doc.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest("a[href]");
+    if (!a) return;
+    let u; try { u = new URL(a.getAttribute("href"), location.origin); } catch { return; }
+    if (u.origin === location.origin && SELF_RE.test(u.pathname) && a.target !== "_blank") {
+      e.preventDefault(); e.stopPropagation(); showLoader(true);
+    }
+  }, true);
+  // ready as soon as Mainsail's menu exists
+  const poll = setInterval(() => {
+    const d = frameDoc();
+    if (!d) return clearInterval(poll);
+    if (d.querySelector(".v-navigation-drawer a[href]")) { SHELL.ready = true; clearInterval(poll); }
+  }, 300);
+}
+
+function navigateFrame(path) {
+  const doc = frameDoc(), win = SHELL.frame.contentWindow;
+  const cur = win.location.pathname + win.location.search;
+  if (cur === path) return;
+  const link = [...doc.querySelectorAll(".v-navigation-drawer a[href]")].find((a) => a.getAttribute("href") === path);
+  if (link) { link.click(); return; }
+  const vm = doc.querySelector(".v-application") && doc.querySelector(".v-application").__vue__;
+  if (vm && vm.$router) { vm.$router.push(path).catch(() => {}); return; }
+  win.location.href = path;
+}
+
+function showMainsail(path, push = true) {
+  if (!SHELL.enabled || !SHELL.ready) { location.href = path; return; }
+  try { navigateFrame(path); } catch { location.href = path; return; }
+  const f = SHELL.frame;
+  f.style.visibility = "visible"; f.style.pointerEvents = "auto"; f.removeAttribute("aria-hidden"); f.inert = false;
+  SHELL.visible = true;
+  document.documentElement.style.overflow = "hidden";
+  if (push) history.pushState({ loader: "mainsail" }, "", path);
+  clearInterval(SHELL.titleT);
+  SHELL.titleT = setInterval(() => { const d = frameDoc(); if (SHELL.visible && d && d.title) document.title = d.title; }, 1500);
+  setTimeout(() => { const d = frameDoc(); if (d && d.title) document.title = d.title; window.dispatchEvent(new Event("resize")); try { f.contentWindow.dispatchEvent(new Event("resize")); } catch { /* ignore */ } }, 50);
+  f.focus();
+}
+
+function showLoader(push = true) {
+  if (!SHELL.visible) return;
+  const f = SHELL.frame;
+  f.style.visibility = "hidden"; f.style.pointerEvents = "none"; f.setAttribute("aria-hidden", "true"); f.inert = true;
+  try { f.contentWindow.blur(); } catch { /* ignore */ }
+  window.focus();
+  SHELL.visible = false;
+  clearInterval(SHELL.titleT);
+  document.documentElement.style.overflow = "";
+  if (push) history.pushState({ loader: "loader" }, "", BASE);
+  document.title = `${t("Loader")} – ${$("pname").textContent}`;
+  render();
+}
+
+/* the hidden iframe must not steal focus (e.g. autofocus in Mainsail) */
+window.addEventListener("blur", () => setTimeout(() => {
+  if (!SHELL.visible && SHELL.frame && document.activeElement === SHELL.frame) { try { SHELL.frame.contentWindow.blur(); } catch { /* ignore */ } window.focus(); document.body.focus(); }
+}, 0));
+
+window.addEventListener("popstate", () => {
+  if (SELF_RE.test(location.pathname)) showLoader(false);
+  else showMainsail(location.pathname + location.search, false);
+});
+
+/* open menu and logo links of this page via the background Mainsail */
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("#navlist a[href], .topbar a[href]");
+  if (!a || a.target === "_blank" || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+  let u; try { u = new URL(a.getAttribute("href"), location.origin); } catch { return; }
+  if (u.origin !== location.origin) return;
+  e.preventDefault();
+  if (SELF_RE.test(u.pathname)) return;
+  if (isMobile()) { NAV.open = false; layoutNav(); }
+  showMainsail(u.pathname + u.search);
+}, true);
+
+// =====================================================================
+// Language, start
+// =====================================================================
+function showLangBtn() {
+  $("lang-t").textContent = LANG.toUpperCase();
+  $("lang").title = LANG === "de" ? "Sprache: Deutsch – zu English wechseln" : "Language: English – switch to Deutsch";
+}
+function detectLang(mainsailLang) {
+  const l = String(mainsailLang || navigator.language || "de").toLowerCase();
+  return l.startsWith("de") ? "de" : "en";
+}
+function setLang(l, persist) {
+  if (persist) store.set("lang", l);
+  if (l === LANG) { showLangBtn(); return; }
+  if (LANG === "en") return location.reload();   // back to German: reload
+  LANG = l;
+  document.documentElement.lang = l;
+  translateStatic();
+  showLangBtn();
+  if (lastAvail) buildNav(lastAvail);
+  if (ED) { readEditor(); fillEditor(); }
+  drawHistory();
+  fixLegends(); moveSlider();
+  $("setup-list").dataset.h = ""; $("cal-res").dataset.h = "";
+  render();
+}
+
+function reveal() {
+  if (!document.body.classList.contains("loading")) return;
+  document.body.classList.remove("loading");
+  setTimeout(shellInit, 1500);
+  requestAnimationFrame(() => { fixLegends(); moveSlider(); });
+  if (document.fonts) document.fonts.ready.then(() => { fixLegends(); moveSlider(); });
+}
+
+document.addEventListener("click", async (e) => {
+  const g = e.target.closest("[data-g]");
+  if (g && !g.disabled) {
+    if (g.dataset.confirm && !(await dialog(t("Bestätigen"), esc(g.dataset.confirm), "OK"))) return;
+    return gcode(g.dataset.g);
+  }
+  const col = e.target.closest(".btn-collapsible");
+  if (col) {
+    const p = col.closest(".panel"), body = p.querySelector(".panel-body"), closed = store.get("closed", {});
+    const nowClosed = body.style.display !== "none";
+    body.style.display = nowClosed ? "none" : "";
+    p.classList.toggle("expanded", nowClosed);
+    col.querySelector(".v-icon").classList.toggle("icon-rotate-90", nowClosed);
+    closed[p.dataset.p] = nowClosed; store.set("closed", closed);
+    if (!nowClosed) { fixLegends(p); moveSlider(); }
+    return;
+  }
+  const chk = e.target.closest("[data-check]");
+  if (chk) {
+    setCheck(chk, !isChecked(chk));
+    if (chk.id === "auto") gcode(`LOADER_AUTO ENABLE=${isChecked(chk) ? 1 : 0}`);
+    else if (chk.id === "bench") gcode(`LOADER_BENCH VALUE=${isChecked(chk) ? 1 : 0}`);
+    else if (ED && chk.dataset.k) readEditor();
+    return;
+  }
+  const tb = e.target.closest("#tabs .v-tab");
+  if (tb) return openTab(tb.dataset.t);
+  const sv = e.target.closest(".sv-set");
+  if (sv && ED) {
+    const a = Math.round(parseFloat($("sv-a").value));
+    if (!isFinite(a)) return;
+    setField(sv.dataset.f, a);
+    openTab("t-motion");
+    return snack(t("Winkel {a}° übernommen – unter Einstellungen speichern.", { a }));
+  }
+  const si = e.target.closest("[data-step]");
+  if (si) {
+    const s = STEPS.find((x) => x.id === si.dataset.step);
+    if (s && s.auto && s.auto()) return;
+    const st = store.get("setup", {});
+    st[si.dataset.step] = !st[si.dataset.step]; store.set("setup", st);
+    $("setup-list").dataset.h = ""; render();
+  }
+});
+
+document.addEventListener("focusin", (e) => {
+  const f = e.target.closest(".v-text-field"); if (!f) return;
+  f.classList.add("v-input--is-focused", "primary--text"); f.querySelector(".v-label")?.classList.add("primary--text");
+});
+document.addEventListener("focusout", (e) => {
+  const f = e.target.closest(".v-text-field"); if (!f) return;
+  f.classList.remove("v-input--is-focused", "primary--text"); f.querySelector(".v-label")?.classList.remove("primary--text");
+});
+
+/* distribute panels over 1–3 columns like Mainsail's dashboard */
+const LAYOUTS = {
+  1: [["status", "setup", "manual", "cal", "history", "settings"]],
+  2: [["status", "manual", "history"], ["setup", "cal", "settings"]],
+  3: [["status", "setup", "history"], ["manual", "cal"], ["settings"]],
+};
+let curCols = 0;
+function layoutCols() {
+  const w = window.innerWidth, n = w >= 1904 ? 3 : w >= 960 ? 2 : 1;
+  if (n === curCols) return;
+  curCols = n;
+  LAYOUTS[n].forEach((ids, i) => ids.forEach((id) => { const p = document.querySelector(`.panel[data-p="${id}"]`); if (p) $("col" + (i + 1)).appendChild(p); }));
+  for (let i = 1; i <= 3; i++) {
+    const c = $("col" + i);
+    c.className = i > n ? "hide" : `col-12 col-md-${12 / n} pb-0`;
+  }
+  requestAnimationFrame(() => moveSlider());
+}
+
+const num = (id, d) => { const v = parseFloat(String($(id).value).replace(",", ".")); return isFinite(v) ? v : d; };
+const hotTemp = () => Math.max(0, Math.min(300, Math.round(num("temp", 220))));
+
+function wire() {
+  $("lang").onclick = () => { const l = LANG === "en" ? "de" : "en"; syncMacroLang(l).finally(() => setLang(l, true)); };
+  $("menu").onclick = () => { NAV.open = !NAV.open; layoutNav(); };
+  $("scrim").onclick = () => { NAV.open = false; layoutNav(); };
+  $("estop").onclick = () => rpc("printer.emergency_stop").catch((e) => log("!! " + e.message, "e"));
+  $("restart").onclick = async () => { if (await dialog(t("Neustart"), esc(t("Klipper per FIRMWARE_RESTART neu starten?")), t("Neustart"))) rpc("printer.firmware_restart").catch((e) => log("!! " + e.message, "e")); };
+
+  $("load-hot").onclick = async () => {
+    if (await dialog(t("Laden heiß"), esc(t("Hotend auf {n} °C aufheizen, Filament laden und bis in die Düse fördern?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_LOAD TEMP=${hotTemp()}`);
+  };
+  $("unload").onclick = async () => {
+    if (await dialog(t("Entladen"), esc(t("Hotend auf {n} °C aufheizen und Filament entladen?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_UNLOAD TEMP=${hotTemp()}`);
+  };
+
+  const mv = (sign) => gcode(`LOADER_MOVE DIST=${sign * Math.max(1, num("mv-d", 50))} SPEED=${Math.max(1, num("mv-s", 10))} CLAMP=${isChecked($("mv-clamp")) ? 1 : 0}`);
+  $("mv-fwd").onclick = () => mv(1);
+  $("mv-back").onclick = () => mv(-1);
+
+  const angle = () => Math.max(0, Math.min(180, Math.round(num("sv-a", 45))));
+  $("sv-r").oninput = () => { $("sv-a").value = $("sv-r").value; };
+  $("sv-a").oninput = () => { $("sv-r").value = angle(); };
+  $("sv-go").onclick = () => gcode(`SET_SERVO SERVO=loader_clamp ANGLE=${angle()}`);
+  $("sv-off").onclick = () => gcode("SET_SERVO SERVO=loader_clamp WIDTH=0");
+
+  $("cal-run").onclick = () => gcode(`LOADER_MOVE DIST=${Math.max(10, num("cal-d", 100))} SPEED=${Math.max(1, num("mv-s", 10))} CLAMP=1`);
+  $("cal-m").oninput = $("cal-d").oninput = () => { $("cal-res").dataset.h = ""; calcRd(); };
+  $("cal-apply").onclick = () => {
+    const r = rdNew();
+    if (!r || !ED) return;
+    setField("rotation_distance", Number(r.val.toFixed(5)));
+    openTab("t-hw");
+    snack(t("rotation_distance {b} übernommen – unter Einstellungen speichern.", { b: r.val.toFixed(5) }));
+  };
+
+  $("cons").onsubmit = (e) => { e.preventDefault(); const v = $("cons-in").value.trim(); if (v) { gcode(v); $("cons-in").value = ""; } };
+  $("cons-send").onclick = () => $("cons").requestSubmit();
+  $("ed-save").onclick = () => !$("ed-save").disabled && saveSettings();
+  $("ed-reset").onclick = () => { if (ED) { ED.model = JSON.parse(JSON.stringify(ED.base)); fillEditor(); } };
+  $("shell-on").checked = SHELL.enabled;
+  $("shell-on").onchange = () => { store.set("shell", $("shell-on").checked); location.reload(); };
+  $("hist-csv").onclick = () => histCsv();
+  $("hist-clear").onclick = () => histClear();
+  $("setup-reset").onclick = async () => { if (await dialog(t("Einrichtung"), esc(t("Einrichtung zurücksetzen?")), "OK")) { store.set("setup", {}); $("setup-list").dataset.h = ""; render(); } };
+  window.addEventListener("resize", () => { layoutNav(); layoutCols(); moveSlider(); });
+}
+
+(async function start() {
+  if (window.top !== window) {
+    try { if (window.top.loaderShow) { window.top.loaderShow(); history.back(); return; } } catch { /* foreign page */ }
+  }
+  expand();
+  drawHistory();
+  wire();
+  NAV.open = !isMobile(); layoutNav(); layoutCols();
+  const ok = await loadMainsailCss();
+  if (!ok) applyColors("#2196f3");
+  setTimeout(reveal, 4000);          // reveal after 4 s at the latest
+  connect();
+})();
+
+</script>
+</body>
+</html>
