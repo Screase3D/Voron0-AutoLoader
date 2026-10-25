@@ -308,8 +308,9 @@ All values live in `filament_loader_settings.cfg` and are edited on the page und
 | `print_start_mode` | 2 | 0 off, 1 check only, 2 load automatically |
 | `unload_after_print` | 0 | unload in `PRINT_END` |
 
-`(approach + overrun) / step_mm` must stay below about 90 – the sensor search is a chain of macro calls.
-The page checks this.
+The sensor search runs in steps of `step_mm` (each step is a separate macro call that reads the sensor
+fresh – Klipper does not allow a macro to call itself). `(approach + overrun) / step_mm` is the maximum
+number of steps; the page warns when it gets large.
 
 ### Speed notes
 
@@ -344,6 +345,8 @@ pages does not reload anything.
 - **Timeout before sensor 2** – increase `tube_len` / `overrun`, check for friction in the tube.
 - **"Sensor 2 was already reached during the full-speed move"** – `tube_len` is too large (or the
   filament stuck out further than `approach`). Measure `tube_len` with *To sensor 2*.
+- **Buttons on the page stay grey after an error** – fixed: the page now detects an aborted operation
+  and shows it as *aborted* with a *Release* button.
 - **Loader stalls or skips at high speed** – lower `speed` / `accel`, set `stealthchop_threshold`
   below the speed, raise `run_current` slightly.
 - **Filament stays in front of the extruder gears** – increase `gear_push` a little, check `gear_offset`.

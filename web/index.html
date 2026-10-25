@@ -584,6 +584,11 @@ const T_EN = {
   "Extruder zieht zurück": "Extruder retracts", "oben: Laden · unten: Entladen · nicht maßstäblich": "top: loading · bottom: unloading · not to scale",
   "Bitte die rot markierten Felder prüfen.": "Please check the fields marked in red.",
   "Voreinstellung „{p}“ übernommen – Speichern nicht vergessen.": "Preset “{p}” applied – don't forget to save.",
+  "Der letzte Vorgang wurde abgebrochen – die Ursache steht in der Konsole. Servo und Stepper ggf. mit „Lösen“ freigeben.":
+    "The last operation was aborted – the reason is in the console. Release servo and stepper with “Release” if needed.",
+  "abgebrochen": "aborted",
+  "Die Sensorsuche kann bis zu {n} Schritte brauchen – das dauert. Suchschritt vergrößern oder „Sensorsuche ab“ / Reserve verkleinern.":
+    "The sensor search may need up to {n} steps – that takes time. Increase the search step or reduce “Search starts” / reserve.",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -968,7 +973,7 @@ async function subscribe() {
     "filament_switch_sensor loader_in": ["filament_detected", "enabled"],
     "filament_switch_sensor toolhead_in": ["filament_detected", "enabled"],
     "gcode_macro _LOADER_STATE": null, "gcode_macro _LOADER_VARS": null,
-    configfile: ["save_config_pending"], print_stats: ["state"], webhooks: ["state", "state_message"],
+    configfile: ["save_config_pending"], print_stats: ["state"], webhooks: ["state", "state_message"], idle_timeout: ["state"],
   };
   const objects = {};
   for (const k in want) if (avail.includes(k)) objects[k] = want[k];
@@ -1057,6 +1062,10 @@ function render() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(
 const printing = () => ["printing", "paused"].includes((S.print_stats || {}).state);
 const BUSY_STATES = ["loading", "unloading", "testing"];
 const ls = () => S["gcode_macro _LOADER_STATE"] || {};
+/* an operation only really runs while Klipper executes G-code ("Printing") – otherwise the state is
+   left over from an aborted macro (Klipper error) and must not lock the page */
+const opRunning = () => BUSY_STATES.includes(ls().state) && ((S.idle_timeout || {}).state === "Printing" || busy > 0);
+const opStale = () => BUSY_STATES.includes(ls().state) && !opRunning();
 const lv = () => S["gcode_macro _LOADER_VARS"] || {};
 const chip = (txt, cls = "") => `<span class="chip ${cls}">${esc(txt)}</span>`;
 
@@ -1082,6 +1091,8 @@ function draw() {
     al.push(alertHTML("info", "mdiInformationOutline", esc(t("Sensor 2 (Toolhead) ist nicht aktiv – Laden und Entladen sind gesperrt. Nach dem Verdrahten unter Einstellungen → Hardware aktivieren."))));
   if (ready && installed && Number(v.bench_mode) === 1)
     al.push(alertHTML("info", "mdiInformationOutline", esc(t("Bench-Modus aktiv: Der Auto-Trigger klemmt nur, fährt die Teststrecke und löst."))));
+  if (ready && opStale()) al.push(alertHTML("warning", "mdiAlertOutline", esc(t("Der letzte Vorgang wurde abgebrochen – die Ursache steht in der Konsole. Servo und Stepper ggf. mit „Lösen“ freigeben.")),
+    btnHTML({ text: t("Lösen"), color: "warning", g: "LOADER_STOP" })));
   if (st.state === "error" && st.msg) al.push(alertHTML("error", "mdiAlertCircleOutline", esc(t("Loader: {m}", { m: st.msg }))));
   if ((S.configfile || {}).save_config_pending)
     al.push(alertHTML("warning", "mdiContentSave", esc(t("Ungespeicherte Kalibrierwerte – erst nach SAVE_CONFIG dauerhaft. Klipper startet dabei neu.")),
@@ -1098,7 +1109,7 @@ function draw() {
 
   // status
   const stateTxt = { idle: ["bereit", "success--text"], loading: ["lädt …", "info--text"], unloading: ["entlädt …", "info--text"], testing: ["Test läuft …", "info--text"], error: ["Fehler", "error--text"] }[st.state];
-  $("s-state").innerHTML = stateTxt ? chip(t(stateTxt[0]), stateTxt[1]) : "–";
+  $("s-state").innerHTML = opStale() ? chip(t("abgebrochen"), "warning--text") : stateTxt ? chip(t(stateTxt[0]), stateTxt[1]) : "–";
   $("s-in").innerHTML = S["filament_switch_sensor loader_in"] ? sensorHTML("loader_in") : "–";
   $("s-tool").innerHTML = ready ? sensorHTML("toolhead_in") : "–";
   $("s-servo").innerHTML = st.clamped === undefined ? "–" : st.clamped ? chip(t("klemmt"), "warning--text") : chip(t("frei"), "success--text");
@@ -1108,7 +1119,7 @@ function draw() {
   drawHooks();
   $("s-msg").innerHTML = st.msg ? `<span class="${st.result === "error" ? "error--text" : ""}">${esc(st.msg)}</span>` : "–";
 
-  const lock = !ready || pr || busy > 0 || BUSY_STATES.includes(st.state);
+  const lock = !ready || pr || busy > 0 || opRunning();
   document.querySelectorAll(".act").forEach((b) => setDis(b, lock));
   // hot operations additionally need sensor 2
   setDis($("load-hot"), lock || !hasTool);
@@ -1362,7 +1373,7 @@ function filamentModel() {
   if (s2 !== PATH.s2) { PATH.s2 = s2; PATH.s2t = now; }
   const sec = (t0) => t0 ? (now - t0) / 1000 : 0;
   const tube = +v.tube_len || 300, sp = +v.speed || 25, esp = +v.ext_speed || 5, e2n = +v.ext_to_nozzle || 70;
-  const loading = st.state === "loading", unloading = st.state === "unloading";
+  const run = opRunning(), loading = run && st.state === "loading", unloading = run && st.state === "unloading";
   const hot = ex.target > 0 && ex.temperature >= ex.target - 3;
   if (!((loading || unloading) && hot)) PATH.extT = 0;
   else if (!PATH.extT && s2) PATH.extT = now;
@@ -1392,7 +1403,7 @@ function filamentModel() {
     head = 2; text = "Filament im Loader (Zahnräder)";
     if (loading) { head = 2 + Math.min(0.97, sec(EV.t0) * sp / tube); moving = true; text = st.op === "measure" ? "Messfahrt bis Sensor 2 …" : "Wird durch den PTFE-Schlauch gefördert …"; }
     else if (unloading) { head = 3 - Math.min(0.95, sec(PATH.s2t) * sp / tube); moving = true; dir = -1; text = "Wird zurückgezogen …"; }
-    else if (st.state === "testing") { head = 2.25; moving = true; text = "Bench-Test läuft …"; }
+    else if (run && st.state === "testing") { head = 2.25; moving = true; text = "Bench-Test läuft …"; }
     else if (st.op === "unload" && st.result === "ok") text = "Entladen – Spitze im Loader-Griff";
   } else {
     head = 0.6; text = "Kein Filament am Loader-Eingang";
@@ -1740,7 +1751,7 @@ function validate(m) {
   if (+m.tip_enable && n("tip_cool_pos") + n("tip_cool_len") >= n("unload_ext_len")) err.unload_ext_len = t("muss größer als Kühlzone + Kühlweg sein ({v} mm)", { v: dec(n("tip_cool_pos") + n("tip_cool_len")) });
   if (n("unload_ext_len") >= n("ext_to_nozzle") + n("gear_offset")) warn.push(t("„Extruder zieht zurück“ ist so groß, dass die Spitze schon über Sensor 2 hinaus gezogen wird – üblich ist etwas weniger als „Zahnräder → Düse“."));
   const depth = (n("approach") + n("overrun")) / n("step_mm");
-  if (depth > 90) err.step_mm = t("Sensorsuche braucht {n} Schritte (max. ca. 90) – Schritt vergrößern oder Reserve verkleinern", { n: Math.round(depth) });
+  if (depth > 150) warn.push(t("Die Sensorsuche kann bis zu {n} Schritte brauchen – das dauert. Suchschritt vergrößern oder „Sensorsuche ab“ / Reserve verkleinern.", { n: Math.round(depth) }));
   if (n("speed") > 200 && n("run_current") < 0.7) warn.push(t("Über 200 mm/s braucht der NEMA17 meist 0,7 A oder mehr, sonst verliert er Schritte."));
   if (n("speed") > 100 && n("stealth_speed") >= n("speed")) warn.push(t("„Leise bis“ liegt über dem Fördertempo – der Treiber fährt die volle Fahrt im leisen, aber schwächeren StealthChop."));
   if (n("servo_clamp") === n("servo_release")) err.servo_release = t("gleich wie der Klemmwinkel");

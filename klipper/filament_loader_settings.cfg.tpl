@@ -73,7 +73,7 @@ variable_servo_off_released: ${servo_off_released}   # 1 = nach Loesen Servo-Sig
 # --- Loader-Stepper ---
 variable_speed: ${speed}               # mm/s volle Fahrt durch den Schlauch
 variable_slow_speed: ${slow_speed}          # mm/s Sensorsuche, Uebergabe an den Extruder
-variable_step_mm: ${step_mm}              # mm pro Schritt bei der Sensor-Abfrage (Rekursion!)
+variable_step_mm: ${step_mm}              # mm pro Schritt bei der Sensorsuche (Genauigkeit)
 variable_approach: ${approach}            # mm vor Sensor 2: ab hier Sensorsuche statt voller Fahrt
 variable_tube_len: ${tube_len}           # mm Loader-Zahnraeder -> Toolhead-Sensor
 variable_overrun: ${overrun}             # mm Reserve bis Timeout
