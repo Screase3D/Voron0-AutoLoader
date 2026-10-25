@@ -89,7 +89,7 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 #fpath .panel-bg { fill: currentColor; fill-opacity: .03; }
 #fpath .part { fill: currentColor; fill-opacity: .12; stroke: currentColor; stroke-opacity: .45; stroke-width: .8; }
 #fpath .tube { fill: none; stroke: #3b82f6; stroke-opacity: .35; stroke-width: 6; stroke-linecap: round; }
-#fpath .fil { fill: none; stroke: #ff8a3d; stroke-width: 2.2; stroke-linecap: round; transition: stroke-dasharray .4s, opacity .4s; }
+#fpath .fil { fill: none; stroke: #ff8a3d; stroke-width: 2.2; stroke-linecap: butt; transition: stroke-dasharray .4s, opacity .4s; }
 #fpath .fil.faint { opacity: .35; }
 #fpath .gear { fill: currentColor; fill-opacity: .25; stroke: currentColor; stroke-opacity: .6; stroke-width: .8; stroke-dasharray: 2 1.2; transform-box: fill-box; transform-origin: center; }
 #fpath .gear.spin { animation: fspin 1s linear infinite; }
@@ -97,7 +97,10 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 #fpath .sensor { fill: #e53935; stroke: rgba(0,0,0,.35); stroke-width: .6; }
 #fpath .sdot { fill: #333; stroke: #fff; stroke-opacity: .6; stroke-width: .6; transition: fill .3s; }
 #fpath .sdot.on { fill: #4caf50; }
-#fpath .lever { stroke: #9e9e9e; stroke-width: 3; stroke-linecap: round; transition: transform .4s; transform-box: view-box; }
+#fpath #arm, #fpath #horn { transition: transform .4s; transform-box: view-box; }
+#fpath #arm { transform-origin: 45px 116px; }
+#fpath #horn { transform-origin: 58px 73px; }
+#fpath #press { transition: opacity .3s; }
 #fpath .head { fill: #ff8a3d; }
 #fpath .head.pulse { animation: fpulse 1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes fspin { to { transform: rotate(360deg); } }
@@ -105,6 +108,8 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 .legend-row i.sq { border-radius: 2px; }
 .legend-row { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; opacity: .8; justify-content: center; }
 .legend-row i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+
+#fpath #g-l1, #fpath #g-l2 { fill: #5d4a00; fill-opacity: .9; stroke: #3e3200; stroke-opacity: 1; }
 
 .step-ic { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 2px solid currentColor; opacity: .55; cursor: pointer; }
 .step-ic.done { opacity: 1; border: 0; }
@@ -538,6 +543,10 @@ const T_EN = {
   "Bench-Test läuft …": "Bench test running …", "Entladen – Spitze im Loader-Griff": "Unloaded – tip held in the loader",
   "Kein Filament am Loader-Eingang": "No filament at the loader entrance",
   "(Sensor 2 nicht aktiv – Position geschätzt)": "(sensor 2 not active – position estimated)",
+  "Wird in die Extruder-Zahnräder geschoben …": "Pushing into the extruder gears …",
+  "Loader zieht das Filament aus dem Extruder …": "Loader pulls the filament out of the extruder …",
+  "Filament hängt an Sensor 2 – vor den Extruder-Zahnrädern (nicht gegriffen)": "Filament stuck at sensor 2 – in front of the extruder gears (not gripped)",
+  "Filament an Sensor 2 – ob die Extruder-Zahnräder greifen, ist unbekannt": "Filament at sensor 2 – unknown whether the extruder gears grip it",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1240,12 +1249,20 @@ function buildPath() {
     `<path class="tube" d="M36,100 L36,62 C36,2 205,-4 205,46"></path>` +
     // spool
     `<circle class="part" cx="36" cy="194" r="24"></circle><circle class="part" cx="36" cy="194" r="7"></circle>` +
-    // loader: stepper (green), body (yellow), servo + lever
-    `<rect x="44" y="84" width="28" height="28" rx="2" fill="#2e9d4a" fill-opacity=".85"></rect>` +
-    `<rect x="16" y="80" width="40" height="40" rx="3" fill="#f5c400" fill-opacity=".9"></rect>` +
-    gear("g-l1", 29.5, 100) + gear("g-l2", 42.5, 100) +
-    `<rect x="4" y="62" width="14" height="10" rx="1" fill="#424242" stroke="#9e9e9e" stroke-width=".6"></rect>` +
-    `<line class="lever" id="lever" x1="14" y1="74" x2="44" y2="90"></line>` +
+    // loader (BMG principle): stepper (green) drives the fixed gear, the idler gear sits on a
+    // pivoting arm; the servo horn pushes the arm so the idler presses the filament onto the drive gear
+    `<rect x="2" y="86" width="18" height="28" rx="2" fill="#2e9d4a" fill-opacity=".85"></rect>` +
+    `<rect x="16" y="80" width="40" height="42" rx="3" fill="#f5c400" fill-opacity=".9"></rect>` +
+    gear("g-l1", 29.5, 100) +
+    `<g id="arm">` +
+      `<path d="M41,84 L49,84 L49,116 L41,116 Z" fill="#8d6e00" fill-opacity=".9" stroke="rgba(0,0,0,.4)" stroke-width=".6"></path>` +
+      gear("g-l2", 42.5, 100) +
+      `<circle cx="45" cy="86.5" r="1.6" fill="#ffd54f"></circle>` +
+    `</g>` +
+    `<circle cx="45" cy="116" r="1.8" fill="#424242"></circle>` +
+    `<rect x="56" y="64" width="16" height="12" rx="1.5" fill="#1e88e5" fill-opacity=".85" stroke="rgba(0,0,0,.4)" stroke-width=".6"></rect>` +
+    `<g id="horn"><path d="M58,73 L48.5,85" stroke="#eeeeee" stroke-width="3.2" stroke-linecap="round"></path><circle cx="58" cy="73" r="2.4" fill="#eeeeee"></circle></g>` +
+    `<path id="press" d="M54,90 l-5,0 m2,-2 l-2,2 l2,2" fill="none" stroke="#ff5252" stroke-width="1" stroke-linecap="round"></path>` +
     // toolhead with extruder gears, hotend and nozzle
     `<rect class="part" x="184" y="50" width="42" height="44" rx="4"></rect>` +
     gear("g-e1", 198.5, 68) + gear("g-e2", 211.5, 68) +
@@ -1260,8 +1277,8 @@ function buildPath() {
     // labels
     `<text x="66" y="198">${esc(t("Spule"))}</text>` +
     `<text x="48" y="137">${esc(t("Sensor 1"))}</text>` +
-    `<text x="76" y="104">${esc(t("Loader"))}</text>` +
-    `<text x="4" y="58">${esc(t("Servo"))}</text>` +
+    `<text x="60" y="108">${esc(t("Loader"))}</text>` +
+    `<text x="58" y="60">${esc(t("Servo"))}</text>` +
     `<text x="96" y="12">${esc(t("PTFE-Schlauch"))}</text>` +
     `<text x="217" y="44">${esc(t("Sensor 2"))}</text>` +
     `<text x="230" y="70">${esc(t("Extruder"))}</text>` +
@@ -1270,7 +1287,7 @@ function buildPath() {
     `<text x="250" y="168">${esc(t("Bett"))}</text>`;
   PATH.lens = SEG.map((_, i) => $("fil" + i).getTotalLength());
   PATH.built = true;
-  $("path-legend").innerHTML = [["#ff8a3d", "Filament"], ["#3b82f6", "PTFE-Schlauch"], ["#e53935", "Sensor"], ["#4caf50", "Sensor meldet Filament"], ["#f5c400", "Loader"], ["#2e9d4a", "Stepper"]]
+  $("path-legend").innerHTML = [["#ff8a3d", "Filament"], ["#3b82f6", "PTFE-Schlauch"], ["#e53935", "Sensor"], ["#4caf50", "Sensor meldet Filament"], ["#f5c400", "Loader"], ["#2e9d4a", "Stepper"], ["#1e88e5", "Servo"]]
     .map(([c, l]) => `<span><i class="sq" style="background:${c}"></i>${esc(t(l))}</span>`).join("");
 }
 
@@ -1285,17 +1302,29 @@ function filamentModel() {
   const tube = +v.tube_len || 300, sp = +v.speed || 25, esp = +v.ext_speed || 5, e2n = +v.ext_to_nozzle || 70;
   const loading = st.state === "loading", unloading = st.state === "unloading";
   const hot = ex.target > 0 && ex.temperature >= ex.target - 3;
-  if (!(loading && hot)) PATH.extT = 0;
+  if (!((loading || unloading) && hot)) PATH.extT = 0;
   else if (!PATH.extT && s2) PATH.extT = now;
 
-  let head, tail = 0, moving = false, dir = 1, text;
+  let head, tail = 0, moving = false, dir = 1, text, warnTxt = false;
   if (s2) {
     tail = s1 ? 0 : 1.15;
-    head = 4; text = "Filament in den Extruder-Zahnrädern";
-    if (loading && PATH.extT) { head = 4 + Math.min(0.97, sec(PATH.extT) * esp / e2n); moving = true; text = "Extrudiert zur Düse …"; }
-    else if (loading) text = ex.target > 0 ? "Hotend heizt auf …" : text;
-    else if (unloading) { moving = hot; dir = -1; text = hot ? "Extruder zieht zurück …" : "Hotend heizt auf …"; }
-    else if (st.op === "load" && st.result === "ok") { head = 5; text = "Filament geladen bis zur Düse"; }
+    const push = ((+v.gear_offset || 8) + (+v.gear_push || 3)) / (+v.slow_speed || 10);
+    const okLoad = st.result === "ok" && (st.op === "load_cold" || st.op === "load");
+    if (loading && !PATH.extT) {
+      // reached sensor 2 → loader pushes the tip into the extruder gears
+      head = 3 + Math.min(1, sec(PATH.s2t) / push);
+      moving = head < 4;
+      text = moving ? "Wird in die Extruder-Zahnräder geschoben …" : ex.target > 0 ? "Hotend heizt auf …" : "Filament in den Extruder-Zahnrädern";
+    } else if (loading) { head = 4 + Math.min(0.97, sec(PATH.extT) * esp / e2n); moving = true; text = "Extrudiert zur Düse …"; }
+    else if (unloading) {
+      // extruder retracts unload_ext_len (tip stays in the gears), then the loader pulls
+      head = hot ? Math.max(4, 5 - sec(PATH.extT || now) * esp / (+v.unload_ext_len || 65)) : 5;
+      moving = hot; dir = -1; text = hot ? "Extruder zieht zurück …" : "Hotend heizt auf …";
+      if (hot && head <= 4) { head = 3.95; text = "Loader zieht das Filament aus dem Extruder …"; }
+    } else if (okLoad && st.op === "load") { head = 5; text = "Filament geladen bis zur Düse"; }
+    else if (okLoad) { head = 4; text = "Filament in den Extruder-Zahnrädern"; }
+    else if (st.result === "error") { head = 3.5; warnTxt = true; text = "Filament hängt an Sensor 2 – vor den Extruder-Zahnrädern (nicht gegriffen)"; }
+    else { head = 3.5; warnTxt = true; text = "Filament an Sensor 2 – ob die Extruder-Zahnräder greifen, ist unbekannt"; }
   } else if (s1) {
     head = 2; text = "Filament im Loader (Zahnräder)";
     if (loading) { head = 2 + Math.min(0.97, sec(EV.t0) * sp / tube); moving = true; text = "Wird durch den PTFE-Schlauch gefördert …"; }
@@ -1306,7 +1335,7 @@ function filamentModel() {
     head = 0.6; text = "Kein Filament am Loader-Eingang";
   }
   if (!s2o && head > 2) text += " " + t("(Sensor 2 nicht aktiv – Position geschätzt)");
-  return { tail, head, moving, dir, text, s1, s2, s2o: !!s2o, idleEmpty: !s1 && !s2 };
+  return { tail, head, moving, dir, text, warnTxt, s1, s2, s2o: !!s2o, idleEmpty: !s1 && !s2 };
 }
 
 function drawPath() {
@@ -1318,6 +1347,7 @@ function drawPath() {
     const el = $("fil" + i), len = PATH.lens[i];
     const a = Math.max(0, Math.min(1, m.tail - i)), b = Math.max(0, Math.min(1, m.head - i));
     el.style.strokeDasharray = b > a ? `0 ${a * len} ${(b - a) * len} ${len * 2}` : `0 ${len * 2}`;
+    el.style.visibility = b > a ? "visible" : "hidden";
     el.classList.toggle("faint", m.idleEmpty);
   });
   // head marker
@@ -1333,11 +1363,13 @@ function drawPath() {
     d.style.opacity = conf ? "1" : ".35";
   }
   // servo lever and gears
-  $("lever").style.transform = st.clamped ? "rotate(0deg)" : "rotate(-28deg)";
-  $("lever").style.transformOrigin = "14px 74px";
-  const loaderTurns = m.moving && (m.head < 3.99 || st.clamped);
+  // clamped: horn pushes the arm, idler gear on the filament · free: horn turned away, arm swings open
+  $("horn").style.transform = st.clamped ? "rotate(0deg)" : "rotate(-75deg)";
+  $("arm").style.transform = st.clamped ? "rotate(0deg)" : "rotate(22deg)";
+  $("press").style.opacity = st.clamped ? "1" : "0";
+  const loaderTurns = m.moving && st.clamped;
   ["g-l1", "g-l2"].forEach((g, i) => { const c = $(g).classList; c.toggle("spin", loaderTurns); c.toggle("rev", (i === 1) !== (m.dir < 0)); });
-  const extTurns = m.moving && m.head >= 3.99;
+  const extTurns = m.moving && m.head > 4 && !st.clamped;
   ["g-e1", "g-e2"].forEach((g, i) => { const c = $(g).classList; c.toggle("spin", extTurns); c.toggle("rev", (i === 1) !== (m.dir < 0)); });
   // hotend colour by temperature
   const tmp = Number(ex.temperature || 0), r = Math.max(0, Math.min(1, (tmp - 40) / 180));
@@ -1346,7 +1378,7 @@ function drawPath() {
   $("htemp").textContent = ex.temperature === undefined ? "" : `${Math.round(tmp)}${ex.target > 0 ? " / " + Math.round(ex.target) : ""} °C`;
   // info line
   const err = st.state === "error" && st.msg;
-  const html = `<span class="${err ? "error--text" : ""}">${esc(t(m.text))}</span>` + (err ? chip(t("Fehler"), "error--text") : "");
+  const html = `<span class="${err ? "error--text" : m.warnTxt ? "warning--text" : ""}">${esc(t(m.text))}</span>` + (err ? chip(t("Fehler"), "error--text") : "");
   if ($("path-info").dataset.h !== html) { $("path-info").innerHTML = html; $("path-info").dataset.h = html; }
   // keep animating while something moves
   if (m.moving && !PATH.timer) PATH.timer = setInterval(render, 250);
