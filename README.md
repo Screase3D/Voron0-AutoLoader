@@ -152,7 +152,8 @@ The page has a setup checklist that ticks itself off where it can. The order:
    - `tube_len`: put the tip flush with the loader gears, press *To sensor 2* – the loader runs fast up
      to *Fast up to* (must be safely shorter than the real distance), searches the sensor up to *Max.*
      and shows the distance. For a long tube raise *Max.* (e.g. 800 mm).
-   - `gear_offset`: push on in 1 / 0.5 mm steps until the tip touches the extruder gears.
+   - `gear_offset`: the servo stays clamped after *To sensor 2*; push on in 1 / 0.5 mm steps
+     (`LOADER_NUDGE`) until the tip touches the extruder gears, then apply – that releases the servo.
    - `ext_to_nozzle`: after a cold load, extrude in 5 / 1 mm steps (hot) until filament comes out of the nozzle.
 7. **Tip forming** – *Manual & test → Form tip*, then pull the filament and look at the tip (see below).
 8. **Turn bench mode off** – the auto trigger now loads into the extruder.
@@ -254,7 +255,8 @@ Positions between the sensors are estimates based on the configured speeds and l
 | `LOADER_AUTO ENABLE=1/0` | auto trigger on/off until restart |
 | `LOADER_FORM_TIP TEMP=` | only form the tip (filament stays in the extruder) |
 | `LOADER_TO_SENSOR COARSE= MAX=` | measuring: feed fast to `COARSE`, search sensor 2 up to `MAX`, report the distance |
-| `LOADER_EXTRUDE DIST= TEMP=` | measuring: extrude with the extruder |
+| `LOADER_NUDGE DIST=` | measuring: push DIST mm, servo stays clamped (finish with `LOADER_STOP`) |
+| `LOADER_EXTRUDE DIST= TEMP=` | measuring: extrude with the extruder (releases the loader first) |
 | `LOAD_FILAMENT` / `UNLOAD_FILAMENT` | Mainsail / KlipperScreen buttons → loader |
 | `LOADER_PRINT_START` / `LOADER_PRINT_END` | print hooks |
 | `LOADER_BENCH VALUE=1/0` | bench mode on/off until restart |

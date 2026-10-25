@@ -308,8 +308,8 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                 </div>
                 <div class="btn-row"><x-btn id="ms-sensor" act icon="mdiArrowRightBold">Bis Sensor 2</x-btn><x-btn id="ms-tube" icon="mdiCheckCircleOutline">Als tube_len übernehmen</x-btn></div>
                 <div class="res mt-3" id="ms-tube-res">–</div>
-                <div class="small muted mt-4 mb-3"><b>2. gear_offset:</b> Danach in kleinen Schritten weiterschieben, bis die Spitze spürbar an den Extruder-Zahnrädern ansteht (Extruder-Hebel kurz anheben und loslassen hilft).</div>
-                <div class="btn-row"><x-btn id="ms-g1" act>+1 mm</x-btn><x-btn id="ms-g05" act>+0,5 mm</x-btn><x-btn id="ms-gear" icon="mdiCheckCircleOutline">Als gear_offset übernehmen</x-btn></div>
+                <div class="small muted mt-4 mb-3"><b>2. gear_offset:</b> Nach „Bis Sensor 2“ bleibt der Servo geklemmt. In kleinen Schritten weiterschieben, bis die Spitze spürbar an den Extruder-Zahnrädern ansteht (Extruder-Hebel kurz anheben und loslassen hilft). Danach übernehmen – das löst den Servo wieder.</div>
+                <div class="btn-row"><x-btn id="ms-g1" act>+1 mm</x-btn><x-btn id="ms-g05" act>+0,5 mm</x-btn><x-btn id="ms-gm05" act>−0,5 mm</x-btn><x-btn id="ms-gear" icon="mdiCheckCircleOutline">Als gear_offset übernehmen</x-btn><x-btn id="ms-done" act variant="text" icon="mdiLockOpenVariantOutline">Lösen</x-btn></div>
                 <div class="res mt-3" id="ms-gear-res">–</div>
                 <div class="small muted mt-4 mb-3"><b>3. ext_to_nozzle:</b> Nach „Laden kalt“ (Spitze in den Zahnrädern) mit heißer Düse extrudieren, bis Filament aus der Düse kommt. Nutzt die Temperatur aus dem Status-Panel.</div>
                 <div class="btn-row"><x-btn id="ms-e5" act>Extruder +5 mm</x-btn><x-btn id="ms-e1" act>+1 mm</x-btn><x-btn id="ms-e2n" icon="mdiCheckCircleOutline">Als ext_to_nozzle übernehmen</x-btn></div>
@@ -558,8 +558,8 @@ const T_EN = {
   "1. tube_len:": "1. tube_len:", "2. gear_offset:": "2. gear_offset:", "3. ext_to_nozzle:": "3. ext_to_nozzle:",
   "Filamentspitze bündig an die Loader-Zahnräder legen, dann „Bis Sensor 2“. Der Loader stoppt genau am Sensor und zeigt die gefahrene Strecke.":
     "Put the filament tip flush with the loader gears, then “To sensor 2”. The loader stops right at the sensor and shows the distance travelled.",
-  "Danach in kleinen Schritten weiterschieben, bis die Spitze spürbar an den Extruder-Zahnrädern ansteht (Extruder-Hebel kurz anheben und loslassen hilft).":
-    "Then push on in small steps until the tip noticeably touches the extruder gears (briefly lifting and releasing the extruder lever helps).",
+  "Nach „Bis Sensor 2“ bleibt der Servo geklemmt. In kleinen Schritten weiterschieben, bis die Spitze spürbar an den Extruder-Zahnrädern ansteht (Extruder-Hebel kurz anheben und loslassen hilft). Danach übernehmen – das löst den Servo wieder.":
+    "After “To sensor 2” the servo stays clamped. Push on in small steps until the tip noticeably touches the extruder gears (briefly lifting and releasing the extruder lever helps). Then apply – that releases the servo again.",
   "Nach „Laden kalt“ (Spitze in den Zahnrädern) mit heißer Düse extrudieren, bis Filament aus der Düse kommt. Nutzt die Temperatur aus dem Status-Panel.":
     "After “Load cold” (tip in the gears) extrude with a hot nozzle until filament comes out of the nozzle. Uses the temperature from the status panel.",
   "Gefahren bis Sensor 2: <b>{a} mm</b> (eingestellt: tube_len {b})": "Travelled to sensor 2: <b>{a} mm</b> (configured: tube_len {b})",
@@ -1160,8 +1160,9 @@ const MS = { gear: 0, e: 0 };
 function drawMeasure() {
   const st = ls(), fed = Number(st.fed || 0), v = lv();
   // suggestions from the current settings until the user types something
-  if (v.tube_len !== undefined) {
-    const fast = Math.max(0, Number(v.tube_len) - Number(v.approach ?? 30) - 30), max = Math.max(Number(v.tube_len) + Number(v.overrun ?? 40) + 40, 800);
+  const tl = Number(v.tube_len ?? (ED ? ED.base.tube_len : NaN));
+  if (isFinite(tl)) {
+    const fast = Math.max(0, tl - Number(v.approach ?? 30) - 30), max = Math.max(tl + Number(v.overrun ?? 40) + 40, 800);
     if (!$("ms-fast").dataset.user && $("ms-fast").value !== String(fast)) $("ms-fast").value = fast;
     if (!$("ms-max").dataset.user && $("ms-max").value !== String(max)) $("ms-max").value = max;
   }
@@ -2230,14 +2231,16 @@ function wire() {
   $("ms-sensor").onclick = () => {
     const fast = Math.max(0, Math.round(num("ms-fast", 0))), max = Math.round(num("ms-max", 0));
     if (!(max > fast)) return snack(t("„Max.“ muss größer als „Schnell bis“ sein."));
-    MS.gear = 0; gcode(`LOADER_TO_SENSOR COARSE=${fast} MAX=${max}`);
+    MS.gear = 0; gcode(`LOADER_TO_SENSOR COARSE=${fast} MAX=${max} HOLD=1`);
   };
   $("ms-fast").oninput = $("ms-max").oninput = (e) => { e.target.dataset.user = "1"; };
   $("ms-tube").onclick = () => apply("tube_len", Number(ls().fed || 0), "t-len");
-  const push = (d) => gcode(`LOADER_MOVE DIST=${d} SPEED=${Math.max(1, Number(lv().slow_speed) || 5)} CLAMP=1`).then((ok) => { if (ok) { MS.gear += d; render(); } });
+  const push = (d) => gcode(`LOADER_NUDGE DIST=${d}`).then((ok) => { if (ok) { MS.gear += d; render(); } });
   $("ms-g1").onclick = () => push(1);
   $("ms-g05").onclick = () => push(0.5);
-  $("ms-gear").onclick = () => apply("gear_offset", MS.gear, "t-len");
+  $("ms-gm05").onclick = () => push(-0.5);
+  $("ms-gear").onclick = () => { apply("gear_offset", MS.gear, "t-len"); if (ls().clamped) gcode("LOADER_STOP"); };
+  $("ms-done").onclick = () => gcode("LOADER_STOP");
   const ext = (d) => gcode(`LOADER_EXTRUDE DIST=${d} TEMP=${hotTemp()}`).then((ok) => { if (ok) { MS.e += d; render(); } });
   $("ms-e5").onclick = () => ext(5);
   $("ms-e1").onclick = () => ext(1);
