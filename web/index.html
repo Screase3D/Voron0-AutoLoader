@@ -139,6 +139,9 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 #len-svg .zone { fill: currentColor; fill-opacity: .08; }
 #len-svg .zone.on, #len-svg .seg:hover .zone { fill: var(--v-primary-base); fill-opacity: .25; }
 
+.seg .v-btn.tgt.on { background: var(--v-primary-base) !important; color: var(--v-btn-text-primary, #fff) !important; }
+.seg .v-btn.tgt.on .v-icon { color: inherit !important; }
+
 .step-ic { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 2px solid currentColor; opacity: .55; cursor: pointer; }
 .step-ic.done { opacity: 1; border: 0; }
 .v-list-item__subtitle.wrap { white-space: normal; -webkit-line-clamp: unset; }
@@ -237,11 +240,17 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                   <x-btn g="LOADER_RELEASE" act icon="mdiLockOpenVariantOutline">Lösen</x-btn>
                   <x-btn g="LOADER_STATUS" act variant="text">Status</x-btn>
                 </div>
-                <div class="d-flex flex-wrap mt-4" style="gap:8px 24px">
+                <div class="d-flex align-center flex-wrap mt-4" style="gap:10px 24px">
                   <x-check label="Auto-Laden bei Filament am Eingang" id="auto"></x-check>
+                  <div class="d-flex align-center" style="gap:8px"><span class="small muted">Laden bis</span>
+                    <div class="seg" id="auto-target" role="group"><x-btn variant="text" cls="tgt" data-tgt="cold" icon="mdiSnowflake">Extruder (kalt)</x-btn><x-btn variant="text" cls="tgt" data-tgt="hot" icon="mdiFire">Düse (heiß)</x-btn></div>
+                  </div>
+                </div>
+                <div class="d-flex flex-wrap mt-3" style="gap:8px 24px">
+                  <x-check label="Düse nach Laden/Entladen ausschalten" id="heatoff"></x-check>
                   <x-check label="Bench-Modus (nur Testfahrt)" id="bench"></x-check>
                 </div>
-                <div class="small muted mt-2">Auto-Laden und Bench-Modus gelten bis zum nächsten Neustart. Dauerhaft: Einstellungen → Allgemein.</div>
+                <div class="small muted mt-2">Diese Schalter werden sofort gespeichert, ohne Neustart. Die Düse bleibt während eines Drucks oder einer Pause an.</div>
               </div>
             </x-panel>
 
@@ -596,6 +605,11 @@ const T_EN = {
   "Schnell bis": "Fast up to", "Max.": "Max.", "„Max.“ muss größer als „Schnell bis“ sein.": "“Max.” must be larger than “Fast up to”.",
   "Filamentspitze bündig an die Loader-Zahnräder legen, dann „Bis Sensor 2“. Der Loader fährt schnell bis „Schnell bis“, sucht dann den Sensor bis höchstens „Max.“ und zeigt die gefahrene Strecke. „Schnell bis“ muss sicher kürzer als die echte Strecke sein.":
     "Put the filament tip flush with the loader gears, then “To sensor 2”. The loader runs fast up to “Fast up to”, then searches the sensor up to “Max.” at most and shows the distance travelled. “Fast up to” must be safely shorter than the real distance.",
+  "Laden bis": "Load to", "Extruder (kalt)": "Extruder (cold)", "Düse (heiß)": "Nozzle (hot)",
+  "Düse nach Laden/Entladen ausschalten": "Switch the nozzle off after loading/unloading",
+  "Diese Schalter werden sofort gespeichert, ohne Neustart. Die Düse bleibt während eines Drucks oder einer Pause an.":
+    "These switches are saved right away, without a restart. The nozzle stays on during a print or a pause.",
+  "Gespeichert.": "Saved.", "Gespeichert – wirkt nach dem nächsten Klipper-Neustart.": "Saved – takes effect after the next Klipper restart.",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1133,10 +1147,13 @@ function draw() {
   setDis($("unload"), lock || !hasTool);
   setDis($("ed-save"), !ED || !ready || pr || busy > 0);
 
-  // switches follow Klipper
-  const si = S["filament_switch_sensor loader_in"];
-  if (si && si.enabled !== undefined && busy === 0 && isChecked($("auto")) !== !!si.enabled) setCheck($("auto"), !!si.enabled);
-  if (v.bench_mode !== undefined && busy === 0 && isChecked($("bench")) !== (Number(v.bench_mode) === 1)) setCheck($("bench"), Number(v.bench_mode) === 1);
+  // switches follow Klipper / the settings file
+  for (const [id, k] of [["auto", "auto_enable"], ["bench", "bench_mode"], ["heatoff", "heater_off"]]) {
+    const on = Number(curVar(k)) === 1;
+    if (isChecked($(id)) !== on) setCheck($(id), on);
+  }
+  const tgt = String(curVar("auto_target")).replace(/["']/g, "");
+  document.querySelectorAll(".tgt").forEach((b) => b.classList.toggle("on", b.dataset.tgt === tgt));
 
   drawSetup();
   drawMeasure();
@@ -1499,6 +1516,8 @@ const FIELDS = [
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode"].map((k) => [k, VARS, "variable_" + k, "n"]),
   ["servo_off_released", VARS, "variable_servo_off_released", "b"], ["bench_mode", VARS, "variable_bench_mode", "b"],
   ["tip_enable", VARS, "variable_tip_enable", "b"], ["unload_after_print", VARS, "variable_unload_after_print", "b"],
+  ["auto_enable", VARS, "variable_auto_enable", "b"], ["heater_off", VARS, "variable_heater_off", "b"],
+  ["auto_target", VARS, "variable_auto_target", "l"],
 ];
 const TYPES = Object.fromEntries(FIELDS.map((f) => [f[0], f[3]]).concat([["tool", "b"]]));
 /* defaults – same as scripts/installer.py DEFAULTS */
@@ -1511,9 +1530,10 @@ const DEF = {
   purge_speed: 3, default_temp: 220, unload_ext_len: 65, unload_hold: 15, auto_delay: 2, bench_mode: 1, bench_dist: 50,
   tip_enable: 1, tip_ram_len: 0, tip_temp: 0, tip_speed_start: 80, tip_speed: 18, tip_cool_pos: 35, tip_cool_len: 10,
   tip_cool_moves: 4, tip_cool_start: 10, tip_cool_end: 50, tip_eject_speed: 25, print_start_mode: 2, unload_after_print: 0,
+  auto_enable: 1, auto_target: "cold", heater_off: 1,
 };
 /* variables of newer versions – defaults when the settings file does not have them yet */
-const NEW_KEYS = ["approach", "stealth_speed", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
+const NEW_KEYS = ["auto_enable", "auto_target", "heater_off", "approach", "stealth_speed", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
   "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "unload_after_print"];
 const NEW_DEFAULTS = Object.fromEntries(NEW_KEYS.map((k) => [k, DEF[k]]));
 
@@ -1527,6 +1547,10 @@ const GROUPS = [
     F("print_start_mode", ["Druckstart ohne Filament", "Print start without filament"], "", ["Was LOADER_PRINT_START in PRINT_START macht, wenn der Toolhead leer ist", "What LOADER_PRINT_START in PRINT_START does when the toolhead is empty"],
       { ty: "select", o: [["2", ["automatisch laden", "load automatically"]], ["1", ["nur prüfen – Druck abbrechen", "check only – abort the print"]], ["0", ["nichts tun", "do nothing"]]], wide: true }),
     F("unload_after_print", ["Nach dem Druck entladen", "Unload after the print"], "", ["LOADER_PRINT_END in PRINT_END formt die Spitze und entlädt", "LOADER_PRINT_END in PRINT_END forms the tip and unloads"], { ty: "check" }),
+    F("auto_enable", ["Auto-Laden", "Auto load"], "", ["Filament am Loader-Eingang wird automatisch geladen", "Filament inserted at the loader entrance is loaded automatically"], { ty: "check" }),
+    F("auto_target", ["Auto-Laden bis", "Auto load to"], "", ["Kalt: bis in die Extruder-Zahnräder. Heiß: heizt auf und lädt bis zur Düse", "Cold: into the extruder gears. Hot: heats up and loads to the nozzle"],
+      { ty: "select", o: [["cold", ["Extruder (kalt)", "extruder (cold)"]], ["hot", ["Düse (heiß)", "nozzle (hot)"]]] }),
+    F("heater_off", ["Düse nach Laden/Entladen ausschalten", "Switch the nozzle off after loading/unloading"], "", ["Nicht während eines Drucks oder einer Pause", "Not during a print or a pause"], { ty: "check" }),
     F("auto_delay", ["Wartezeit Auto-Laden", "Auto-load delay"], "s", ["Zeit zum Nachschieben, bevor der Loader zugreift", "Time to push the filament in before the loader grips"], { min: 0, max: 10, st: 0.5 }),
     F("bench_mode", ["Bench-Modus", "Bench mode"], "", ["Auto-Laden fährt nur die Teststrecke – für Tests am Tisch", "Auto load only runs the test distance – for testing on the table"], { ty: "check" }),
     F("bench_dist", ["Teststrecke", "Test distance"], "mm", ["Strecke im Bench-Test", "Distance of the bench test"], { min: 5, max: 500, st: 5, adv: true }),
@@ -1666,7 +1690,7 @@ async function loadSettings() {
     let v = (sec[s] || {})[o];
     if (v === undefined && NEW_DEFAULTS[k] !== undefined) v = String(NEW_DEFAULTS[k]);
     if (ty === "b") v = v !== undefined && parseFloat(v) ? 1 : 0;
-    else if (ty === "l") v = String(v || "de").replace(/["']/g, "");
+    else if (ty === "l") v = String(v ?? DEF[k]).replace(/["']/g, "");
     model[k] = v === undefined ? "" : v;
   }
   model.tool = sec[TOOL] && !off.has(TOOL) ? 1 : 0;
@@ -1886,7 +1910,7 @@ async function saveSettings() {
   if (printing()) return snack(t("Während eines Drucks gesperrt."));
   if ((S.configfile || {}).save_config_pending) return dialog(t("Erst speichern"), esc(t("Es gibt ungespeicherte Kalibrierwerte (SAVE_CONFIG ausstehend). Bitte zuerst Save Config ausführen – ein Neustart würde sie verwerfen.")), null);
 
-  const show = (k, x) => TYPES[k] === "b" ? t(+x ? "ja" : "nein") : TYPES[k] === "n" ? dec(numStr(x)) + (FDEF[k] && FDEF[k].u ? " " + FDEF[k].u : "") : TYPES[k] === "l" ? (x === "en" ? "English" : "Deutsch") : x === "" ? "–" : x;
+  const show = (k, x) => TYPES[k] === "b" ? t(+x ? "ja" : "nein") : TYPES[k] === "n" ? dec(numStr(x)) + (FDEF[k] && FDEF[k].u ? " " + FDEF[k].u : "") : FDEF[k] && FDEF[k].o ? L2((FDEF[k].o.find((o) => String(o[0]) === String(x)) || [x, x])[1]) : x === "" ? "–" : x;
   const diff = [];
   for (const k in LABELS) if (!same(k, m[k], ED.base[k])) diff.push([L2(LABELS[k]), esc(show(k, ED.base[k])), esc(show(k, m[k]))]);
   if (!diff.length && !(ED.missing || []).length) return snack(t("Keine Änderungen."));
@@ -1936,6 +1960,29 @@ document.addEventListener("click", (e) => {
   }
 });
 
+/* change one variable right away: in Klipper (if it exists) and in the settings file, no restart */
+async function persistVar(k, val) {
+  const quoted = TYPES[k] === "l", live = lv()[k] !== undefined;
+  try {
+    if (live) {
+      S["gcode_macro _LOADER_VARS"][k] = val;     // show it right away, Klipper confirms with the next status update
+      await rpc("printer.gcode.script", { script: `SET_GCODE_VARIABLE MACRO=_LOADER_VARS VARIABLE=${k} VALUE=${quoted ? `'"${val}"'` : val}` });
+    }
+    if (ED) {
+      const L = ED.text.split("\n");
+      setOpt(L, VARS, "variable_" + k, quoted ? `"${val}"` : String(val));
+      const text = L.join("\n");
+      await uploadCfg(SETTINGS, text);
+      ED.text = text; ED.base[k] = val; ED.missing = (ED.missing || []).filter((x) => x !== k);
+      setField(k, val);
+    }
+    snack(live ? t("Gespeichert.") : t("Gespeichert – wirkt nach dem nächsten Klipper-Neustart."));
+  } catch (e) { snack(e.message); log("!! " + e.message, "e"); }
+  render();
+}
+/* current value: Klipper, otherwise settings file, otherwise default */
+const curVar = (k) => lv()[k] !== undefined ? lv()[k] : ED && ED.model[k] !== undefined ? ED.model[k] : DEF[k];
+
 /* switch the Klipper message language immediately and persistently (no restart) */
 async function syncMacroLang(l) {
   if (!ED || ED.model.lang === l || printing()) return;
@@ -1963,7 +2010,7 @@ function dialog(title, html, okText) {
     $("m-yes").querySelector("span:last-child").textContent = okText || "OK";
     $("m-no").classList.toggle("hide", !okText);
     m.classList.remove("hide"); $("overlay").classList.remove("hide");
-    const close = (v) => { m.classList.add("hide"); render(); res(v); };
+    const close = (v) => { m.classList.add("hide"); $("overlay").classList.add("hide"); render(); res(v); };
     $("m-yes").onclick = () => close(!!okText);
     $("m-no").onclick = $("m-x").onclick = () => close(false);
   });
@@ -2153,14 +2200,17 @@ document.addEventListener("click", async (e) => {
   const chk = e.target.closest("[data-check]");
   if (chk) {
     setCheck(chk, !isChecked(chk));
-    if (chk.id === "auto") gcode(`LOADER_AUTO ENABLE=${isChecked(chk) ? 1 : 0}`);
-    else if (chk.id === "bench") gcode(`LOADER_BENCH VALUE=${isChecked(chk) ? 1 : 0}`);
+    if (chk.id === "auto") persistVar("auto_enable", isChecked(chk) ? 1 : 0);
+    else if (chk.id === "bench") persistVar("bench_mode", isChecked(chk) ? 1 : 0);
+    else if (chk.id === "heatoff") persistVar("heater_off", isChecked(chk) ? 1 : 0);
     else if (chk.id === "ed-adv") { store.set("adv", isChecked(chk)); $("ed-tabs").classList.toggle("show-adv", isChecked(chk)); fixLegends($("ed-tabs")); }
     else if (ED && chk.dataset.k) { readEditor(); edUpdate(); }
     return;
   }
   const tb = e.target.closest("#tabs .v-tab");
   if (tb) return openTab(tb.dataset.t);
+  const tg = e.target.closest(".tgt");
+  if (tg) return persistVar("auto_target", tg.dataset.tgt);
   const sv = e.target.closest(".sv-set");
   if (sv && ED) {
     const a = Math.round(parseFloat($("sv-a").value));

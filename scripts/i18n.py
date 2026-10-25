@@ -133,7 +133,7 @@ RULES = [
     (r"^(\S+): keine passende Stelle gefunden \(M109 / TURN_OFF_HEATERS\) – Hook bitte manuell einfügen$", r"\1: no suitable place found (M109 / TURN_OFF_HEATERS) – please insert the hook manually"),
     (r"^(\S+): vor „(.*)“ \((.*)\)$", r"\1: before “\2” (\3)"),
     (r"^(\S+): nach „(.*)“ \((.*)\)$", r"\1: after “\2” (\3)"),
-    (r"^(\d+) neue Einstellungen in (\S+) ergänzt \(Tip-Forming, Druck-Hooks, Anlauf\)$", r"\1 new settings added to \2 (tip forming, print hooks, approach)"),
+    (r"^(\d+) neue Einstellungen in (\S+) ergänzt \(neue Funktionen\)$", r"\1 new settings added to \2 (new features)"),
     (r"^\[gcode_macro _LOADER_VARS\] fehlt in (\S+) – neue Einstellungen übersprungen$", r"[gcode_macro _LOADER_VARS] missing in \1 – new settings skipped"),
     (r"^Pin (\S+) wird auch von \[(.+)\] \((.+)\) benutzt – bitte prüfen$", r"Pin \1 is also used by [\2] (\3) – please check"),
 ]

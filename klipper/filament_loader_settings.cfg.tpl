@@ -1,4 +1,4 @@
-#@schema 3
+#@schema 4
 # =====================================================================
 # voron0-autoloader - Einstellungen (vom Installer erzeugt)
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -89,6 +89,9 @@ variable_default_temp: ${default_temp}      # Standard-Duesentemperatur
 variable_unload_ext_len: ${unload_ext_len}      # mm Extruder zieht insgesamt ab Duese zurueck (inkl. Tip-Forming)
 variable_unload_hold: ${unload_hold}         # mm Spitze bleibt im Loader-Griff
 # --- Auto-Trigger ---
+variable_auto_enable: ${auto_enable}         # 1 = Filament am Loader-Eingang wird automatisch geladen
+variable_auto_target: "${auto_target}"       # "cold" = bis in den Extruder, "hot" = bis zur Duese (heizt auf)
+variable_heater_off: ${heater_off}          # 1 = Duese nach Laden/Entladen ausschalten (nicht im Druck / in der Pause)
 variable_auto_delay: ${auto_delay}         # s Zeit zum Nachschieben, bevor der Loader klemmt
 variable_bench_mode: ${bench_mode}          # 1 = Auto-Trigger macht nur den Bench-Test (klemmen, bench_dist fahren, loesen)
 variable_bench_dist: ${bench_dist}          # mm im Bench-Test

@@ -49,7 +49,7 @@ KS_NAME = "autoloader_klipperscreen.conf"
 KS_INCLUDE = f"[include {KS_NAME}]"
 KS_CREATED = "# created by voron0-autoloader"
 
-SETTINGS_SCHEMA = 3  # matches "#@schema" in filament_loader_settings.cfg.tpl
+SETTINGS_SCHEMA = 4  # matches "#@schema" in filament_loader_settings.cfg.tpl
 TOOL_SECTION = "filament_switch_sensor toolhead_in"
 
 # icon: Material Design Icons "printer-3d-nozzle" (Pictogrammers, Apache-2.0)
@@ -85,8 +85,8 @@ FIELDS = [
     "purge_len", "purge_speed", "default_temp", "unload_ext_len", "unload_hold", "auto_delay", "bench_mode",
     "bench_dist", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
-    "unload_after_print")]
-NEW_VARS_V2 = ["approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
+    "unload_after_print", "auto_enable", "auto_target", "heater_off")]
+NEW_VARS_V2 = ["auto_enable", "auto_target", "heater_off", "approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
                "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "unload_after_print"]
 
 HOOK_TAG = "# autoloader"
@@ -109,8 +109,10 @@ DEFAULTS = {
     "tip_enable": "1", "tip_ram_len": "0", "tip_temp": "0", "tip_speed_start": "80", "tip_speed": "18",
     "tip_cool_pos": "35", "tip_cool_len": "10", "tip_cool_moves": "4", "tip_cool_start": "10", "tip_cool_end": "50",
     "tip_eject_speed": "25", "print_start_mode": "2", "unload_after_print": "0",
+    "auto_enable": "1", "auto_target": "cold", "heater_off": "1",
 }
 
+QUOTED = {"lang", "auto_target"}   # string variables, written with quotes
 LEGACY_KEYS = {"step_pin", "dir_pin", "enable_pin", "microsteps", "rotation_distance", "uart_pin", "tx_pin", "uart_address",
                "servo_pin", "loader_in_pin", "toolhead_in_pin", "servo_clamp", "servo_release", "tube_len", "gear_offset",
                "gear_push", "ext_to_nozzle", "unload_ext_len", "unload_hold", "default_temp"}
@@ -456,10 +458,10 @@ def upgrade_settings(env, ops):
         warn(f"[gcode_macro _LOADER_VARS] fehlt in {SETTINGS_NAME} – neue Einstellungen übersprungen")
         return
     end = next((i for i in range(idx + 1, len(lines)) if lines[i].startswith("gcode:") or SECTION_RE.match(lines[i])), len(lines))
-    lines[end:end] = [f"variable_{k}: {DEFAULTS[k]}" for k in missing]
+    lines[end:end] = [f"variable_{k}: " + (f'"{DEFAULTS[k]}"' if k in QUOTED else DEFAULTS[k]) for k in missing]
     lines = [re.sub(r"^#@schema\s+\d+", f"#@schema {SETTINGS_SCHEMA}", l) for l in lines]
     ops.write(path, "\n".join(lines))
-    ok(f"{len(missing)} neue Einstellungen in {SETTINGS_NAME} ergänzt (Tip-Forming, Druck-Hooks, Anlauf)")
+    ok(f"{len(missing)} neue Einstellungen in {SETTINGS_NAME} ergänzt (neue Funktionen)")
 
 
 # ---------------------------------------------------------------------------
@@ -515,7 +517,7 @@ def existing_values(env, A):
                 continue      # old single file: take over calibrated values only, new defaults for speeds
             v = vals.get(sec, {}).get(opt)
             if v not in (None, ""):
-                values[key] = v.strip("\"'") if key == "lang" else v
+                values[key] = v.strip("\"'") if key in QUOTED else v
         if TOOL_SECTION in vals:
             tool_on = TOOL_SECTION not in off
     return values, tool_on

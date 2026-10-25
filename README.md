@@ -20,7 +20,9 @@ extruder gears in the toolhead.
   the same approach as ERCF / Happy Hare), then the loader pulls the filament back out of the toolhead.
 - **Mainsail / KlipperScreen buttons** – `LOAD_FILAMENT` and `UNLOAD_FILAMENT` use the loader.
 - **Print hooks** – `PRINT_START` loads automatically when the toolhead is empty; optional unload in `PRINT_END`.
-- **Auto trigger** – push filament into the loader entrance and it gets loaded on its own.
+- **Auto trigger** – push filament into the loader entrance and it gets loaded on its own –
+  into the extruder gears (cold) or all the way to the nozzle (hot), selectable on the page.
+- **Nozzle off afterwards** – after loading/unloading the nozzle is switched off (not during a print or pause).
 - **Bench mode** – the auto trigger only clamps, runs a test distance and releases. Safe for testing
   the loader on the table before it is mounted.
 - **Mainsail page** with a live drawing of the filament path, status, setup checklist, manual tests,
@@ -220,11 +222,13 @@ otherwise `default_temp`. They also work while a print is paused (filament chang
 
 ### Auto trigger
 
-`[filament_switch_sensor loader_in]` calls `FILAMENT_LOADER_AUTO` when filament is inserted. After
-`auto_delay` it runs the bench test (bench mode) or a cold load. Klipper only fires `insert_gcode`
+`[filament_switch_sensor loader_in]` calls `FILAMENT_LOADER_AUTO` when filament is inserted. If
+`auto_enable` is on, after `auto_delay` it runs the bench test (bench mode), a cold load
+(`auto_target = "cold"`) or a hot load to the nozzle (`auto_target = "hot"`, current target temperature
+or `default_temp`). Klipper only fires `insert_gcode`
 when no print is running. During a print, sensor 1 acts as runout sensor and pauses the print.
-*Auto load* and *bench mode* can be toggled on the page; that lasts until the next restart. To make
-it permanent, change it in the settings.
+*Auto load*, *load to*, *nozzle off afterwards* and *bench mode* are switches in the status panel; they
+are written to the settings file right away, without a restart.
 
 ### Where is the filament?
 
@@ -252,7 +256,7 @@ Positions between the sensors are estimates based on the configured speeds and l
 | `LOADER_MOVE DIST= SPEED= CLAMP=1/0` | move the loader (negative = back) |
 | `LOADER_BENCHTEST DIST=` | clamp, move, release |
 | `LOADER_STOP` | release and switch the stepper off |
-| `LOADER_AUTO ENABLE=1/0` | auto trigger on/off until restart |
+| `LOADER_AUTO ENABLE=1/0` | auto load on/off until restart (permanent: `auto_enable`) |
 | `LOADER_FORM_TIP TEMP=` | only form the tip (filament stays in the extruder) |
 | `LOADER_TO_SENSOR COARSE= MAX=` | measuring: feed fast to `COARSE`, search sensor 2 up to `MAX`, report the distance |
 | `LOADER_NUDGE DIST=` | measuring: push DIST mm, servo stays clamped (finish with `LOADER_STOP`) |
@@ -300,6 +304,9 @@ All values live in `filament_loader_settings.cfg` and are edited on the page und
 | `auto_delay` | 2.0 | s before the auto trigger clamps |
 | `bench_mode` / `bench_dist` | 1 / 50 | bench mode and its test distance |
 | `lang` | de | language of the Klipper messages (`de` / `en`) |
+| `auto_enable` | 1 | load automatically when filament is inserted |
+| `auto_target` | "cold" | auto load into the extruder (`cold`) or to the nozzle (`hot`) |
+| `heater_off` | 1 | switch the nozzle off after loading/unloading (not during a print or pause) |
 | `tip_enable` | 1 | form a tip before unloading |
 | `tip_ram_len` | 0 | mm ramming before the break-off |
 | `tip_temp` | 0 | °C for the cooling moves (0 = keep) |
