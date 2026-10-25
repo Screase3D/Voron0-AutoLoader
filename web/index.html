@@ -142,6 +142,16 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 .seg .v-btn.tgt.on { background: var(--v-primary-base) !important; color: var(--v-btn-text-primary, #fff) !important; }
 .seg .v-btn.tgt.on .v-icon { color: inherit !important; }
 
+/* mode switch, chips */
+.mode-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.seg-lg .v-btn { height: 40px !important; padding: 0 16px !important; font-size: .875rem; }
+.seg .v-btn.mode.on, .seg .v-btn.pea.on { background: var(--v-primary-base) !important; color: var(--v-btn-text-primary, #fff) !important; }
+.seg .v-btn.mode.on .v-icon { color: inherit !important; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: thin solid rgba(255,255,255,.2); background: transparent; color: inherit; border-radius: 14px; height: 26px; padding: 0 10px; font: 500 12px Roboto, sans-serif; cursor: pointer; }
+html.theme--light .chips button { border-color: rgba(0,0,0,.2); }
+.chips button:hover, .chips button.on { border-color: var(--v-primary-base); color: var(--v-primary-base); }
+
 .step-ic { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 2px solid currentColor; opacity: .55; cursor: pointer; }
 .step-ic.done { opacity: 1; border: 0; }
 .v-list-item__subtitle.wrap { white-space: normal; -webkit-line-clamp: unset; }
@@ -206,8 +216,15 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
     <div class="v-main__wrap">
       <div class="container container--fluid px-3 px-sm-6 py-sm-6 mx-auto" id="page-container">
         <div id="alerts"></div>
+        <div class="mode-bar mb-3 mb-md-5">
+          <div class="seg seg-lg" role="tablist" id="mode-seg">
+            <x-btn variant="text" size="default" cls="mode" data-mode="op" icon="mdiPrinter3dNozzle">Bedienen</x-btn>
+            <x-btn variant="text" size="default" cls="mode" data-mode="setup" icon="mdiWrench">Einrichten &amp; Kalibrieren</x-btn>
+          </div>
+          <span class="small muted" id="mode-hint"></span>
+        </div>
         <div class="row">
-          <!-- Columns: panels are distributed by JS depending on the width -->
+          <!-- Columns: panels are distributed by JS depending on the width and the mode -->
           <div class="col" id="col1">
             <x-panel p="path" icon="mdiPrinter3d" title="Filamentweg">
               <div class="v-card__text">
@@ -217,38 +234,42 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
               </div>
             </x-panel>
 
-            <x-panel p="status" icon="mdiPrinter3dNozzle" title="Status">
+            <x-panel p="status" icon="mdiPrinter3dNozzle" title="Steuerung">
               <div class="v-card__text">
                 <table class="kv">
                   <tr><td>Zustand</td><td id="s-state">–</td></tr>
+                  <tr><td>Filament</td><td id="s-pos">–</td></tr>
                   <tr><td>Sensor 1 · Loader-Eingang</td><td id="s-in">–</td></tr>
                   <tr><td>Sensor 2 · Toolhead-Eingang</td><td id="s-tool">–</td></tr>
-                  <tr><td>Servo</td><td id="s-servo">–</td></tr>
                   <tr><td>Hotend</td><td id="s-temp">–</td></tr>
-                  <tr><td>Modus</td><td id="s-mode">–</td></tr>
-                  <tr><td>Druck-Hooks</td><td id="s-hooks">–</td></tr>
                   <tr><td>Letzte Meldung</td><td id="s-msg">–</td></tr>
                 </table>
+                <div class="d-flex align-center flex-wrap mt-4" style="gap:10px 12px">
+                  <x-field label="Düse °C" id="temp" cls="temp-in" type="number" min="0" max="320" step="5" value="220" style="width:110px"></x-field>
+                  <x-field label="Ausspülen" id="purge" type="number" min="0" max="300" step="5" suffix="mm" style="width:120px"></x-field>
+                  <div class="chips" id="mat-chips"></div>
+                </div>
                 <div class="btn-row mt-4">
                   <x-btn g="FILAMENT_LOAD_COLD" act color="primary" icon="mdiSnowflake">Laden kalt</x-btn>
                   <x-btn id="load-hot" act color="primary" icon="mdiFire">Laden heiß</x-btn>
+                  <x-btn id="park" act icon="mdiParking">Parken</x-btn>
                   <x-btn id="unload" act icon="mdiArrowUpBold">Entladen</x-btn>
                 </div>
-                <div class="d-flex align-center flex-wrap mt-4" style="gap:12px">
-                  <x-field label="Düse °C" id="temp" type="number" min="0" max="300" step="5" value="220" style="width:110px"></x-field>
-                  <x-btn g="LOADER_CLAMP" act icon="mdiLockOutline">Klemmen</x-btn>
-                  <x-btn g="LOADER_RELEASE" act icon="mdiLockOpenVariantOutline">Lösen</x-btn>
-                  <x-btn g="LOADER_STATUS" act variant="text">Status</x-btn>
-                </div>
-                <div class="d-flex align-center flex-wrap mt-4" style="gap:10px 24px">
+                <div class="small muted mt-2">Laden kalt: bis in die Extruder-Zahnräder. Laden heiß: bis zur Düse und ausspülen. Parken: Spitze formen und knapp hinter Sensor 2 im Schlauch abstellen. Entladen: ganz zurück in den Loader.</div>
+              </div>
+              <hr role="separator" class="v-divider theme--dark">
+              <div class="v-card__text">
+                <div class="d-flex align-center flex-wrap" style="gap:10px 24px">
                   <x-check label="Auto-Laden bei Filament am Eingang" id="auto"></x-check>
                   <div class="d-flex align-center" style="gap:8px"><span class="small muted">Laden bis</span>
                     <div class="seg" id="auto-target" role="group"><x-btn variant="text" cls="tgt" data-tgt="cold" icon="mdiSnowflake">Extruder (kalt)</x-btn><x-btn variant="text" cls="tgt" data-tgt="hot" icon="mdiFire">Düse (heiß)</x-btn></div>
                   </div>
                 </div>
-                <div class="d-flex flex-wrap mt-3" style="gap:8px 24px">
+                <div class="d-flex align-center flex-wrap mt-3" style="gap:10px 24px">
                   <x-check label="Düse nach Laden/Entladen ausschalten" id="heatoff"></x-check>
-                  <x-check label="Bench-Modus (nur Testfahrt)" id="bench"></x-check>
+                  <div class="d-flex align-center" style="gap:8px"><span class="small muted">Nach dem Druck</span>
+                    <div class="seg" id="end-action" role="group"><x-btn variant="text" cls="pea" data-pea="0">nichts</x-btn><x-btn variant="text" cls="pea" data-pea="1">parken</x-btn><x-btn variant="text" cls="pea" data-pea="2">entladen</x-btn></div>
+                  </div>
                 </div>
                 <div class="small muted mt-2">Diese Schalter werden sofort gespeichert, ohne Neustart. Die Düse bleibt während eines Drucks oder einer Pause an.</div>
               </div>
@@ -256,6 +277,13 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
 
             <x-panel p="setup" icon="mdiFormatListChecks" title="Einrichtung">
               <x-tools><x-btn variant="icon" id="setup-reset" title="Zurücksetzen" icon="mdiReload"></x-btn></x-tools>
+              <div class="v-card__text pb-0">
+                <table class="kv">
+                  <tr><td>Druck-Hooks</td><td id="s-hooks">–</td></tr>
+                  <tr><td>Position speichern</td><td id="s-persist">–</td></tr>
+                  <tr><td>Modus</td><td id="s-mode">–</td></tr>
+                </table>
+              </div>
               <div class="v-list v-sheet theme--dark v-list--dense py-0" id="setup-list"></div>
             </x-panel>
           </div>
@@ -263,17 +291,29 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
           <div class="col" id="col2">
             <x-panel p="manual" icon="mdiRotateRight" title="Manuell &amp; Test">
               <div class="v-card__text">
+                <table class="kv mb-3">
+                  <tr><td>Servo</td><td id="s-servo">–</td></tr>
+                </table>
+                <div class="btn-row">
+                  <x-btn g="LOADER_CLAMP" act icon="mdiLockOutline">Klemmen</x-btn>
+                  <x-btn g="LOADER_RELEASE" act icon="mdiLockOpenVariantOutline">Lösen</x-btn>
+                  <x-btn g="LOADER_STOP" act icon="mdiStopCircleOutline">Stopp (lösen + Motor aus)</x-btn>
+                  <x-btn g="LOADER_STATUS" act variant="text">Status</x-btn>
+                </div>
+                <div class="mt-4"><x-check label="Bench-Modus – Auto-Laden fährt nur die Teststrecke" id="bench"></x-check></div>
+              </div>
+              <hr role="separator" class="v-divider theme--dark">
+              <div class="v-card__text">
                 <div class="v-subheader theme--dark px-0">Stepper</div>
                 <div class="d-flex align-center flex-wrap" style="gap:12px">
-                  <x-field label="Strecke" id="mv-d" type="number" min="1" max="500" value="50" suffix="mm" style="width:130px"></x-field>
-                  <x-field label="Tempo" id="mv-s" type="number" min="1" max="60" value="10" suffix="mm/s" style="width:130px"></x-field>
+                  <x-field label="Strecke" id="mv-d" type="number" min="1" max="1000" value="50" suffix="mm" style="width:130px"></x-field>
+                  <x-field label="Tempo" id="mv-s" type="number" min="1" max="400" value="10" suffix="mm/s" style="width:130px"></x-field>
                   <x-check label="Klemmen" id="mv-clamp" checked></x-check>
                 </div>
                 <div class="btn-row mt-4">
                   <x-btn id="mv-fwd" act icon="mdiArrowRightBold">Vor</x-btn>
                   <x-btn id="mv-back" act icon="mdiArrowLeftBold">Zurück</x-btn>
                   <x-btn g="LOADER_BENCHTEST" act color="primary" icon="mdiFlask">Bench-Test</x-btn>
-                  <x-btn id="tip-test" act icon="mdiFire">Spitze formen</x-btn>
                 </div>
                 <div class="small muted mt-2">Der Bench-Test braucht nur Sensor 1: klemmen, Teststrecke fahren, lösen.</div>
               </div>
@@ -294,6 +334,25 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                 </div>
                 <div class="small muted mt-2">Winkel anfahren, bis der Hebel klemmt bzw. das Filament frei läuft, dann übernehmen und unter Einstellungen speichern.</div>
               </div>
+              <hr role="separator" class="v-divider theme--dark">
+              <div class="v-card__text">
+                <div class="v-subheader theme--dark px-0">Spitze testen</div>
+                <div class="d-flex align-center flex-wrap" style="gap:12px">
+                  <x-field label="Düse °C" id="temp2" cls="temp-in" type="number" min="0" max="320" step="5" value="220" style="width:110px"></x-field>
+                  <x-btn id="tip-test" act icon="mdiFire">Spitze formen</x-btn>
+                </div>
+                <div class="small muted mt-2">Formt nur die Spitze, das Filament bleibt im Extruder. Danach entladen oder von Hand ziehen und die Spitze ansehen.</div>
+              </div>
+              <hr role="separator" class="v-divider theme--dark">
+              <div class="v-card__text">
+                <div class="v-subheader theme--dark px-0">Position korrigieren</div>
+                <div class="d-flex align-center flex-wrap" style="gap:12px">
+                  <x-select label="Filament ist" id="pos-sel" style="width:240px"><option value="none">nicht eingelegt</option><option value="loader">im Loader</option><option value="tube">im Schlauch (geparkt)</option><option value="sensor2">an Sensor 2</option><option value="gears">in den Extruder-Zahnrädern</option><option value="nozzle">bis zur Düse geladen</option></x-select>
+                  <x-btn id="pos-set" act icon="mdiCheckCircleOutline">Setzen</x-btn>
+                  <x-btn g="LOADER_SYNC" act variant="text" icon="mdiReload">Mit Sensoren abgleichen</x-btn>
+                </div>
+                <div class="small muted mt-2">Nur nötig, wenn das Filament von Hand bewegt wurde und die gespeicherte Position nicht mehr stimmt. Bestimmt, wie weit der Loader beim nächsten Laden mit voller Fahrt schieben darf.</div>
+              </div>
             </x-panel>
 
             <x-panel p="cal" icon="mdiRuler" title="Stepper kalibrieren">
@@ -307,9 +366,10 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                 <div class="res mt-4" id="cal-res">–</div>
                 <div class="btn-row mt-4"><x-btn id="cal-apply" icon="mdiCheckCircleOutline">In Einstellungen übernehmen</x-btn></div>
               </div>
-              <hr role="separator" class="v-divider theme--dark">
+            </x-panel>
+
+            <x-panel p="measure" icon="mdiRuler" title="Längen messen">
               <div class="v-card__text">
-                <div class="v-subheader theme--dark px-0">Längen messen</div>
                 <div class="small muted mb-3"><b>1. tube_len:</b> Filamentspitze bündig an die Loader-Zahnräder legen, dann „Bis Sensor 2“. Der Loader fährt schnell bis „Schnell bis“, sucht dann den Sensor bis höchstens „Max.“ und zeigt die gefahrene Strecke. „Schnell bis“ muss sicher kürzer als die echte Strecke sein.</div>
                 <div class="d-flex align-center flex-wrap mb-3" style="gap:12px">
                   <x-field label="Schnell bis" id="ms-fast" type="number" min="0" step="10" suffix="mm" style="width:140px"></x-field>
@@ -320,8 +380,11 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                 <div class="small muted mt-4 mb-3"><b>2. gear_offset:</b> Nach „Bis Sensor 2“ bleibt der Servo geklemmt. In kleinen Schritten weiterschieben, bis die Spitze spürbar an den Extruder-Zahnrädern ansteht (Extruder-Hebel kurz anheben und loslassen hilft). Danach übernehmen – das löst den Servo wieder.</div>
                 <div class="btn-row"><x-btn id="ms-g1" act>+1 mm</x-btn><x-btn id="ms-g05" act>+0,5 mm</x-btn><x-btn id="ms-gm05" act>−0,5 mm</x-btn><x-btn id="ms-gear" icon="mdiCheckCircleOutline">Als gear_offset übernehmen</x-btn><x-btn id="ms-done" act variant="text" icon="mdiLockOpenVariantOutline">Lösen</x-btn></div>
                 <div class="res mt-3" id="ms-gear-res">–</div>
-                <div class="small muted mt-4 mb-3"><b>3. ext_to_nozzle:</b> Nach „Laden kalt“ (Spitze in den Zahnrädern) mit heißer Düse extrudieren, bis Filament aus der Düse kommt. Nutzt die Temperatur aus dem Status-Panel.</div>
-                <div class="btn-row"><x-btn id="ms-e5" act>Extruder +5 mm</x-btn><x-btn id="ms-e1" act>+1 mm</x-btn><x-btn id="ms-e2n" icon="mdiCheckCircleOutline">Als ext_to_nozzle übernehmen</x-btn></div>
+                <div class="small muted mt-4 mb-3"><b>3. ext_to_nozzle:</b> Nach „Laden kalt“ (Spitze in den Zahnrädern) mit heißer Düse extrudieren, bis Filament aus der Düse kommt.</div>
+                <div class="d-flex align-center flex-wrap" style="gap:12px">
+                  <x-field label="Düse °C" id="temp3" cls="temp-in" type="number" min="0" max="320" step="5" value="220" style="width:110px"></x-field>
+                  <x-btn id="ms-e5" act>Extruder +5 mm</x-btn><x-btn id="ms-e1" act>+1 mm</x-btn><x-btn id="ms-e2n" icon="mdiCheckCircleOutline">Als ext_to_nozzle übernehmen</x-btn>
+                </div>
                 <div class="res mt-3" id="ms-e-res">–</div>
                 <div class="btn-row mt-3"><x-btn id="ms-reset" variant="text">Zähler zurücksetzen</x-btn></div>
               </div>
@@ -395,7 +458,7 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
 
 <script>
 "use strict";
-const ICON = {"mdiAlertCircleOutline":"M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z","mdiAlertOctagonOutline":"M8.27,3L3,8.27V15.73L8.27,21H15.73C17.5,19.24 21,15.73 21,15.73V8.27L15.73,3M9.1,5H14.9L19,9.1V14.9L14.9,19H9.1L5,14.9V9.1M11,15H13V17H11V15M11,7H13V13H11V7","mdiAlertOutline":"M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16","mdiArrowCollapseDown":"M19.92,12.08L12,20L4.08,12.08L5.5,10.67L11,16.17V2H13V16.17L18.5,10.66L19.92,12.08M12,20H2V22H22V20H12Z","mdiArrowDownBold":"M9,4H15V12H19.84L12,19.84L4.16,12H9V4Z","mdiArrowExpandUp":"M2,20V22H22V20H13V5.83L18.5,11.33L19.92,9.92L12,2L4.08,9.92L5.5,11.33L11,5.83V20H2Z","mdiArrowLeftBold":"M20,9V15H12V19.84L4.16,12L12,4.16V9H20Z","mdiArrowRightBold":"M4,15V9H12V4.16L19.84,12L12,19.84V15H4Z","mdiArrowUpBold":"M15,20H9V12H4.16L12,4.16L19.84,12H15V20Z","mdiChartBellCurve":"M9.96,11.31C10.82,8.1 11.5,6 13,6C14.5,6 15.18,8.1 16.04,11.31C17,14.92 18.1,19 22,19V17C19.8,17 19,14.54 17.97,10.8C17.08,7.46 16.15,4 13,4C9.85,4 8.92,7.46 8.03,10.8C7.03,14.54 6.2,17 4,17V2H2V22H22V20H4V19C7.9,19 9,14.92 9.96,11.31Z","mdiCheckCircle":"M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z","mdiCheckCircleOutline":"M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M12 20C7.59 20 4 16.41 4 12S7.59 4 12 4 20 7.59 20 12 16.41 20 12 20M16.59 7.58L10 14.17L7.41 11.59L6 13L10 17L18 9L16.59 7.58Z","mdiCheckboxBlankOutline":"M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z","mdiCheckboxMarked":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z","mdiChevronDown":"M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z","mdiChevronLeft":"M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z","mdiChevronRight":"M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z","mdiChevronTripleLeft":"M9.42,7.41L4.83,12L9.42,16.59L8,18L2,12L8,6L9.42,7.41M15.42,7.41L10.83,12L15.42,16.59L14,18L8,12L14,6L15.42,7.41M21.42,7.41L16.83,12L21.42,16.59L20,18L14,12L20,6L21.42,7.41Z","mdiChevronTripleRight":"M14.58,16.59L19.17,12L14.58,7.41L16,6L22,12L16,18L14.58,16.59M8.58,16.59L13.17,12L8.58,7.41L10,6L16,12L10,18L8.58,16.59M2.58,16.59L7.17,12L2.58,7.41L4,6L10,12L4,18L2.58,16.59Z","mdiCloseCircleOutline":"M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2M14.59,8L12,10.59L9.41,8L8,9.41L10.59,12L8,14.59L9.41,16L12,13.41L14.59,16L16,14.59L13.41,12L16,9.41L14.59,8Z","mdiCloseThick":"M20 6.91L17.09 4L12 9.09L6.91 4L4 6.91L9.09 12L4 17.09L6.91 20L12 14.91L17.09 20L20 17.09L14.91 12L20 6.91Z","mdiCog":"M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z","mdiConsoleLine":"M13,19V16H21V19H13M8.5,13L2.47,7H6.71L11.67,11.95C12.25,12.54 12.25,13.5 11.67,14.07L6.74,19H2.5L8.5,13Z","mdiContentSave":"M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z","mdiCrosshairsGps":"M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z","mdiDelete":"M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z","mdiDownload":"M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z","mdiFileDocumentMultipleOutline":"M16 0H8C6.9 0 6 .9 6 2V18C6 19.1 6.9 20 8 20H20C21.1 20 22 19.1 22 18V6L16 0M20 18H8V2H15V7H20V18M4 4V22H20V24H4C2.9 24 2 23.1 2 22V4H4M10 10V12H18V10H10M10 14V16H15V14H10Z","mdiFire":"M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13 3.23 12.17 3.75 11.46 4.32C8.87 6.4 7.85 10.07 9.07 13.22C9.11 13.32 9.15 13.42 9.15 13.55C9.15 13.77 9 13.97 8.8 14.05C8.57 14.15 8.33 14.09 8.14 13.93C8.08 13.88 8.04 13.83 8 13.76C6.87 12.33 6.69 10.28 7.45 8.64C5.78 10 4.87 12.3 5 14.47C5.06 14.97 5.12 15.47 5.29 15.97C5.43 16.57 5.7 17.17 6 17.7C7.08 19.43 8.95 20.67 10.96 20.92C13.1 21.19 15.39 20.8 17.03 19.32C18.86 17.66 19.5 15 18.56 12.72L18.43 12.46C18.22 12 17.66 11.2 17.66 11.2M14.5 17.5C14.22 17.74 13.76 18 13.4 18.1C12.28 18.5 11.16 17.94 10.5 17.28C11.69 17 12.4 16.12 12.61 15.23C12.78 14.43 12.46 13.77 12.33 13C12.21 12.26 12.23 11.63 12.5 10.94C12.69 11.32 12.89 11.7 13.13 12C13.9 13 15.11 13.44 15.37 14.8C15.41 14.94 15.43 15.08 15.43 15.23C15.46 16.05 15.1 16.95 14.5 17.5H14.5Z","mdiFlask":"M6,22A3,3 0 0,1 3,19C3,18.4 3.18,17.84 3.5,17.37L9,7.81V6A1,1 0 0,1 8,5V4A2,2 0 0,1 10,2H14A2,2 0 0,1 16,4V5A1,1 0 0,1 15,6V7.81L20.5,17.37C20.82,17.84 21,18.4 21,19A3,3 0 0,1 18,22H6M5,19A1,1 0 0,0 6,20H18A1,1 0 0,0 19,19C19,18.79 18.93,18.59 18.82,18.43L16.53,14.47L14,17L8.93,11.93L5.18,18.43C5.07,18.59 5,18.79 5,19M13,10A1,1 0 0,0 12,11A1,1 0 0,0 13,12A1,1 0 0,0 14,11A1,1 0 0,0 13,10Z","mdiFormatListChecks":"M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z","mdiGrid":"M10,4V8H14V4H10M16,4V8H20V4H16M16,10V14H20V10H16M16,16V20H20V16H16M14,20V16H10V20H14M8,20V16H4V20H8M8,14V10H4V14H8M8,8V4H4V8H8M10,14H14V10H10V14M4,2H20A2,2 0 0,1 22,4V20A2,2 0 0,1 20,22H4C2.92,22 2,21.1 2,20V4A2,2 0 0,1 4,2Z","mdiHistory":"M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3","mdiHome":"M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z","mdiInformationOutline":"M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z","mdiLockOpenVariantOutline":"M10 13C11.1 13 12 13.89 12 15C12 16.11 11.11 17 10 17S8 16.11 8 15 8.9 13 10 13M18 1C15.24 1 13 3.24 13 6V8H4C2.9 8 2 8.9 2 10V20C2 21.1 2.9 22 4 22H16C17.1 22 18 21.1 18 20V10C18 8.9 17.1 8 16 8H15V6C15 4.34 16.34 3 18 3S21 4.34 21 6V8H23V6C23 3.24 20.76 1 18 1M16 10V20H4V10H16Z","mdiLockOutline":"M12,17C10.89,17 10,16.1 10,15C10,13.89 10.89,13 12,13A2,2 0 0,1 14,15A2,2 0 0,1 12,17M18,20V10H6V20H18M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z","mdiMapMarker":"M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z","mdiMenu":"M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z","mdiMinusThick":"M20 14H4V10H20","mdiMonitorDashboard":"M21,16V4H3V16H21M21,2A2,2 0 0,1 23,4V16A2,2 0 0,1 21,18H14V20H16V22H8V20H10V18H3C1.89,18 1,17.1 1,16V4C1,2.89 1.89,2 3,2H21M5,6H14V11H5V6M15,6H19V8H15V6M19,9V14H15V9H19M5,12H9V14H5V12M10,12H14V14H10V12Z","mdiPlay":"M8,5.14V19.14L19,12.14L8,5.14Z","mdiPlus":"M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z","mdiPlusThick":"M20 14H14V20H10V14H4V10H10V4H14V10H20V14Z","mdiPrinter3d":"M19,6A1,1 0 0,0 20,5A1,1 0 0,0 19,4A1,1 0 0,0 18,5A1,1 0 0,0 19,6M19,2A3,3 0 0,1 22,5V11H18V7H6V11H2V5A3,3 0 0,1 5,2H19M18,18.25C18,18.63 17.79,18.96 17.47,19.13L12.57,21.82C12.4,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L6.53,19.13C6.21,18.96 6,18.63 6,18.25V13C6,12.62 6.21,12.29 6.53,12.12L11.43,9.68C11.59,9.56 11.79,9.5 12,9.5C12.21,9.5 12.4,9.56 12.57,9.68L17.47,12.12C17.79,12.29 18,12.62 18,13V18.25M12,11.65L9.04,13L12,14.6L14.96,13L12,11.65M8,17.66L11,19.29V16.33L8,14.71V17.66M16,17.66V14.71L13,16.33V19.29L16,17.66Z","mdiPrinter3dNozzle":"M7,2H17V8H19V13H16.5L13,17H11L7.5,13H5V8H7V2M10,22H2V20H10A1,1 0 0,0 11,19V18H13V19A3,3 0 0,1 10,22Z","mdiPrinter3dNozzleHeat":"M4 2H14V7H16V13H13.5L10 17H8L4.5 13H2V7H4V2M23 14.5L21.6 16.7L23 18.9L21 22L19.2 21.1L20.7 18.9L19.2 16.7L21.2 13.6L23 14.5M18.7 14.5L17.2 16.7L18.7 18.9L16.7 22L14.9 21.1L16.3 18.9L14.9 16.7L16.9 13.6L18.7 14.5","mdiProgressCheck":"M13,2.03V2.05L13,4.05C17.39,4.59 20.5,8.58 19.96,12.97C19.5,16.61 16.64,19.5 13,19.93V21.93C18.5,21.38 22.5,16.5 21.95,11C21.5,6.25 17.73,2.5 13,2.03M11,2.06C9.05,2.25 7.19,3 5.67,4.26L7.1,5.74C8.22,4.84 9.57,4.26 11,4.06V2.06M4.26,5.67C3,7.19 2.25,9.04 2.05,11H4.05C4.24,9.58 4.8,8.23 5.69,7.1L4.26,5.67M15.5,8.5L10.62,13.38L8.5,11.26L7.44,12.32L10.62,15.5L16.56,9.56L15.5,8.5M2.06,13C2.26,14.96 3.03,16.81 4.27,18.33L5.69,16.9C4.81,15.77 4.24,14.42 4.06,13H2.06M7.1,18.37L5.67,19.74C7.18,21 9.04,21.79 11,22V20C9.58,19.82 8.23,19.25 7.1,18.37Z","mdiRadioboxBlank":"M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z","mdiRadioboxMarked":"M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7Z","mdiReload":"M2 12C2 16.97 6.03 21 11 21C13.39 21 15.68 20.06 17.4 18.4L15.9 16.9C14.63 18.25 12.86 19 11 19C4.76 19 1.64 11.46 6.05 7.05C10.46 2.64 18 5.77 18 12H15L19 16H19.1L23 12H20C20 7.03 15.97 3 11 3C6.03 3 2 7.03 2 12Z","mdiRestart":"M12,4C14.1,4 16.1,4.8 17.6,6.3C20.7,9.4 20.7,14.5 17.6,17.6C15.8,19.5 13.3,20.2 10.9,19.9L11.4,17.9C13.1,18.1 14.9,17.5 16.2,16.2C18.5,13.9 18.5,10.1 16.2,7.7C15.1,6.6 13.5,6 12,6V10.6L7,5.6L12,0.6V4M6.3,17.6C3.7,15 3.3,11 5.1,7.9L6.6,9.4C5.5,11.6 5.9,14.4 7.8,16.2C8.3,16.7 8.9,17.1 9.6,17.4L9,19.4C8,19 7.1,18.4 6.3,17.6Z","mdiRotateRight":"M16.89,15.5L18.31,16.89C19.21,15.73 19.76,14.39 19.93,13H17.91C17.77,13.87 17.43,14.72 16.89,15.5M13,17.9V19.92C14.39,19.75 15.74,19.21 16.9,18.31L15.46,16.87C14.71,17.41 13.87,17.76 13,17.9M19.93,11C19.76,9.61 19.21,8.27 18.31,7.11L16.89,8.53C17.43,9.28 17.77,10.13 17.91,11M15.55,5.55L11,1V4.07C7.06,4.56 4,7.92 4,12C4,16.08 7.05,19.44 11,19.93V17.91C8.16,17.43 6,14.97 6,12C6,9.03 8.16,6.57 11,6.09V10L15.55,5.55Z","mdiRuler":"M1.39,18.36L3.16,16.6L4.58,18L5.64,16.95L4.22,15.54L5.64,14.12L8.11,16.6L9.17,15.54L6.7,13.06L8.11,11.65L9.53,13.06L10.59,12L9.17,10.59L10.59,9.17L13.06,11.65L14.12,10.59L11.65,8.11L13.06,6.7L14.47,8.11L15.54,7.05L14.12,5.64L15.54,4.22L18,6.7L19.07,5.64L16.6,3.16L18.36,1.39L22.61,5.64L5.64,22.61L1.39,18.36Z","mdiScrewdriver":"M18,1.83C17.5,1.83 17,2 16.59,2.41C13.72,5.28 8,11 8,11L9.5,12.5L6,16H4L2,20L4,22L8,20V18L11.5,14.5L13,16C13,16 18.72,10.28 21.59,7.41C22.21,6.5 22.37,5.37 21.59,4.59L19.41,2.41C19,2 18.5,1.83 18,1.83M18,4L20,6L13,13L11,11L18,4Z","mdiSend":"M2,21L23,12L2,3V10L17,12L2,14V21Z","mdiSnowflake":"M20.79,13.95L18.46,14.57L16.46,13.44V10.56L18.46,9.43L20.79,10.05L21.31,8.12L19.54,7.65L20,5.88L18.07,5.36L17.45,7.69L15.45,8.82L13,7.38V5.12L14.71,3.41L13.29,2L12,3.29L10.71,2L9.29,3.41L11,5.12V7.38L8.5,8.82L6.5,7.69L5.92,5.36L4,5.88L4.47,7.65L2.7,8.12L3.22,10.05L5.55,9.43L7.55,10.56V13.45L5.55,14.58L3.22,13.96L2.7,15.89L4.47,16.36L4,18.12L5.93,18.64L6.55,16.31L8.55,15.18L11,16.62V18.88L9.29,20.59L10.71,22L12,20.71L13.29,22L14.7,20.59L13,18.88V16.62L15.5,15.17L17.5,16.3L18.12,18.63L20,18.12L19.53,16.35L21.3,15.88L20.79,13.95M9.5,10.56L12,9.11L14.5,10.56V13.44L12,14.89L9.5,13.44V10.56Z","mdiStopCircleOutline":"M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4M9,9V15H15V9","mdiSwapHorizontal":"M21,9L17,5V8H10V10H17V13M7,11L3,15L7,19V16H14V14H7V11Z","mdiTimelapse":"M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.24,7.76C15.07,6.58 13.53,6 12,6V12L7.76,16.24C10.1,18.58 13.9,18.58 16.24,16.24C18.59,13.9 18.59,10.1 16.24,7.76Z","mdiToggleSwitch":"M17,7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7M17,15A3,3 0 0,1 14,12A3,3 0 0,1 17,9A3,3 0 0,1 20,12A3,3 0 0,1 17,15Z","mdiTranslate":"M12.87,15.07L10.33,12.56L10.36,12.53C12.1,10.59 13.34,8.36 14.07,6H17V4H10V2H8V4H1V6H12.17C11.5,7.92 10.44,9.75 9,11.35C8.07,10.32 7.3,9.19 6.69,8H4.69C5.42,9.63 6.42,11.17 7.67,12.56L2.58,17.58L4,19L9,14L12.11,17.11L12.87,15.07M18.5,10H16.5L12,22H14L15.12,19H19.87L21,22H23L18.5,10M15.88,17L17.5,12.67L19.12,17H15.88Z","mdiTune":"M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z","mdiUpdate":"M21,10.12H14.22L16.96,7.3C14.23,4.6 9.81,4.5 7.08,7.2C4.35,9.91 4.35,14.28 7.08,17C9.81,19.7 14.23,19.7 16.96,17C18.32,15.65 19,14.08 19,12.1H21C21,14.08 20.12,16.65 18.36,18.39C14.85,21.87 9.15,21.87 5.64,18.39C2.14,14.92 2.11,9.28 5.62,5.81C9.13,2.34 14.76,2.34 18.27,5.81L21,3V10.12M12.5,8V12.25L16,14.33L15.28,15.54L11,13V8H12.5Z","mdiVectorPolyline":"M2 3V9H4.95L6.95 15H6V21H12V16.41L17.41 11H22V5H16V9.57L10.59 15H9.06L7.06 9H8V3M4 5H6V7H4M18 7H20V9H18M8 17H10V19H8Z","mdiVideo3d":"M5,7H9A2,2 0 0,1 11,9V15A2,2 0 0,1 9,17H5V15H9V13H6V11H9V9H5V7M13,7H16A3,3 0 0,1 19,10V14A3,3 0 0,1 16,17H13V7M16,15A1,1 0 0,0 17,14V10A1,1 0 0,0 16,9H15V15H16Z","mdiWebcam":"M12,2A7,7 0 0,1 19,9A7,7 0 0,1 12,16A7,7 0 0,1 5,9A7,7 0 0,1 12,2M12,4A5,5 0 0,0 7,9A5,5 0 0,0 12,14A5,5 0 0,0 17,9A5,5 0 0,0 12,4M12,6A3,3 0 0,1 15,9A3,3 0 0,1 12,12A3,3 0 0,1 9,9A3,3 0 0,1 12,6M6,22A2,2 0 0,1 4,20C4,19.62 4.1,19.27 4.29,18.97L6.11,15.81C7.69,17.17 9.75,18 12,18C14.25,18 16.31,17.17 17.89,15.81L19.71,18.97C19.9,19.27 20,19.62 20,20A2,2 0 0,1 18,22H6Z","mdiWrench":"M22.7,19L13.6,9.9C14.5,7.6 14,4.9 12.1,3C10.1,1 7.1,0.6 4.7,1.7L9,6L6,9L1.6,4.7C0.4,7.1 0.9,10.1 2.9,12.1C4.8,14 7.5,14.5 9.8,13.6L18.9,22.7C19.3,23.1 19.9,23.1 20.3,22.7L22.6,20.4C23.1,20 23.1,19.3 22.7,19Z"};
+const ICON = {"mdiAlertCircleOutline":"M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z","mdiAlertOctagonOutline":"M8.27,3L3,8.27V15.73L8.27,21H15.73C17.5,19.24 21,15.73 21,15.73V8.27L15.73,3M9.1,5H14.9L19,9.1V14.9L14.9,19H9.1L5,14.9V9.1M11,15H13V17H11V15M11,7H13V13H11V7","mdiAlertOutline":"M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16","mdiArrowCollapseDown":"M19.92,12.08L12,20L4.08,12.08L5.5,10.67L11,16.17V2H13V16.17L18.5,10.66L19.92,12.08M12,20H2V22H22V20H12Z","mdiArrowDownBold":"M9,4H15V12H19.84L12,19.84L4.16,12H9V4Z","mdiArrowExpandUp":"M2,20V22H22V20H13V5.83L18.5,11.33L19.92,9.92L12,2L4.08,9.92L5.5,11.33L11,5.83V20H2Z","mdiArrowLeftBold":"M20,9V15H12V19.84L4.16,12L12,4.16V9H20Z","mdiArrowRightBold":"M4,15V9H12V4.16L19.84,12L12,19.84V15H4Z","mdiArrowUpBold":"M15,20H9V12H4.16L12,4.16L19.84,12H15V20Z","mdiChartBellCurve":"M9.96,11.31C10.82,8.1 11.5,6 13,6C14.5,6 15.18,8.1 16.04,11.31C17,14.92 18.1,19 22,19V17C19.8,17 19,14.54 17.97,10.8C17.08,7.46 16.15,4 13,4C9.85,4 8.92,7.46 8.03,10.8C7.03,14.54 6.2,17 4,17V2H2V22H22V20H4V19C7.9,19 9,14.92 9.96,11.31Z","mdiCheckCircle":"M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z","mdiCheckCircleOutline":"M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M12 20C7.59 20 4 16.41 4 12S7.59 4 12 4 20 7.59 20 12 16.41 20 12 20M16.59 7.58L10 14.17L7.41 11.59L6 13L10 17L18 9L16.59 7.58Z","mdiCheckboxBlankOutline":"M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z","mdiCheckboxMarked":"M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z","mdiChevronDown":"M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z","mdiChevronLeft":"M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z","mdiChevronRight":"M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z","mdiChevronTripleLeft":"M9.42,7.41L4.83,12L9.42,16.59L8,18L2,12L8,6L9.42,7.41M15.42,7.41L10.83,12L15.42,16.59L14,18L8,12L14,6L15.42,7.41M21.42,7.41L16.83,12L21.42,16.59L20,18L14,12L20,6L21.42,7.41Z","mdiChevronTripleRight":"M14.58,16.59L19.17,12L14.58,7.41L16,6L22,12L16,18L14.58,16.59M8.58,16.59L13.17,12L8.58,7.41L10,6L16,12L10,18L8.58,16.59M2.58,16.59L7.17,12L2.58,7.41L4,6L10,12L4,18L2.58,16.59Z","mdiCloseCircleOutline":"M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2M14.59,8L12,10.59L9.41,8L8,9.41L10.59,12L8,14.59L9.41,16L12,13.41L14.59,16L16,14.59L13.41,12L16,9.41L14.59,8Z","mdiCloseThick":"M20 6.91L17.09 4L12 9.09L6.91 4L4 6.91L9.09 12L4 17.09L6.91 20L12 14.91L17.09 20L20 17.09L14.91 12L20 6.91Z","mdiCog":"M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z","mdiConsoleLine":"M13,19V16H21V19H13M8.5,13L2.47,7H6.71L11.67,11.95C12.25,12.54 12.25,13.5 11.67,14.07L6.74,19H2.5L8.5,13Z","mdiContentSave":"M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z","mdiCrosshairsGps":"M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z","mdiDelete":"M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z","mdiDownload":"M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z","mdiFileDocumentMultipleOutline":"M16 0H8C6.9 0 6 .9 6 2V18C6 19.1 6.9 20 8 20H20C21.1 20 22 19.1 22 18V6L16 0M20 18H8V2H15V7H20V18M4 4V22H20V24H4C2.9 24 2 23.1 2 22V4H4M10 10V12H18V10H10M10 14V16H15V14H10Z","mdiFire":"M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13 3.23 12.17 3.75 11.46 4.32C8.87 6.4 7.85 10.07 9.07 13.22C9.11 13.32 9.15 13.42 9.15 13.55C9.15 13.77 9 13.97 8.8 14.05C8.57 14.15 8.33 14.09 8.14 13.93C8.08 13.88 8.04 13.83 8 13.76C6.87 12.33 6.69 10.28 7.45 8.64C5.78 10 4.87 12.3 5 14.47C5.06 14.97 5.12 15.47 5.29 15.97C5.43 16.57 5.7 17.17 6 17.7C7.08 19.43 8.95 20.67 10.96 20.92C13.1 21.19 15.39 20.8 17.03 19.32C18.86 17.66 19.5 15 18.56 12.72L18.43 12.46C18.22 12 17.66 11.2 17.66 11.2M14.5 17.5C14.22 17.74 13.76 18 13.4 18.1C12.28 18.5 11.16 17.94 10.5 17.28C11.69 17 12.4 16.12 12.61 15.23C12.78 14.43 12.46 13.77 12.33 13C12.21 12.26 12.23 11.63 12.5 10.94C12.69 11.32 12.89 11.7 13.13 12C13.9 13 15.11 13.44 15.37 14.8C15.41 14.94 15.43 15.08 15.43 15.23C15.46 16.05 15.1 16.95 14.5 17.5H14.5Z","mdiFlask":"M6,22A3,3 0 0,1 3,19C3,18.4 3.18,17.84 3.5,17.37L9,7.81V6A1,1 0 0,1 8,5V4A2,2 0 0,1 10,2H14A2,2 0 0,1 16,4V5A1,1 0 0,1 15,6V7.81L20.5,17.37C20.82,17.84 21,18.4 21,19A3,3 0 0,1 18,22H6M5,19A1,1 0 0,0 6,20H18A1,1 0 0,0 19,19C19,18.79 18.93,18.59 18.82,18.43L16.53,14.47L14,17L8.93,11.93L5.18,18.43C5.07,18.59 5,18.79 5,19M13,10A1,1 0 0,0 12,11A1,1 0 0,0 13,12A1,1 0 0,0 14,11A1,1 0 0,0 13,10Z","mdiFormatListChecks":"M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z","mdiGrid":"M10,4V8H14V4H10M16,4V8H20V4H16M16,10V14H20V10H16M16,16V20H20V16H16M14,20V16H10V20H14M8,20V16H4V20H8M8,14V10H4V14H8M8,8V4H4V8H8M10,14H14V10H10V14M4,2H20A2,2 0 0,1 22,4V20A2,2 0 0,1 20,22H4C2.92,22 2,21.1 2,20V4A2,2 0 0,1 4,2Z","mdiHistory":"M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3","mdiHome":"M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z","mdiInformationOutline":"M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z","mdiLockOpenVariantOutline":"M10 13C11.1 13 12 13.89 12 15C12 16.11 11.11 17 10 17S8 16.11 8 15 8.9 13 10 13M18 1C15.24 1 13 3.24 13 6V8H4C2.9 8 2 8.9 2 10V20C2 21.1 2.9 22 4 22H16C17.1 22 18 21.1 18 20V10C18 8.9 17.1 8 16 8H15V6C15 4.34 16.34 3 18 3S21 4.34 21 6V8H23V6C23 3.24 20.76 1 18 1M16 10V20H4V10H16Z","mdiLockOutline":"M12,17C10.89,17 10,16.1 10,15C10,13.89 10.89,13 12,13A2,2 0 0,1 14,15A2,2 0 0,1 12,17M18,20V10H6V20H18M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z","mdiMapMarker":"M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z","mdiMenu":"M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z","mdiMinusThick":"M20 14H4V10H20","mdiMonitorDashboard":"M21,16V4H3V16H21M21,2A2,2 0 0,1 23,4V16A2,2 0 0,1 21,18H14V20H16V22H8V20H10V18H3C1.89,18 1,17.1 1,16V4C1,2.89 1.89,2 3,2H21M5,6H14V11H5V6M15,6H19V8H15V6M19,9V14H15V9H19M5,12H9V14H5V12M10,12H14V14H10V12Z","mdiParking":"M13.2,11H10V7H13.2A2,2 0 0,1 15.2,9A2,2 0 0,1 13.2,11M13,3H6V21H10V15H13A6,6 0 0,0 19,9C19,5.68 16.31,3 13,3Z","mdiPlay":"M8,5.14V19.14L19,12.14L8,5.14Z","mdiPlus":"M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z","mdiPlusThick":"M20 14H14V20H10V14H4V10H10V4H14V10H20V14Z","mdiPrinter3d":"M19,6A1,1 0 0,0 20,5A1,1 0 0,0 19,4A1,1 0 0,0 18,5A1,1 0 0,0 19,6M19,2A3,3 0 0,1 22,5V11H18V7H6V11H2V5A3,3 0 0,1 5,2H19M18,18.25C18,18.63 17.79,18.96 17.47,19.13L12.57,21.82C12.4,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L6.53,19.13C6.21,18.96 6,18.63 6,18.25V13C6,12.62 6.21,12.29 6.53,12.12L11.43,9.68C11.59,9.56 11.79,9.5 12,9.5C12.21,9.5 12.4,9.56 12.57,9.68L17.47,12.12C17.79,12.29 18,12.62 18,13V18.25M12,11.65L9.04,13L12,14.6L14.96,13L12,11.65M8,17.66L11,19.29V16.33L8,14.71V17.66M16,17.66V14.71L13,16.33V19.29L16,17.66Z","mdiPrinter3dNozzle":"M7,2H17V8H19V13H16.5L13,17H11L7.5,13H5V8H7V2M10,22H2V20H10A1,1 0 0,0 11,19V18H13V19A3,3 0 0,1 10,22Z","mdiPrinter3dNozzleHeat":"M4 2H14V7H16V13H13.5L10 17H8L4.5 13H2V7H4V2M23 14.5L21.6 16.7L23 18.9L21 22L19.2 21.1L20.7 18.9L19.2 16.7L21.2 13.6L23 14.5M18.7 14.5L17.2 16.7L18.7 18.9L16.7 22L14.9 21.1L16.3 18.9L14.9 16.7L16.9 13.6L18.7 14.5","mdiProgressCheck":"M13,2.03V2.05L13,4.05C17.39,4.59 20.5,8.58 19.96,12.97C19.5,16.61 16.64,19.5 13,19.93V21.93C18.5,21.38 22.5,16.5 21.95,11C21.5,6.25 17.73,2.5 13,2.03M11,2.06C9.05,2.25 7.19,3 5.67,4.26L7.1,5.74C8.22,4.84 9.57,4.26 11,4.06V2.06M4.26,5.67C3,7.19 2.25,9.04 2.05,11H4.05C4.24,9.58 4.8,8.23 5.69,7.1L4.26,5.67M15.5,8.5L10.62,13.38L8.5,11.26L7.44,12.32L10.62,15.5L16.56,9.56L15.5,8.5M2.06,13C2.26,14.96 3.03,16.81 4.27,18.33L5.69,16.9C4.81,15.77 4.24,14.42 4.06,13H2.06M7.1,18.37L5.67,19.74C7.18,21 9.04,21.79 11,22V20C9.58,19.82 8.23,19.25 7.1,18.37Z","mdiRadioboxBlank":"M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z","mdiRadioboxMarked":"M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7Z","mdiReload":"M2 12C2 16.97 6.03 21 11 21C13.39 21 15.68 20.06 17.4 18.4L15.9 16.9C14.63 18.25 12.86 19 11 19C4.76 19 1.64 11.46 6.05 7.05C10.46 2.64 18 5.77 18 12H15L19 16H19.1L23 12H20C20 7.03 15.97 3 11 3C6.03 3 2 7.03 2 12Z","mdiRestart":"M12,4C14.1,4 16.1,4.8 17.6,6.3C20.7,9.4 20.7,14.5 17.6,17.6C15.8,19.5 13.3,20.2 10.9,19.9L11.4,17.9C13.1,18.1 14.9,17.5 16.2,16.2C18.5,13.9 18.5,10.1 16.2,7.7C15.1,6.6 13.5,6 12,6V10.6L7,5.6L12,0.6V4M6.3,17.6C3.7,15 3.3,11 5.1,7.9L6.6,9.4C5.5,11.6 5.9,14.4 7.8,16.2C8.3,16.7 8.9,17.1 9.6,17.4L9,19.4C8,19 7.1,18.4 6.3,17.6Z","mdiRotateRight":"M16.89,15.5L18.31,16.89C19.21,15.73 19.76,14.39 19.93,13H17.91C17.77,13.87 17.43,14.72 16.89,15.5M13,17.9V19.92C14.39,19.75 15.74,19.21 16.9,18.31L15.46,16.87C14.71,17.41 13.87,17.76 13,17.9M19.93,11C19.76,9.61 19.21,8.27 18.31,7.11L16.89,8.53C17.43,9.28 17.77,10.13 17.91,11M15.55,5.55L11,1V4.07C7.06,4.56 4,7.92 4,12C4,16.08 7.05,19.44 11,19.93V17.91C8.16,17.43 6,14.97 6,12C6,9.03 8.16,6.57 11,6.09V10L15.55,5.55Z","mdiRuler":"M1.39,18.36L3.16,16.6L4.58,18L5.64,16.95L4.22,15.54L5.64,14.12L8.11,16.6L9.17,15.54L6.7,13.06L8.11,11.65L9.53,13.06L10.59,12L9.17,10.59L10.59,9.17L13.06,11.65L14.12,10.59L11.65,8.11L13.06,6.7L14.47,8.11L15.54,7.05L14.12,5.64L15.54,4.22L18,6.7L19.07,5.64L16.6,3.16L18.36,1.39L22.61,5.64L5.64,22.61L1.39,18.36Z","mdiScrewdriver":"M18,1.83C17.5,1.83 17,2 16.59,2.41C13.72,5.28 8,11 8,11L9.5,12.5L6,16H4L2,20L4,22L8,20V18L11.5,14.5L13,16C13,16 18.72,10.28 21.59,7.41C22.21,6.5 22.37,5.37 21.59,4.59L19.41,2.41C19,2 18.5,1.83 18,1.83M18,4L20,6L13,13L11,11L18,4Z","mdiSend":"M2,21L23,12L2,3V10L17,12L2,14V21Z","mdiSnowflake":"M20.79,13.95L18.46,14.57L16.46,13.44V10.56L18.46,9.43L20.79,10.05L21.31,8.12L19.54,7.65L20,5.88L18.07,5.36L17.45,7.69L15.45,8.82L13,7.38V5.12L14.71,3.41L13.29,2L12,3.29L10.71,2L9.29,3.41L11,5.12V7.38L8.5,8.82L6.5,7.69L5.92,5.36L4,5.88L4.47,7.65L2.7,8.12L3.22,10.05L5.55,9.43L7.55,10.56V13.45L5.55,14.58L3.22,13.96L2.7,15.89L4.47,16.36L4,18.12L5.93,18.64L6.55,16.31L8.55,15.18L11,16.62V18.88L9.29,20.59L10.71,22L12,20.71L13.29,22L14.7,20.59L13,18.88V16.62L15.5,15.17L17.5,16.3L18.12,18.63L20,18.12L19.53,16.35L21.3,15.88L20.79,13.95M9.5,10.56L12,9.11L14.5,10.56V13.44L12,14.89L9.5,13.44V10.56Z","mdiStopCircleOutline":"M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4M9,9V15H15V9","mdiSwapHorizontal":"M21,9L17,5V8H10V10H17V13M7,11L3,15L7,19V16H14V14H7V11Z","mdiTimelapse":"M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.24,7.76C15.07,6.58 13.53,6 12,6V12L7.76,16.24C10.1,18.58 13.9,18.58 16.24,16.24C18.59,13.9 18.59,10.1 16.24,7.76Z","mdiToggleSwitch":"M17,7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7M17,15A3,3 0 0,1 14,12A3,3 0 0,1 17,9A3,3 0 0,1 20,12A3,3 0 0,1 17,15Z","mdiTranslate":"M12.87,15.07L10.33,12.56L10.36,12.53C12.1,10.59 13.34,8.36 14.07,6H17V4H10V2H8V4H1V6H12.17C11.5,7.92 10.44,9.75 9,11.35C8.07,10.32 7.3,9.19 6.69,8H4.69C5.42,9.63 6.42,11.17 7.67,12.56L2.58,17.58L4,19L9,14L12.11,17.11L12.87,15.07M18.5,10H16.5L12,22H14L15.12,19H19.87L21,22H23L18.5,10M15.88,17L17.5,12.67L19.12,17H15.88Z","mdiTune":"M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z","mdiUpdate":"M21,10.12H14.22L16.96,7.3C14.23,4.6 9.81,4.5 7.08,7.2C4.35,9.91 4.35,14.28 7.08,17C9.81,19.7 14.23,19.7 16.96,17C18.32,15.65 19,14.08 19,12.1H21C21,14.08 20.12,16.65 18.36,18.39C14.85,21.87 9.15,21.87 5.64,18.39C2.14,14.92 2.11,9.28 5.62,5.81C9.13,2.34 14.76,2.34 18.27,5.81L21,3V10.12M12.5,8V12.25L16,14.33L15.28,15.54L11,13V8H12.5Z","mdiVectorPolyline":"M2 3V9H4.95L6.95 15H6V21H12V16.41L17.41 11H22V5H16V9.57L10.59 15H9.06L7.06 9H8V3M4 5H6V7H4M18 7H20V9H18M8 17H10V19H8Z","mdiVideo3d":"M5,7H9A2,2 0 0,1 11,9V15A2,2 0 0,1 9,17H5V15H9V13H6V11H9V9H5V7M13,7H16A3,3 0 0,1 19,10V14A3,3 0 0,1 16,17H13V7M16,15A1,1 0 0,0 17,14V10A1,1 0 0,0 16,9H15V15H16Z","mdiWebcam":"M12,2A7,7 0 0,1 19,9A7,7 0 0,1 12,16A7,7 0 0,1 5,9A7,7 0 0,1 12,2M12,4A5,5 0 0,0 7,9A5,5 0 0,0 12,14A5,5 0 0,0 17,9A5,5 0 0,0 12,4M12,6A3,3 0 0,1 15,9A3,3 0 0,1 12,12A3,3 0 0,1 9,9A3,3 0 0,1 12,6M6,22A2,2 0 0,1 4,20C4,19.62 4.1,19.27 4.29,18.97L6.11,15.81C7.69,17.17 9.75,18 12,18C14.25,18 16.31,17.17 17.89,15.81L19.71,18.97C19.9,19.27 20,19.62 20,20A2,2 0 0,1 18,22H6Z","mdiWrench":"M22.7,19L13.6,9.9C14.5,7.6 14,4.9 12.1,3C10.1,1 7.1,0.6 4.7,1.7L9,6L6,9L1.6,4.7C0.4,7.1 0.9,10.1 2.9,12.1C4.8,14 7.5,14.5 9.8,13.6L18.9,22.7C19.3,23.1 19.9,23.1 20.3,22.7L22.6,20.4C23.1,20 23.1,19.3 22.7,19Z"};
 const VERSION_KEY = "voron0-autoloader";   // name of the update_manager entry
 const SETTINGS = "filament_loader_settings.cfg";
 const OFF = "#off# ";                            // prefix of deactivated config lines (Sensor 2)
@@ -544,7 +607,7 @@ const T_EN = {
   "Filament hängt an Sensor 2 – vor den Extruder-Zahnrädern (nicht gegriffen)": "Filament stuck at sensor 2 – in front of the extruder gears (not gripped)",
   "Filament an Sensor 2 – ob die Extruder-Zahnräder greifen, ist unbekannt": "Filament at sensor 2 – unknown whether the extruder gears grip it",
   // Tip forming, hooks, measuring
-  "Tip & Druck": "Tip & print", "Spitze formen beim Entladen": "Form a tip when unloading", "Kühlzone": "Cooling zone",
+  "Tip & Druck": "Tip & print", "Spitze formen beim Parken und Entladen": "Form a tip when parking and unloading", "Kühlzone": "Cooling zone",
   "Kühlweg": "Cooling stroke", "Kühlbewegungen": "Cooling moves", "Kühlen Start": "Cooling start", "Kühlen Ende": "Cooling end",
   "Abreißen": "Break-off", "Zurückziehen": "Retract", "Rammen": "Ramming", "Kühltemperatur": "Cooling temp.", "Auswerfen": "Eject",
   "Ablauf: rammen (optional) → 15 mm schnell abreißen → langsamer bis in die Kühlzone → Kühlbewegungen mit steigendem Tempo → restliches Zurückziehen bis unload_ext_len. Startwerte nach Happy Hare; für den Dragon HF mit „Spitze formen“ testen und die Spitze ansehen: Faden → mehr Kühlbewegungen oder Kühlzone höher, Knubbel → Kühlzone tiefer oder Kühltemperatur senken. Kühlzone = Abstand Düse → Mitte der Kühlzone. Kühltemperatur 0 = Temperatur nicht ändern.":
@@ -610,6 +673,29 @@ const T_EN = {
   "Diese Schalter werden sofort gespeichert, ohne Neustart. Die Düse bleibt während eines Drucks oder einer Pause an.":
     "These switches are saved right away, without a restart. The nozzle stays on during a print or a pause.",
   "Gespeichert.": "Saved.", "Gespeichert – wirkt nach dem nächsten Klipper-Neustart.": "Saved – takes effect after the next Klipper restart.",
+  // Modes, control, position
+  "Bedienen": "Operate", "Einrichten & Kalibrieren": "Setup & calibration", "Steuerung": "Control",
+  "Laden, Entladen, Parken – alles für den Alltag.": "Load, unload, park – everything for daily use.",
+  "Kalibrieren, Messen, Testen und Einstellungen. Hier kann sich der Loader bewegen – erst lesen, dann drücken.": "Calibration, measuring, tests and settings. The loader can move here – read first, then press.",
+  "Filament": "Filament", "Ausspülen": "Purge", "Parken": "Park", "nichts": "nothing", "parken": "park", "entladen": "unload", "Nach dem Druck": "After the print",
+  "Laden kalt: bis in die Extruder-Zahnräder. Laden heiß: bis zur Düse und ausspülen. Parken: Spitze formen und knapp hinter Sensor 2 im Schlauch abstellen. Entladen: ganz zurück in den Loader.":
+    "Load cold: into the extruder gears. Load hot: to the nozzle and purge. Park: form the tip and leave it just behind sensor 2 in the tube. Unload: all the way back into the loader.",
+  "Hotend auf {n} °C aufheizen, Spitze formen und das Filament knapp hinter Sensor 2 im Schlauch parken?": "Heat the hotend to {n} °C, form the tip and park the filament just behind sensor 2 in the tube?",
+  "nicht eingelegt": "not inserted", "im Loader": "in the loader", "im Schlauch (geparkt)": "in the tube (parked)", "an Sensor 2": "at sensor 2",
+  "in den Extruder-Zahnrädern": "in the extruder gears", "bis zur Düse geladen": "loaded to the nozzle", "unbekannt": "unknown",
+  "{n} mm ab Loader": "{n} mm from the loader", "ungenau": "approximate", "Position speichern": "Store position", "Modus": "Mode",
+  "aktiv – überlebt Neustart und Ausschalten": "active – survives restart and power-off", "fehlt – ./install.sh ergänzt [save_variables]": "missing – ./install.sh adds [save_variables]",
+  "Filament-Position: {m}": "Filament position: {m}", "Verstanden": "OK",
+  "Stopp (lösen + Motor aus)": "Stop (release + motor off)", "Bench-Modus – Auto-Laden fährt nur die Teststrecke": "Bench mode – auto load only runs the test distance",
+  "Spitze testen": "Test the tip", "Formt nur die Spitze, das Filament bleibt im Extruder. Danach entladen oder von Hand ziehen und die Spitze ansehen.":
+    "Only forms the tip, the filament stays in the extruder. Then unload or pull it out by hand and look at the tip.",
+  "Position korrigieren": "Correct the position", "Filament ist": "Filament is", "Setzen": "Set", "Mit Sensoren abgleichen": "Check against sensors",
+  "Nur nötig, wenn das Filament von Hand bewegt wurde und die gespeicherte Position nicht mehr stimmt. Bestimmt, wie weit der Loader beim nächsten Laden mit voller Fahrt schieben darf.":
+    "Only needed if the filament was moved by hand and the stored position is wrong. It decides how far the loader may push at full speed on the next load.",
+  "Gespeicherte Filament-Position auf „{p}“ setzen? Es bewegt sich nichts.": "Set the stored filament position to “{p}”? Nothing moves.",
+  "Filament im Schlauch geparkt": "Filament parked in the tube", "Filament im Loader": "Filament in the loader", "(Stelle im Schlauch unbekannt)": "(position in the tube unknown)",
+  "Wird in den Schlauch zurückgezogen …": "Pulling back into the tube …", "Längen messen": "Measure lengths",
+  "muss kleiner als „Sensorsuche ab“ + Reserve − 5 mm sein": "must be smaller than “Search starts” + reserve − 5 mm",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -920,7 +1006,7 @@ async function buildNav(avail) {
 // Connection to Moonraker
 // =====================================================================
 const S = {};
-let CFG = {}, ws = null, rid = 0, busy = 0, klippy = "disconnected", components = [], installed = true, hasTool = false;
+let CFG = {}, ws = null, rid = 0, busy = 0, klippy = "disconnected", components = [], installed = true, hasTool = false, hasSV = true;
 const pending = new Map();
 
 function connect() {
@@ -1003,9 +1089,10 @@ async function subscribe() {
   CFG = (await rpc("printer.objects.query", { objects: { configfile: ["settings"] } })).status.configfile.settings || {};
   installed = avail.includes("gcode_macro _LOADER_STATE");
   hasTool = avail.includes("filament_switch_sensor toolhead_in");
+  hasSV = avail.includes("save_variables");
   await buildNav(avail);
   await loadSettings();
-  if (!tempInit && lv().default_temp != null) { $("temp").value = lv().default_temp; tempInit = true; }
+  if (!tempInit && lv().default_temp != null) { setTemp(lv().default_temp); $("purge").value = lv().purge_len ?? 30; tempInit = true; }
   render();
   if (!HIST.loaded) histLoad();
 }
@@ -1090,6 +1177,33 @@ const opStale = () => BUSY_STATES.includes(ls().state) && !opRunning();
 const lv = () => S["gcode_macro _LOADER_VARS"] || {};
 const chip = (txt, cls = "") => `<span class="chip ${cls}">${esc(txt)}</span>`;
 
+const POS_TXT = { none: "nicht eingelegt", loader: "im Loader", tube: "im Schlauch (geparkt)", sensor2: "an Sensor 2",
+  gears: "in den Extruder-Zahnrädern", nozzle: "bis zur Düse geladen", unknown: "unbekannt" };
+function posHTML() {
+  const st = ls(), p = st.pos || "unknown";
+  const cls = { none: "muted", loader: "", tube: "info--text", sensor2: "warning--text", gears: "success--text", nozzle: "success--text", unknown: "warning--text" }[p] || "";
+  let h = chip(t(POS_TXT[p] || p), cls);
+  if (["loader", "tube"].includes(p) && st.tip != null) h += chip(t("{n} mm ab Loader", { n: Math.round(Number(st.tip)) }) + (+st.tip_known ? "" : " · " + t("ungenau")), +st.tip_known ? "muted" : "warning--text");
+  return h;
+}
+/* position saved by Klipper vs. what the sensors say right now (filament moved by hand) */
+const SYNC = { since: 0, last: 0 };
+function posMismatch() {
+  const st = ls(), p = st.pos, s1 = !!(S["filament_switch_sensor loader_in"] || {}).filament_detected;
+  const s2o = S["filament_switch_sensor toolhead_in"], s2 = !!(s2o && s2o.filament_detected), beyond = ["sensor2", "gears", "nozzle"].includes(p);
+  if (!p || printing() || opRunning() || busy > 0) return false;
+  if (s2o && s2 && !beyond) return true;
+  if (s2o && !s2 && beyond) return true;
+  if (!s1 && !s2 && ["loader", "tube", "unknown"].includes(p)) return true;
+  return s1 && p === "none" && Number(curVar("auto_enable")) !== 1;
+}
+function autoSync(ready) {
+  if (!ready || !installed || !posMismatch()) { SYNC.since = 0; return; }
+  const now = Date.now();
+  if (!SYNC.since) SYNC.since = now;
+  if (now - SYNC.since > 2500 && now - SYNC.last > 10000) { SYNC.last = now; SYNC.since = 0; rpc("printer.gcode.script", { script: "_LOADER_SYNC" }).catch(() => {}); }
+}
+
 function sensorHTML(name) {
   const s = S["filament_switch_sensor " + name];
   if (!s) return chip(t("nicht konfiguriert"), "warning--text");
@@ -1125,6 +1239,8 @@ function draw() {
       btnHTML({ text: t("Jetzt aktualisieren"), color: "primary", id: "upd-run", cls: pr ? "v-btn--disabled" : "" }) + btnHTML({ text: t("Update-Manager"), variant: "text", color: "primary", id: "upd-open" })));
   }
   if (ED && ED.schema < SCHEMA) al.push(alertHTML("info", "mdiInformationOutline", esc(t("Neue Einstellungsfelder verfügbar. Unter Einstellungen einmal speichern, um sie zu ergänzen."))));
+  if (ready && installed && st.sync_msg) al.push(alertHTML("warning", "mdiAlertOutline", esc(t("Filament-Position: {m}", { m: st.sync_msg })),
+    btnHTML({ text: t("Verstanden"), color: "warning", variant: "text", g: "SET_GCODE_VARIABLE MACRO=_LOADER_STATE VARIABLE=sync_msg VALUE='\"\"'" })));
   const alHTML = al.join("");
   if ($("alerts").dataset.h !== alHTML) { $("alerts").innerHTML = alHTML; $("alerts").dataset.h = alHTML; bindAlerts(); }
 
@@ -1133,6 +1249,11 @@ function draw() {
   $("s-state").innerHTML = opStale() ? chip(t("abgebrochen"), "warning--text") : stateTxt ? chip(t(stateTxt[0]), stateTxt[1]) : "–";
   $("s-in").innerHTML = S["filament_switch_sensor loader_in"] ? sensorHTML("loader_in") : "–";
   $("s-tool").innerHTML = ready ? sensorHTML("toolhead_in") : "–";
+  $("s-pos").innerHTML = st.pos === undefined ? "–" : posHTML();
+  const psel = $("pos-sel");
+  if (psel && psel.dataset.touched !== "1" && psel.value !== st.pos && [...psel.options].some((o) => o.value === st.pos)) psel.value = st.pos;
+  $("s-persist").innerHTML = hasSV ? chip(t("aktiv – überlebt Neustart und Ausschalten"), "success--text") : chip(t("fehlt – ./install.sh ergänzt [save_variables]"), "warning--text");
+  autoSync(ready);
   $("s-servo").innerHTML = st.clamped === undefined ? "–" : st.clamped ? chip(t("klemmt"), "warning--text") : chip(t("frei"), "success--text");
   const ex = S.extruder || {};
   $("s-temp").textContent = ex.temperature === undefined ? "–" : `${dec(Number(ex.temperature).toFixed(0))} / ${dec(Number(ex.target || 0).toFixed(0))} °C`;
@@ -1145,6 +1266,7 @@ function draw() {
   // hot operations additionally need sensor 2
   setDis($("load-hot"), lock || !hasTool);
   setDis($("unload"), lock || !hasTool);
+  setDis($("park"), lock || !hasTool);
   setDis($("ed-save"), !ED || !ready || pr || busy > 0);
 
   // switches follow Klipper / the settings file
@@ -1154,6 +1276,8 @@ function draw() {
   }
   const tgt = String(curVar("auto_target")).replace(/["']/g, "");
   document.querySelectorAll(".tgt").forEach((b) => b.classList.toggle("on", b.dataset.tgt === tgt));
+  const pv = lv().print_end_action ?? (ED && ED.model.print_end_action !== undefined ? ED.model.print_end_action : (Number(lv().unload_after_print) === 1 ? 2 : 0));
+  document.querySelectorAll(".pea").forEach((b) => b.classList.toggle("on", String(b.dataset.pea) === String(pv)));
 
   drawSetup();
   drawMeasure();
@@ -1249,7 +1373,7 @@ function calcRd() {
 // =====================================================================
 const HIST = { items: [], loaded: false, all: false };
 const HIST_NS = "autoloader", HIST_KEY = "history", HIST_MAX = 300;
-const OPS = { load_cold: "Laden (kalt)", load: "Laden (heiß)", unload: "Entladen", bench: "Bench-Test", measure: "Messen" };
+const OPS = { load_cold: "Laden (kalt)", load: "Laden (heiß)", unload: "Entladen", park: "Parken", bench: "Bench-Test", measure: "Messen" };
 const locale = () => (LANG === "de" ? "de-DE" : "en-GB");
 const dMid = (s) => new Date(s * 1000).toLocaleString(locale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -1408,38 +1532,46 @@ function filamentModel() {
   const hot = ex.target > 0 && ex.temperature >= ex.target - 3;
   if (!((loading || unloading) && hot)) PATH.extT = 0;
   else if (!PATH.extT && s2) PATH.extT = now;
+  if (!run) PATH.tip0 = null; else if (PATH.tip0 == null) PATH.tip0 = Number(st.tip) || 0;
+  // tip (mm from the loader gears, tracked by Klipper) → position on the tube segment
+  const inTube = (mm) => 2 + Math.max(0, Math.min(0.97, mm / tube));
+  const pos = st.pos || "unknown";
 
   let head, tail = 0, moving = false, dir = 1, text, warnTxt = false;
-  if (s2) {
+  if (s2 || (!s2o && ["sensor2", "gears", "nozzle"].includes(pos))) {
     tail = s1 ? 0 : 1.15;
     const push = ((+v.gear_offset || 8) + (+v.gear_push || 3)) / (+v.slow_speed || 10);
-    const okLoad = st.result === "ok" && (st.op === "load_cold" || st.op === "load");
-    if (st.op === "measure") { head = 3 + Math.min(1, MS.gear / ((+v.gear_offset || 8) + (+v.gear_push || 3))); text = "Filament steht an Sensor 2 (Messung)"; }
+    if (st.op === "measure" && !run) { head = 3 + Math.min(1, MS.gear / ((+v.gear_offset || 8) + (+v.gear_push || 3))); text = "Filament steht an Sensor 2 (Messung)"; }
     else if (loading && !PATH.extT) {
-      // reached sensor 2 → loader pushes the tip into the extruder gears
       head = 3 + Math.min(1, sec(PATH.s2t) / push);
       moving = head < 4;
       text = moving ? "Wird in die Extruder-Zahnräder geschoben …" : ex.target > 0 ? "Hotend heizt auf …" : "Filament in den Extruder-Zahnrädern";
     } else if (loading) { head = 4 + Math.min(0.97, sec(PATH.extT) * esp / e2n); moving = true; text = "Extrudiert zur Düse …"; }
     else if (unloading) {
-      // extruder retracts unload_ext_len (tip stays in the gears), then the loader pulls
       head = hot ? Math.max(4, 5 - sec(PATH.extT || now) * esp / (+v.unload_ext_len || 65)) : 5;
       moving = hot; dir = -1; text = hot ? (+v.tip_enable !== 0 ? "Spitze wird geformt, Extruder zieht zurück …" : "Extruder zieht zurück …") : "Hotend heizt auf …";
       if (hot && head <= 4) { head = 3.95; text = "Loader zieht das Filament aus dem Extruder …"; }
-    } else if (okLoad && st.op === "load") { head = 5; text = "Filament geladen bis zur Düse"; }
-    else if (okLoad) { head = 4; text = "Filament in den Extruder-Zahnrädern"; }
+    } else if (pos === "nozzle") { head = 5; text = "Filament geladen bis zur Düse"; }
+    else if (pos === "gears") { head = 4; text = "Filament in den Extruder-Zahnrädern"; }
     else if (st.result === "error") { head = 3.5; warnTxt = true; text = "Filament hängt an Sensor 2 – vor den Extruder-Zahnrädern (nicht gegriffen)"; }
     else { head = 3.5; warnTxt = true; text = "Filament an Sensor 2 – ob die Extruder-Zahnräder greifen, ist unbekannt"; }
   } else if (s1) {
-    head = 2; text = "Filament im Loader (Zahnräder)";
-    if (loading) { head = 2 + Math.min(0.97, sec(EV.t0) * sp / tube); moving = true; text = st.op === "measure" ? "Messfahrt bis Sensor 2 …" : "Wird durch den PTFE-Schlauch gefördert …"; }
-    else if (unloading) { head = 3 - Math.min(0.95, sec(PATH.s2t) * sp / tube); moving = true; dir = -1; text = "Wird zurückgezogen …"; }
-    else if (run && st.state === "testing") { head = 2.25; moving = true; text = "Bench-Test läuft …"; }
-    else if (st.op === "unload" && st.result === "ok") text = "Entladen – Spitze im Loader-Griff";
+    head = inTube(Number(st.tip) || 0);
+    text = pos === "tube" ? "Filament im Schlauch geparkt" : "Filament im Loader";
+    if (!+st.tip_known && ["loader", "tube"].includes(pos)) { warnTxt = true; text += " " + t("(Stelle im Schlauch unbekannt)"); }
+    if (loading) {
+      const est = Math.min(PATH.tip0 + sec(EV.t0) * sp, tube - (+v.approach || 30));
+      head = inTube(Math.max(Number(st.tip) || 0, est)); moving = true;
+      text = st.op === "measure" ? "Messfahrt bis Sensor 2 …" : "Wird durch den PTFE-Schlauch gefördert …";
+    } else if (unloading) {
+      const target = st.op === "park" ? tube - (+v.park_dist || 20) : (+v.unload_hold || 15);
+      head = inTube(Math.max(target, Math.min(Number(st.tip) || tube, tube - sec(PATH.s2t) * sp))); moving = true; dir = -1;
+      text = st.op === "park" ? "Wird in den Schlauch zurückgezogen …" : "Wird zurückgezogen …";
+    } else if (run && st.state === "testing") { moving = true; text = "Bench-Test läuft …"; }
   } else {
     head = 0.6; text = "Kein Filament am Loader-Eingang";
   }
-  if (!s2o && head > 2) text += " " + t("(Sensor 2 nicht aktiv – Position geschätzt)");
+  if (!s2o && head > 2.97) text += " " + t("(Sensor 2 nicht aktiv – Position geschätzt)");
   return { tail, head, moving, dir, text, warnTxt, s1, s2, s2o: !!s2o, idleEmpty: !s1 && !s2 };
 }
 
@@ -1513,9 +1645,10 @@ const FIELDS = [
   ...["servo_clamp", "servo_release", "servo_settle", "speed", "slow_speed", "step_mm", "approach", "tube_len", "overrun",
     "gear_offset", "gear_push", "ext_to_nozzle", "ext_speed", "purge_len", "purge_speed", "default_temp", "unload_ext_len",
     "unload_hold", "auto_delay", "bench_dist", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
-    "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode"].map((k) => [k, VARS, "variable_" + k, "n"]),
+    "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
+    "print_end_action", "park_dist"].map((k) => [k, VARS, "variable_" + k, "n"]),
   ["servo_off_released", VARS, "variable_servo_off_released", "b"], ["bench_mode", VARS, "variable_bench_mode", "b"],
-  ["tip_enable", VARS, "variable_tip_enable", "b"], ["unload_after_print", VARS, "variable_unload_after_print", "b"],
+  ["tip_enable", VARS, "variable_tip_enable", "b"],
   ["auto_enable", VARS, "variable_auto_enable", "b"], ["heater_off", VARS, "variable_heater_off", "b"],
   ["auto_target", VARS, "variable_auto_target", "l"],
 ];
@@ -1529,12 +1662,12 @@ const DEF = {
   approach: 30, tube_len: 300, overrun: 40, gear_offset: 8, gear_push: 3, ext_to_nozzle: 70, ext_speed: 5, purge_len: 30,
   purge_speed: 3, default_temp: 220, unload_ext_len: 65, unload_hold: 15, auto_delay: 2, bench_mode: 1, bench_dist: 50,
   tip_enable: 1, tip_ram_len: 0, tip_temp: 0, tip_speed_start: 80, tip_speed: 18, tip_cool_pos: 35, tip_cool_len: 10,
-  tip_cool_moves: 4, tip_cool_start: 10, tip_cool_end: 50, tip_eject_speed: 25, print_start_mode: 2, unload_after_print: 0,
+  tip_cool_moves: 4, tip_cool_start: 10, tip_cool_end: 50, tip_eject_speed: 25, print_start_mode: 2, print_end_action: 0, park_dist: 20,
   auto_enable: 1, auto_target: "cold", heater_off: 1,
 };
 /* variables of newer versions – defaults when the settings file does not have them yet */
 const NEW_KEYS = ["auto_enable", "auto_target", "heater_off", "approach", "stealth_speed", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
-  "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "unload_after_print"];
+  "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "print_end_action", "park_dist"];
 const NEW_DEFAULTS = Object.fromEntries(NEW_KEYS.map((k) => [k, DEF[k]]));
 
 const L2 = (x) => Array.isArray(x) ? x[LANG === "en" ? 1 : 0] : x;
@@ -1546,7 +1679,8 @@ const GROUPS = [
     F("default_temp", ["Standard-Düsentemperatur", "Default nozzle temperature"], "°C", ["Wenn weder TEMP= noch eine Zieltemperatur gesetzt ist", "When neither TEMP= nor a target temperature is set"], { min: 150, max: 320, st: 5 }),
     F("print_start_mode", ["Druckstart ohne Filament", "Print start without filament"], "", ["Was LOADER_PRINT_START in PRINT_START macht, wenn der Toolhead leer ist", "What LOADER_PRINT_START in PRINT_START does when the toolhead is empty"],
       { ty: "select", o: [["2", ["automatisch laden", "load automatically"]], ["1", ["nur prüfen – Druck abbrechen", "check only – abort the print"]], ["0", ["nichts tun", "do nothing"]]], wide: true }),
-    F("unload_after_print", ["Nach dem Druck entladen", "Unload after the print"], "", ["LOADER_PRINT_END in PRINT_END formt die Spitze und entlädt", "LOADER_PRINT_END in PRINT_END forms the tip and unloads"], { ty: "check" }),
+    F("print_end_action", ["Nach dem Druck", "After the print"], "", ["LOADER_PRINT_END in PRINT_END: Parken = Spitze formen und knapp hinter Sensor 2 abstellen, Entladen = ganz zurück in den Loader", "LOADER_PRINT_END in PRINT_END: park = form the tip and stop just behind sensor 2, unload = all the way back into the loader"],
+      { ty: "select", o: [["0", ["nichts tun", "do nothing"]], ["1", ["parken (im Schlauch)", "park (in the tube)"]], ["2", ["ganz entladen", "unload completely"]]], wide: true }),
     F("auto_enable", ["Auto-Laden", "Auto load"], "", ["Filament am Loader-Eingang wird automatisch geladen", "Filament inserted at the loader entrance is loaded automatically"], { ty: "check" }),
     F("auto_target", ["Auto-Laden bis", "Auto load to"], "", ["Kalt: bis in die Extruder-Zahnräder. Heiß: heizt auf und lädt bis zur Düse", "Cold: into the extruder gears. Hot: heats up and loads to the nozzle"],
       { ty: "select", o: [["cold", ["Extruder (kalt)", "extruder (cold)"]], ["hot", ["Düse (heiß)", "nozzle (hot)"]]] }),
@@ -1572,6 +1706,7 @@ const GROUPS = [
     F("ext_to_nozzle", ["Zahnräder → Düse", "Gears → nozzle"], "mm", ["So weit fördert der Extruder beim Laden heiß", "The extruder feeds this far when loading hot"], { min: 5, max: 300, st: 1 }),
     F("purge_len", ["Ausspülen", "Purge"], "mm", ["Nach dem Laden heiß, 0 = aus", "After loading hot, 0 = off"], { min: 0, max: 300, st: 1 }),
     F("unload_ext_len", ["Extruder zieht zurück", "Extruder retracts"], "mm", ["Beim Entladen insgesamt ab Düse, inklusive Spitze formen", "When unloading, in total from the nozzle, incl. tip forming"], { min: 5, max: 300, st: 1 }),
+    F("park_dist", ["Parken hinter Sensor 2", "Park behind sensor 2"], "mm", ["So weit hinter Sensor 2 bleibt die Spitze beim Parken – das nächste Laden geht dann sehr schnell", "How far behind sensor 2 the tip stays when parking – the next load is then very quick"], { min: 3, max: 200, st: 1 }),
     F("unload_hold", ["Rest im Loader", "Left in the loader"], "mm", ["So weit steckt das Filament nach dem Entladen noch im Loader", "How far the filament stays inside the loader after unloading"], { min: 0, max: 100, st: 1 }),
     F("approach", ["Sensorsuche ab", "Search starts"], "mm", ["So viele mm vor Sensor 2 endet die volle Fahrt", "The full-speed move ends this many mm before sensor 2"], { min: 5, max: 300, st: 5, adv: true }),
     F("overrun", ["Reserve", "Reserve"], "mm", ["Über den erwarteten Sensorpunkt hinaus, danach Timeout", "Beyond the expected sensor point, then timeout"], { min: 5, max: 300, st: 5, adv: true }),
@@ -1584,7 +1719,7 @@ const GROUPS = [
   ] },
   { id: "tip", t: ["Spitze", "Tip"], note: ["Spitze testen: „Manuell & Test → Spitze formen“, Filament ziehen und ansehen. Faden → mehr Kühlbewegungen oder Kühlzone höher. Knubbel oder dicke Spitze → Kühlzone tiefer oder Kühltemperatur senken. Startwerte nach Happy Hare.",
     "Test the tip: “Manual & test → Form tip”, pull the filament and look at it. String → more cooling moves or a higher cooling zone. Blob or fat tip → lower cooling zone or a lower cooling temperature. Start values from Happy Hare."], f: [
-    F("tip_enable", ["Spitze formen beim Entladen", "Form a tip when unloading"], "", ["Verhindert, dass die geschmolzene Spitze in Zahnrädern oder Schlauch hängen bleibt", "Keeps the molten tip from catching in the gears or the tube"], { ty: "check", wide: true }),
+    F("tip_enable", ["Spitze formen beim Parken und Entladen", "Form a tip when parking and unloading"], "", ["Verhindert, dass die geschmolzene Spitze in Zahnrädern oder Schlauch hängen bleibt", "Keeps the molten tip from catching in the gears or the tube"], { ty: "check", wide: true }),
     F("tip_cool_pos", ["Kühlzone", "Cooling zone"], "mm", ["Abstand Düse → Mitte der Kühlzone (Heatbreak)", "Distance nozzle → middle of the cooling zone (heatbreak)"], { min: 5, max: 100, st: 1 }),
     F("tip_cool_len", ["Kühlweg", "Cooling stroke"], "mm", ["Hub einer Kühlbewegung", "Stroke of one cooling move"], { min: 1, max: 40, st: 1 }),
     F("tip_cool_moves", ["Kühlbewegungen", "Cooling moves"], "", ["Mehr = dünnere, festere Spitze", "More = thinner, firmer tip"], { min: 0, max: 20, st: 1 }),
@@ -1786,6 +1921,7 @@ function validate(m) {
   if (Object.keys(err).length) return { err, warn };
   if (n("approach") >= n("tube_len")) err.approach = t("muss kleiner als „Loader → Sensor 2“ sein");
   if (n("approach") <= n("unload_hold") + 5) err.approach = t("muss größer als „Rest im Loader“ + 5 mm sein");
+  if (n("park_dist") >= n("approach") + n("overrun") - 5) err.park_dist = t("muss kleiner als „Sensorsuche ab“ + Reserve − 5 mm sein");
   if (+m.tip_enable && n("tip_cool_pos") + n("tip_cool_len") >= n("unload_ext_len")) err.unload_ext_len = t("muss größer als Kühlzone + Kühlweg sein ({v} mm)", { v: dec(n("tip_cool_pos") + n("tip_cool_len")) });
   if (n("unload_ext_len") >= n("ext_to_nozzle") + n("gear_offset")) warn.push(t("„Extruder zieht zurück“ ist so groß, dass die Spitze schon über Sensor 2 hinaus gezogen wird – üblich ist etwas weniger als „Zahnräder → Düse“."));
   const depth = (n("approach") + n("overrun")) / n("step_mm");
@@ -1886,6 +2022,7 @@ function drawLenSketch() {
     dim("gear_push", XG, xP, 44, `+${mm("gear_push")}`) +
     // unloading below the path
     dim("unload_hold", X0, X0 + 46, 122, `${t("Rest")}: ${mm("unload_hold")}`, true) +
+    dim("park_dist", XS - 56, XS, 122, `${t("Parken")}: ${mm("park_dist")}`, true) +
     dim("unload_ext_len", xU, XN, 122, `${t("Extruder zieht zurück")}: ${mm("unload_ext_len")}`, true) +
     `<text x="${(X0 + XN) / 2 - 40}" y="148" text-anchor="middle" opacity=".55">${esc(t("oben: Laden · unten: Entladen · nicht maßstäblich"))}</text>`;
 }
@@ -2169,6 +2306,7 @@ function setLang(l, persist) {
   drawHistory();
   fixLegends(); moveSlider();
   $("setup-list").dataset.h = ""; $("cal-res").dataset.h = ""; PATH.built = false;
+  setMode(MODE);
   render();
 }
 
@@ -2211,6 +2349,8 @@ document.addEventListener("click", async (e) => {
   if (tb) return openTab(tb.dataset.t);
   const tg = e.target.closest(".tgt");
   if (tg) return persistVar("auto_target", tg.dataset.tgt);
+  const pea = e.target.closest(".pea");
+  if (pea) return persistVar("print_end_action", +pea.dataset.pea);
   const sv = e.target.closest(".sv-set");
   if (sv && ED) {
     const a = Math.round(parseFloat($("sv-a").value));
@@ -2239,17 +2379,35 @@ document.addEventListener("focusout", (e) => {
 });
 
 /* distribute panels over 1–3 columns like Mainsail's dashboard */
+/* two modes: "op" = everyday use, "setup" = everything for calibrating and testing */
 const LAYOUTS = {
-  1: [["path", "status", "setup", "manual", "cal", "history", "settings"]],
-  2: [["path", "status", "history"], ["setup", "manual", "cal", "settings"]],
-  3: [["path", "status"], ["setup", "manual", "cal"], ["settings", "history"]],
+  op: {
+    1: [["path", "status", "history"]],
+    2: [["path", "history"], ["status"]],
+    3: [["path"], ["status"], ["history"]],
+  },
+  setup: {
+    1: [["setup", "path", "manual", "measure", "cal", "settings"]],
+    2: [["setup", "manual", "cal"], ["path", "measure", "settings"]],
+    3: [["setup", "manual"], ["path", "measure", "cal"], ["settings"]],
+  },
 };
-let curCols = 0;
-function layoutCols() {
+let MODE = store.get("mode", "op") === "setup" ? "setup" : "op";
+let curCols = 0, curMode = "";
+function setMode(m) {
+  MODE = m; store.set("mode", m);
+  document.querySelectorAll(".mode").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+  $("mode-hint").textContent = m === "op" ? t("Laden, Entladen, Parken – alles für den Alltag.") : t("Kalibrieren, Messen, Testen und Einstellungen. Hier kann sich der Loader bewegen – erst lesen, dann drücken.");
+  layoutCols(true);
+  render();
+}
+function layoutCols(force) {
   const w = window.innerWidth, n = w >= 1904 ? 3 : w >= 960 ? 2 : 1;
-  if (n === curCols) return;
-  curCols = n;
-  LAYOUTS[n].forEach((ids, i) => ids.forEach((id) => { const p = document.querySelector(`.panel[data-p="${id}"]`); if (p) $("col" + (i + 1)).appendChild(p); }));
+  if (n === curCols && MODE === curMode && !force) return;
+  curCols = n; curMode = MODE;
+  const lay = LAYOUTS[MODE][n], shown = new Set(lay.flat());
+  document.querySelectorAll(".row > .col > .panel, #col1 > .panel, #col2 > .panel, #col3 > .panel").forEach((p) => p.classList.toggle("hide", !shown.has(p.dataset.p)));
+  lay.forEach((ids, i) => ids.forEach((id) => { const p = document.querySelector(`.panel[data-p="${id}"]`); if (p) $("col" + (i + 1)).appendChild(p); }));
   for (let i = 1; i <= 3; i++) {
     const c = $("col" + i);
     c.className = i > n ? "hide" : `col-12 col-md-${12 / n} pb-0`;
@@ -2258,7 +2416,14 @@ function layoutCols() {
 }
 
 const num = (id, d) => { const v = parseFloat(String($(id).value).replace(",", ".")); return isFinite(v) ? v : d; };
-const hotTemp = () => Math.max(0, Math.min(300, Math.round(num("temp", 220))));
+const hotTemp = () => Math.max(0, Math.min(320, Math.round(num("temp", 220))));
+const MATERIALS = [["PLA", 210], ["PETG", 240], ["ABS", 255], ["ASA", 260], ["TPU", 225], ["PA", 270]];
+function setTemp(v) { document.querySelectorAll(".temp-in input, input.temp-in, #temp, #temp2, #temp3").forEach((el) => { if (el.tagName === "INPUT") el.value = v; }); drawChips(); }
+function drawChips() {
+  const cur = hotTemp();
+  $("mat-chips").innerHTML = MATERIALS.map(([n, tmp]) => `<button type="button" data-mat="${tmp}" class="${tmp === cur ? "on" : ""}" title="${tmp} °C">${n}</button>`).join("");
+}
+const purgeLen = () => Math.max(0, Math.round(num("purge", Number(lv().purge_len ?? 30))));
 
 function wire() {
   $("lang").onclick = () => { const l = LANG === "en" ? "de" : "en"; syncMacroLang(l).finally(() => setLang(l, true)); };
@@ -2268,13 +2433,25 @@ function wire() {
   $("restart").onclick = async () => { if (await dialog(t("Neustart"), esc(t("Klipper per FIRMWARE_RESTART neu starten?")), t("Neustart"))) rpc("printer.firmware_restart").catch((e) => log("!! " + e.message, "e")); };
 
   $("load-hot").onclick = async () => {
-    if (await dialog(t("Laden heiß"), esc(t("Hotend auf {n} °C aufheizen, Filament laden und bis in die Düse fördern?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_LOAD TEMP=${hotTemp()}`);
+    if (await dialog(t("Laden heiß"), esc(t("Hotend auf {n} °C aufheizen, Filament laden und bis in die Düse fördern?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_LOAD TEMP=${hotTemp()} PURGE=${purgeLen()}`);
   };
+  $("park").onclick = async () => {
+    if (await dialog(t("Parken"), esc(t("Hotend auf {n} °C aufheizen, Spitze formen und das Filament knapp hinter Sensor 2 im Schlauch parken?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_PARK TEMP=${hotTemp()}`);
+  };
+  $("pos-sel").onchange = () => { $("pos-sel").dataset.touched = "1"; };
+  $("pos-set").onclick = async () => {
+    const p = $("pos-sel").value;
+    if (await dialog(t("Position korrigieren"), esc(t("Gespeicherte Filament-Position auf „{p}“ setzen? Es bewegt sich nichts.", { p: t(POS_TXT[p] || p) })), "OK")) { $("pos-sel").dataset.touched = "0"; gcode(`LOADER_SET_POS POS=${p}`); }
+  };
+  document.querySelectorAll("#temp, #temp2, #temp3").forEach((el) => { el.oninput = () => { document.querySelectorAll("#temp, #temp2, #temp3").forEach((o) => { if (o !== el) o.value = el.value; }); drawChips(); }; });
+  $("mat-chips").onclick = (e) => { const b = e.target.closest("[data-mat]"); if (b) setTemp(b.dataset.mat); };
+  document.querySelectorAll(".mode").forEach((b) => { b.onclick = () => setMode(b.dataset.mode); });
   $("unload").onclick = async () => {
     if (await dialog(t("Entladen"), esc(t("Hotend auf {n} °C aufheizen, Spitze formen und Filament entladen?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_UNLOAD TEMP=${hotTemp()}`);
   };
   $("tip-test").onclick = async () => {
-    if (await dialog(t("Spitze formen"), esc(t("Hotend auf {n} °C aufheizen und nur die Spitze formen? Das Filament bleibt im Extruder – danach entladen oder von Hand ziehen und die Spitze ansehen.", { n: hotTemp() })), "OK")) gcode(`LOADER_FORM_TIP TEMP=${hotTemp()}`);
+    const tt = Math.round(num("temp2", hotTemp()));
+    if (await dialog(t("Spitze formen"), esc(t("Hotend auf {n} °C aufheizen und nur die Spitze formen? Das Filament bleibt im Extruder – danach entladen oder von Hand ziehen und die Spitze ansehen.", { n: tt })), "OK")) gcode(`LOADER_FORM_TIP TEMP=${tt}`);
   };
   // length measuring
   const apply = (k, v, tab) => { if (!ED) return; setField(k, Math.round(v * 10) / 10); openTab(tab); snack(t("{k} = {v} übernommen – unter Einstellungen speichern.", { k, v: dec(String(Math.round(v * 10) / 10)) })); };
@@ -2291,7 +2468,7 @@ function wire() {
   $("ms-gm05").onclick = () => push(-0.5);
   $("ms-gear").onclick = () => { apply("gear_offset", MS.gear, "t-len"); if (ls().clamped) gcode("LOADER_STOP"); };
   $("ms-done").onclick = () => gcode("LOADER_STOP");
-  const ext = (d) => gcode(`LOADER_EXTRUDE DIST=${d} TEMP=${hotTemp()}`).then((ok) => { if (ok) { MS.e += d; render(); } });
+  const ext = (d) => gcode(`LOADER_EXTRUDE DIST=${d} TEMP=${Math.round(num("temp3", hotTemp()))}`).then((ok) => { if (ok) { MS.e += d; render(); } });
   $("ms-e5").onclick = () => ext(5);
   $("ms-e1").onclick = () => ext(1);
   $("ms-e2n").onclick = () => apply("ext_to_nozzle", MS.e, "t-len");
@@ -2337,7 +2514,8 @@ function wire() {
   buildEditor();
   drawHistory();
   wire();
-  NAV.open = !isMobile(); layoutNav(); layoutCols();
+  drawChips();
+  NAV.open = !isMobile(); layoutNav(); setMode(MODE);
   const ok = await loadMainsailCss();
   if (!ok) applyColors("#2196f3");
   setTimeout(reveal, 4000);          // reveal after 4 s at the latest

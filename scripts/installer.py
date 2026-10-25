@@ -49,7 +49,7 @@ KS_NAME = "autoloader_klipperscreen.conf"
 KS_INCLUDE = f"[include {KS_NAME}]"
 KS_CREATED = "# created by voron0-autoloader"
 
-SETTINGS_SCHEMA = 4  # matches "#@schema" in filament_loader_settings.cfg.tpl
+SETTINGS_SCHEMA = 5  # matches "#@schema" in filament_loader_settings.cfg.tpl
 TOOL_SECTION = "filament_switch_sensor toolhead_in"
 
 # icon: Material Design Icons "printer-3d-nozzle" (Pictogrammers, Apache-2.0)
@@ -85,9 +85,9 @@ FIELDS = [
     "purge_len", "purge_speed", "default_temp", "unload_ext_len", "unload_hold", "auto_delay", "bench_mode",
     "bench_dist", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
-    "unload_after_print", "auto_enable", "auto_target", "heater_off")]
-NEW_VARS_V2 = ["auto_enable", "auto_target", "heater_off", "approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
-               "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "unload_after_print"]
+    "print_end_action", "park_dist", "auto_enable", "auto_target", "heater_off")]
+NEW_VARS_V2 = ["park_dist", "print_end_action", "auto_enable", "auto_target", "heater_off", "approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
+               "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode"]
 
 HOOK_TAG = "# autoloader"
 HOOK_START = "LOADER_PRINT_START  # autoloader: load filament if the toolhead is empty"
@@ -108,7 +108,7 @@ DEFAULTS = {
     "bench_mode": "1", "bench_dist": "50",
     "tip_enable": "1", "tip_ram_len": "0", "tip_temp": "0", "tip_speed_start": "80", "tip_speed": "18",
     "tip_cool_pos": "35", "tip_cool_len": "10", "tip_cool_moves": "4", "tip_cool_start": "10", "tip_cool_end": "50",
-    "tip_eject_speed": "25", "print_start_mode": "2", "unload_after_print": "0",
+    "tip_eject_speed": "25", "print_start_mode": "2", "print_end_action": "0", "park_dist": "20",
     "auto_enable": "1", "auto_target": "cold", "heater_off": "1",
 }
 
@@ -329,6 +329,8 @@ def analyze(env):
     A["web_nginx"] = bool(env["nginx_site"] and env["nginx_site"].exists() and NGINX_SNIPPET in env["nginx_site"].read_text(errors="replace"))
     navi = cfg / ".theme" / "navi.json"
     A["navi"] = navi.exists() and any(h in navi.read_text(errors="replace") for h in OLD_HREFS)
+    A["save_vars_elsewhere"] = any(sec.lname == "save_variables" and os.path.realpath(sec.file) != os.path.realpath(settings)
+                                   for sec in ctx["sections"])
     A["um"] = bool(env["moonraker_conf"] and f"[{UM_SECTION}]" in env["moonraker_conf"].read_text(errors="replace"))
     return A
 
@@ -442,7 +444,15 @@ def hooks_remove(cfg, ops):
             ok(f"Druck-Hooks aus {os.path.basename(f)} entfernt")
 
 
-def upgrade_settings(env, ops):
+def save_vars_block(env, A):
+    """[save_variables] for the persistent filament position – only if the printer has none yet"""
+    if A["save_vars_elsewhere"]:
+        return "# [save_variables] ist bereits in deiner Konfiguration vorhanden – die Position wird dort mitgespeichert"
+    return ("# Filament-Position ueber Neustarts und Ausschalten merken\n"
+            f"[save_variables]\nfilename: {env['cfg']}/autoloader_variables.cfg")
+
+
+def upgrade_settings(env, A, ops):
     """add variables introduced by newer versions to an existing settings file (values stay untouched)"""
     path = env["cfg"] / SETTINGS_NAME
     if not path.exists():
@@ -451,14 +461,24 @@ def upgrade_settings(env, ops):
     vals, _ = read_values(path)
     have = vals.get("gcode_macro _loader_vars", {})
     missing = [k for k in NEW_VARS_V2 if "variable_" + k not in have]
-    if not missing:
+    add_sv = not A["save_vars_elsewhere"] and "save_variables" not in vals
+    if not missing and not add_sv:
         return
+    if add_sv:
+        lines += ["", save_vars_block(env, A)]
+        ok("[save_variables] ergänzt – die Filament-Position wird jetzt dauerhaft gespeichert")
+    if not missing:
+        ops.write(path, "\n".join(lines))
+        return
+    defaults = dict(DEFAULTS)
+    if str(have.get("variable_unload_after_print", "0")).strip() == "1":
+        defaults["print_end_action"] = "2"      # old option "unload after the print"
     idx = next((i for i, l in enumerate(lines) if SECTION_RE.match(l) and SECTION_RE.match(l).group(1).strip().lower() == "gcode_macro _loader_vars"), None)
     if idx is None:
         warn(f"[gcode_macro _LOADER_VARS] fehlt in {SETTINGS_NAME} – neue Einstellungen übersprungen")
         return
     end = next((i for i in range(idx + 1, len(lines)) if lines[i].startswith("gcode:") or SECTION_RE.match(lines[i])), len(lines))
-    lines[end:end] = [f"variable_{k}: " + (f'"{DEFAULTS[k]}"' if k in QUOTED else DEFAULTS[k]) for k in missing]
+    lines[end:end] = [f"variable_{k}: " + (f'"{defaults[k]}"' if k in QUOTED else defaults[k]) for k in missing]
     lines = [re.sub(r"^#@schema\s+\d+", f"#@schema {SETTINGS_SCHEMA}", l) for l in lines]
     ops.write(path, "\n".join(lines))
     ok(f"{len(missing)} neue Einstellungen in {SETTINGS_NAME} ergänzt (neue Funktionen)")
@@ -536,6 +556,7 @@ def gather(env, A, asker):
     if tool_on:
         V["toolhead_in_pin"] = asker.ask("Sensor 2 Pin (MCU-Name:gpioX), Öffner", V["toolhead_in_pin"])
     V["tool"] = "" if tool_on else OFF
+    V["save_vars"] = save_vars_block(env, A)
     return V
 
 
@@ -651,9 +672,9 @@ def add_includes(printer_cfg, A, ops):
     ok("Includes in printer.cfg eingetragen")
 
 
-def remove_includes(printer_cfg, ops):
+def remove_includes(printer_cfg, ops, names=(LOGIC_NAME, SETTINGS_NAME)):
     lines = printer_cfg.read_text(errors="replace").split("\n")
-    pat = re.compile(rf"^\[include\s+({re.escape(LOGIC_NAME)}|{re.escape(SETTINGS_NAME)})\s*\]")
+    pat = re.compile(r"^\[include\s+(" + "|".join(re.escape(n) for n in names) + r")\s*\]")
     kept, dropped = [], False
     for l in lines:
         if pat.match(l):
@@ -939,7 +960,7 @@ def do_install(env, A, args, ops, asker):
     plan = hook_plan(A["ctx"], cfg)
     if not args.no_hooks:
         for kind, desc in (("start", "LOADER_PRINT_START nach dem Aufheizen der Düse einfügen (lädt Filament, wenn der Toolhead leer ist)?"),
-                           ("end", "LOADER_PRINT_END vor TURN_OFF_HEATERS einfügen (entlädt nur, wenn unload_after_print = 1)?")):
+                           ("end", "LOADER_PRINT_END vor TURN_OFF_HEATERS einfügen (parkt oder entlädt nur, wenn in den Einstellungen gewählt)?")):
             p = plan[kind]
             if not p["found"] or p.get("present"):
                 continue
@@ -1007,7 +1028,7 @@ def do_install(env, A, args, ops, asker):
         ops.write(cfg / SETTINGS_NAME, render_settings(V))
         ok(f"{SETTINGS_NAME} geschrieben")
     else:
-        upgrade_settings(env, ops)
+        upgrade_settings(env, A, ops)
 
     inside = [s for s in A["conflicts"] if os.path.realpath(s.file).startswith(str(cfg) + os.sep)]
     if inside:
@@ -1059,11 +1080,27 @@ def do_uninstall(env, A, args, ops, asker):
     b = backup(env, ops)
     ok(f"Backup: {b}")
     cfg = env["cfg"]
-    remove_includes(env["printer_cfg"], ops)
     link = cfg / LOGIC_NAME
+    old = cfg / f"{LOGIC_NAME}.old"
+    restore_old = old.exists() and (link.is_symlink() or not link.exists()) and \
+        asker.confirm(f"alte {LOGIC_NAME} von vor der Installation wiederherstellen?", True)
+    # keep the include of the old single-file loader where it was
+    remove_includes(env["printer_cfg"], ops, (SETTINGS_NAME,) if restore_old else (LOGIC_NAME, SETTINGS_NAME))
     if link.is_symlink():
         ops.remove(link)
         ok(f"{LOGIC_NAME}-Symlink entfernt")
+    if restore_old:
+        if ops.dry:
+            info(c("2", f"[dry-run] {old.name} -> {LOGIC_NAME}"))
+        else:
+            os.replace(old, link)
+            pc = env["printer_cfg"]
+            lines = pc.read_text(errors="replace").split("\n")
+            if not any(re.match(rf"^\[include\s+{re.escape(LOGIC_NAME)}\s*\]", l) for l in lines):
+                idx = next((i for i, l in enumerate(lines) if l.startswith("[")), len(lines))
+                lines[idx:idx] = [f"[include {LOGIC_NAME}]", ""]
+                ops.write(pc, "\n".join(lines))
+        ok(f"alte {LOGIC_NAME} wiederhergestellt und in printer.cfg eingebunden")
     if (cfg / SETTINGS_NAME).exists():
         if asker.confirm(f"{SETTINGS_NAME} löschen? (Nein = behalten für spätere Neuinstallation)", False):
             ops.remove(cfg / SETTINGS_NAME)

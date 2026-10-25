@@ -1,4 +1,4 @@
-#@schema 4
+#@schema 5
 # =====================================================================
 # voron0-autoloader - Einstellungen (vom Installer erzeugt)
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -88,6 +88,7 @@ variable_default_temp: ${default_temp}      # Standard-Duesentemperatur
 # --- Entladen ---
 variable_unload_ext_len: ${unload_ext_len}      # mm Extruder zieht insgesamt ab Duese zurueck (inkl. Tip-Forming)
 variable_unload_hold: ${unload_hold}         # mm Spitze bleibt im Loader-Griff
+variable_park_dist: ${park_dist}          # mm hinter Sensor 2 beim Parken (Filament bleibt im Schlauch)
 # --- Auto-Trigger ---
 variable_auto_enable: ${auto_enable}         # 1 = Filament am Loader-Eingang wird automatisch geladen
 variable_auto_target: "${auto_target}"       # "cold" = bis in den Extruder, "hot" = bis zur Duese (heizt auf)
@@ -109,5 +110,7 @@ variable_tip_cool_end: ${tip_cool_end}        # mm/s letzte Kuehlbewegung
 variable_tip_eject_speed: ${tip_eject_speed}     # mm/s restliches Zurueckziehen bis unload_ext_len
 # --- Druck-Hooks ---
 variable_print_start_mode: ${print_start_mode}    # 0 = aus, 1 = nur pruefen (Abbruch ohne Filament), 2 = automatisch laden
-variable_unload_after_print: ${unload_after_print}  # 1 = nach dem Druck entladen (in PRINT_END)
+variable_print_end_action: ${print_end_action}    # nach dem Druck (PRINT_END): 0 = nichts, 1 = parken, 2 = ganz entladen
 gcode:
+
+${save_vars}
