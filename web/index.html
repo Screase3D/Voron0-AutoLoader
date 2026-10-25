@@ -301,7 +301,11 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
               <hr role="separator" class="v-divider theme--dark">
               <div class="v-card__text">
                 <div class="v-subheader theme--dark px-0">Längen messen</div>
-                <div class="small muted mb-3"><b>1. tube_len:</b> Filamentspitze bündig an die Loader-Zahnräder legen, dann „Bis Sensor 2“. Der Loader stoppt genau am Sensor und zeigt die gefahrene Strecke.</div>
+                <div class="small muted mb-3"><b>1. tube_len:</b> Filamentspitze bündig an die Loader-Zahnräder legen, dann „Bis Sensor 2“. Der Loader fährt schnell bis „Schnell bis“, sucht dann den Sensor bis höchstens „Max.“ und zeigt die gefahrene Strecke. „Schnell bis“ muss sicher kürzer als die echte Strecke sein.</div>
+                <div class="d-flex align-center flex-wrap mb-3" style="gap:12px">
+                  <x-field label="Schnell bis" id="ms-fast" type="number" min="0" step="10" suffix="mm" style="width:140px"></x-field>
+                  <x-field label="Max." id="ms-max" type="number" min="20" step="50" suffix="mm" style="width:140px"></x-field>
+                </div>
                 <div class="btn-row"><x-btn id="ms-sensor" act icon="mdiArrowRightBold">Bis Sensor 2</x-btn><x-btn id="ms-tube" icon="mdiCheckCircleOutline">Als tube_len übernehmen</x-btn></div>
                 <div class="res mt-3" id="ms-tube-res">–</div>
                 <div class="small muted mt-4 mb-3"><b>2. gear_offset:</b> Danach in kleinen Schritten weiterschieben, bis die Spitze spürbar an den Extruder-Zahnrädern ansteht (Extruder-Hebel kurz anheben und loslassen hilft).</div>
@@ -589,6 +593,9 @@ const T_EN = {
   "abgebrochen": "aborted",
   "Die Sensorsuche kann bis zu {n} Schritte brauchen – das dauert. Suchschritt vergrößern oder „Sensorsuche ab“ / Reserve verkleinern.":
     "The sensor search may need up to {n} steps – that takes time. Increase the search step or reduce “Search starts” / reserve.",
+  "Schnell bis": "Fast up to", "Max.": "Max.", "„Max.“ muss größer als „Schnell bis“ sein.": "“Max.” must be larger than “Fast up to”.",
+  "Filamentspitze bündig an die Loader-Zahnräder legen, dann „Bis Sensor 2“. Der Loader fährt schnell bis „Schnell bis“, sucht dann den Sensor bis höchstens „Max.“ und zeigt die gefahrene Strecke. „Schnell bis“ muss sicher kürzer als die echte Strecke sein.":
+    "Put the filament tip flush with the loader gears, then “To sensor 2”. The loader runs fast up to “Fast up to”, then searches the sensor up to “Max.” at most and shows the distance travelled. “Fast up to” must be safely shorter than the real distance.",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1151,7 +1158,13 @@ function drawHooks() {
 /* length measuring helper */
 const MS = { gear: 0, e: 0 };
 function drawMeasure() {
-  const st = ls(), fed = Number(st.fed || 0);
+  const st = ls(), fed = Number(st.fed || 0), v = lv();
+  // suggestions from the current settings until the user types something
+  if (v.tube_len !== undefined) {
+    const fast = Math.max(0, Number(v.tube_len) - Number(v.approach ?? 30) - 30), max = Math.max(Number(v.tube_len) + Number(v.overrun ?? 40) + 40, 800);
+    if (!$("ms-fast").dataset.user && $("ms-fast").value !== String(fast)) $("ms-fast").value = fast;
+    if (!$("ms-max").dataset.user && $("ms-max").value !== String(max)) $("ms-max").value = max;
+  }
   const set = (id, html) => { if ($(id).dataset.h !== html) { $(id).innerHTML = html; $(id).dataset.h = html; } };
   set("ms-tube-res", fed > 0 ? t("Gefahren bis Sensor 2: <b>{a} mm</b> (eingestellt: tube_len {b})", { a: dec(fed.toFixed(1)), b: dec(String(lv().tube_len ?? "–")) }) : t("Noch nicht gemessen."));
   set("ms-gear-res", t("Nach Sensor 2 geschoben: <b>{a} mm</b> (eingestellt: gear_offset {b})", { a: dec(MS.gear.toFixed(1)), b: dec(String(lv().gear_offset ?? "–")) }));
@@ -2214,7 +2227,12 @@ function wire() {
   };
   // length measuring
   const apply = (k, v, tab) => { if (!ED) return; setField(k, Math.round(v * 10) / 10); openTab(tab); snack(t("{k} = {v} übernommen – unter Einstellungen speichern.", { k, v: dec(String(Math.round(v * 10) / 10)) })); };
-  $("ms-sensor").onclick = () => { MS.gear = 0; gcode("LOADER_TO_SENSOR"); };
+  $("ms-sensor").onclick = () => {
+    const fast = Math.max(0, Math.round(num("ms-fast", 0))), max = Math.round(num("ms-max", 0));
+    if (!(max > fast)) return snack(t("„Max.“ muss größer als „Schnell bis“ sein."));
+    MS.gear = 0; gcode(`LOADER_TO_SENSOR COARSE=${fast} MAX=${max}`);
+  };
+  $("ms-fast").oninput = $("ms-max").oninput = (e) => { e.target.dataset.user = "1"; };
   $("ms-tube").onclick = () => apply("tube_len", Number(ls().fed || 0), "t-len");
   const push = (d) => gcode(`LOADER_MOVE DIST=${d} SPEED=${Math.max(1, Number(lv().slow_speed) || 5)} CLAMP=1`).then((ok) => { if (ok) { MS.gear += d; render(); } });
   $("ms-g1").onclick = () => push(1);

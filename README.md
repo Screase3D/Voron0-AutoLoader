@@ -149,8 +149,9 @@ The page has a setup checklist that ticks itself off where it can. The order:
 4. **Bench test** – with bench mode on (default), inserting filament clamps, feeds `bench_dist` and releases.
 5. **Mount on the printer**, wire sensor 2 and enable it under *Settings → Hardware*.
 6. **Measure** `tube_len`, `gear_offset` and `ext_to_nozzle` with *Calibrate stepper → Measure lengths*:
-   - `tube_len`: put the tip flush with the loader gears, press *To sensor 2* – the loader stops at the
-     sensor and shows the distance.
+   - `tube_len`: put the tip flush with the loader gears, press *To sensor 2* – the loader runs fast up
+     to *Fast up to* (must be safely shorter than the real distance), searches the sensor up to *Max.*
+     and shows the distance. For a long tube raise *Max.* (e.g. 800 mm).
    - `gear_offset`: push on in 1 / 0.5 mm steps until the tip touches the extruder gears.
    - `ext_to_nozzle`: after a cold load, extrude in 5 / 1 mm steps (hot) until filament comes out of the nozzle.
 7. **Tip forming** – *Manual & test → Form tip*, then pull the filament and look at the tip (see below).
@@ -252,7 +253,7 @@ Positions between the sensors are estimates based on the configured speeds and l
 | `LOADER_STOP` | release and switch the stepper off |
 | `LOADER_AUTO ENABLE=1/0` | auto trigger on/off until restart |
 | `LOADER_FORM_TIP TEMP=` | only form the tip (filament stays in the extruder) |
-| `LOADER_TO_SENSOR` | measuring: feed to sensor 2 and stop, reports the distance |
+| `LOADER_TO_SENSOR COARSE= MAX=` | measuring: feed fast to `COARSE`, search sensor 2 up to `MAX`, report the distance |
 | `LOADER_EXTRUDE DIST= TEMP=` | measuring: extrude with the extruder |
 | `LOAD_FILAMENT` / `UNLOAD_FILAMENT` | Mainsail / KlipperScreen buttons → loader |
 | `LOADER_PRINT_START` / `LOADER_PRINT_END` | print hooks |
