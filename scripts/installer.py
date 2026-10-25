@@ -49,7 +49,7 @@ KS_NAME = "autoloader_klipperscreen.conf"
 KS_INCLUDE = f"[include {KS_NAME}]"
 KS_CREATED = "# created by voron0-autoloader"
 
-SETTINGS_SCHEMA = 2  # matches "#@schema" in filament_loader_settings.cfg.tpl
+SETTINGS_SCHEMA = 3  # matches "#@schema" in filament_loader_settings.cfg.tpl
 TOOL_SECTION = "filament_switch_sensor toolhead_in"
 
 # icon: Material Design Icons "printer-3d-nozzle" (Pictogrammers, Apache-2.0)
@@ -75,17 +75,18 @@ FIELDS = [
     ("tx_pin", "tmc2209 manual_stepper loader", "tx_pin"),
     ("uart_address", "tmc2209 manual_stepper loader", "uart_address"),
     ("run_current", "tmc2209 manual_stepper loader", "run_current"),
+    ("stealth_speed", "tmc2209 manual_stepper loader", "stealthchop_threshold"),
     ("servo_pin", "servo loader_clamp", "pin"),
     ("loader_in_pin", "filament_switch_sensor loader_in", "switch_pin"),
     ("toolhead_in_pin", TOOL_SECTION, "switch_pin"),
 ] + [(k, "gcode_macro _loader_vars", "variable_" + k) for k in (
     "lang", "servo_clamp", "servo_release", "servo_settle", "servo_off_released", "speed", "slow_speed",
-    "step_mm", "coarse_len", "tube_len", "overrun", "gear_offset", "gear_push", "ext_to_nozzle", "ext_speed",
+    "step_mm", "approach", "tube_len", "overrun", "gear_offset", "gear_push", "ext_to_nozzle", "ext_speed",
     "purge_len", "purge_speed", "default_temp", "unload_ext_len", "unload_hold", "auto_delay", "bench_mode",
     "bench_dist", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
     "unload_after_print")]
-NEW_VARS_V2 = ["tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
+NEW_VARS_V2 = ["approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
                "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "unload_after_print"]
 
 HOOK_TAG = "# autoloader"
@@ -97,11 +98,11 @@ OFF_RE = re.compile(r"^\s*TURN_OFF_HEATERS\b", re.I)
 
 DEFAULTS = {
     "step_pin": "gpio14", "dir_pin": "!gpio13", "enable_pin": "!gpio15", "microsteps": "16",
-    "rotation_distance": "22.99646", "velocity": "30", "accel": "300",
-    "uart_pin": "gpio9", "tx_pin": "gpio8", "uart_address": "3", "run_current": "0.5",
+    "rotation_distance": "22.99646", "velocity": "150", "accel": "1500",
+    "uart_pin": "gpio9", "tx_pin": "gpio8", "uart_address": "3", "run_current": "0.6", "stealth_speed": "60",
     "servo_pin": "gpio29", "loader_in_pin": "^gpio16", "toolhead_in_pin": "^nhk:gpio12",
     "lang": "de", "servo_clamp": "45", "servo_release": "170", "servo_settle": "0.5", "servo_off_released": "1",
-    "speed": "25", "slow_speed": "10", "step_mm": "2", "coarse_len": "240", "tube_len": "300", "overrun": "60",
+    "speed": "150", "slow_speed": "30", "step_mm": "2", "approach": "30", "tube_len": "300", "overrun": "40",
     "gear_offset": "8", "gear_push": "3", "ext_to_nozzle": "70", "ext_speed": "5", "purge_len": "30",
     "purge_speed": "3", "default_temp": "220", "unload_ext_len": "65", "unload_hold": "15", "auto_delay": "2.0",
     "bench_mode": "1", "bench_dist": "50",
@@ -109,6 +110,10 @@ DEFAULTS = {
     "tip_cool_pos": "35", "tip_cool_len": "10", "tip_cool_moves": "4", "tip_cool_start": "10", "tip_cool_end": "50",
     "tip_eject_speed": "25", "print_start_mode": "2", "unload_after_print": "0",
 }
+
+LEGACY_KEYS = {"step_pin", "dir_pin", "enable_pin", "microsteps", "rotation_distance", "uart_pin", "tx_pin", "uart_address",
+               "servo_pin", "loader_in_pin", "toolhead_in_pin", "servo_clamp", "servo_release", "tube_len", "gear_offset",
+               "gear_push", "ext_to_nozzle", "unload_ext_len", "unload_hold", "default_temp"}
 
 SECTION_RE = re.compile(r"^\[([^\]]+)\]\s*(?:[#;].*)?$")
 OPTION_RE = re.compile(r"^([A-Za-z0-9_]+)\s*[:=]\s*(.*?)\s*$")
@@ -454,7 +459,7 @@ def upgrade_settings(env, ops):
     lines[end:end] = [f"variable_{k}: {DEFAULTS[k]}" for k in missing]
     lines = [re.sub(r"^#@schema\s+\d+", f"#@schema {SETTINGS_SCHEMA}", l) for l in lines]
     ops.write(path, "\n".join(lines))
-    ok(f"{len(missing)} neue Einstellungen in {SETTINGS_NAME} ergänzt (Tip-Forming, Druck-Hooks)")
+    ok(f"{len(missing)} neue Einstellungen in {SETTINGS_NAME} ergänzt (Tip-Forming, Druck-Hooks, Anlauf)")
 
 
 # ---------------------------------------------------------------------------
@@ -504,7 +509,10 @@ def existing_values(env, A):
         if not src or not Path(src).exists():
             continue
         vals, off = read_values(src)
+        legacy = src.name != SETTINGS_NAME
         for key, sec, opt in FIELDS:
+            if legacy and key not in LEGACY_KEYS:
+                continue      # old single file: take over calibrated values only, new defaults for speeds
             v = vals.get(sec, {}).get(opt)
             if v not in (None, ""):
                 values[key] = v.strip("\"'") if key == "lang" else v

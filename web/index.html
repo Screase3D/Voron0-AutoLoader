@@ -111,6 +111,34 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 
 #fpath #g-l1, #fpath #g-l2 { fill: #5d4a00; fill-opacity: .9; stroke: #3e3200; stroke-opacity: 1; }
 
+/* settings editor */
+#tab-bar .v-tab { min-width: 0; padding: 0 12px; }
+.ed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px 12px; }
+.fld { position: relative; min-width: 0; }
+.fld.wide { grid-column: 1 / -1; }
+.fld .hint { font-size: 11.5px; line-height: 1.35; opacity: .62; margin-top: 4px; }
+.fld.err .hint { opacity: 1; color: var(--v-error-base); }
+.fld.err fieldset { border-color: var(--v-error-base) !important; border-width: 2px !important; }
+.fld.chg fieldset { border-color: var(--v-warning-base) !important; }
+.fld .rst { position: absolute; top: -9px; right: 4px; z-index: 2; border: 0; border-radius: 9px; height: 18px; padding: 0 6px; font-size: 11px; cursor: pointer;
+  background: var(--v-primary-base); color: #fff; opacity: .9; }
+.fld .rst:hover { opacity: 1; }
+.fld.adv { display: none; }
+.show-adv .fld.adv { display: block; }
+.fld.adv::after { content: ""; }
+.fld.hl fieldset { border-color: var(--v-primary-base) !important; border-width: 2px !important; }
+.ed-note { font-size: 12.5px; opacity: .7; margin-top: 14px; line-height: 1.45; }
+.preset-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+.preset-row .v-btn.on { box-shadow: 0 0 0 2px var(--v-primary-base) inset !important; }
+#len-svg { width: 100%; display: block; margin-bottom: 14px; overflow: visible; }
+#len-svg text { font: 9px Roboto, sans-serif; fill: currentColor; }
+#len-svg .dim { stroke: currentColor; stroke-opacity: .55; stroke-width: .8; fill: none; }
+#len-svg .seg { cursor: pointer; }
+#len-svg .seg:hover text, #len-svg .seg.on text { fill: var(--v-primary-base); font-weight: 600; }
+#len-svg .seg:hover .dim, #len-svg .seg.on .dim { stroke: var(--v-primary-base); stroke-opacity: 1; stroke-width: 1.4; }
+#len-svg .zone { fill: currentColor; fill-opacity: .08; }
+#len-svg .zone.on, #len-svg .seg:hover .zone { fill: var(--v-primary-base); fill-opacity: .25; }
+
 .step-ic { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 2px solid currentColor; opacity: .55; cursor: pointer; }
 .step-ic.done { opacity: 1; border: 0; }
 .v-list-item__subtitle.wrap { white-space: normal; -webkit-line-clamp: unset; }
@@ -213,7 +241,7 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                   <x-check label="Auto-Laden bei Filament am Eingang" id="auto"></x-check>
                   <x-check label="Bench-Modus (nur Testfahrt)" id="bench"></x-check>
                 </div>
-                <div class="small muted mt-2">Auto-Laden und Bench-Modus gelten bis zum nächsten Neustart. Dauerhaft: Einstellungen → Laden &amp; Auto.</div>
+                <div class="small muted mt-2">Auto-Laden und Bench-Modus gelten bis zum nächsten Neustart. Dauerhaft: Einstellungen → Allgemein.</div>
               </div>
             </x-panel>
 
@@ -299,103 +327,18 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
 
           <div class="col" id="col3">
             <x-panel p="settings" icon="mdiCog" title="Einstellungen">
-              <div class="v-tabs v-tabs--fixed-tabs theme--dark" id="tabs">
+              <x-tools><x-check label="Erweitert" id="ed-adv"></x-check></x-tools>
+              <div class="v-tabs theme--dark" id="tabs">
                 <div role="tablist" class="v-item-group theme--dark v-slide-group v-tabs-bar primary--text">
-                  <div class="v-slide-group__wrapper"><div class="v-slide-group__content v-tabs-bar__content">
+                  <div class="v-slide-group__wrapper"><div class="v-slide-group__content v-tabs-bar__content" id="tab-bar">
                     <div class="v-tabs-slider-wrapper" style="height:2px;left:0;width:0;"><div class="v-tabs-slider"></div></div>
-                    <a role="tab" class="v-tab v-tab--active" data-t="t-hw">Hardware</a>
-                    <a role="tab" class="v-tab" data-t="t-motion">Servo &amp; Stepper</a>
-                    <a role="tab" class="v-tab" data-t="t-len">Längen</a>
-                    <a role="tab" class="v-tab" data-t="t-auto">Laden &amp; Auto</a>
-                    <a role="tab" class="v-tab" data-t="t-tip">Tip &amp; Druck</a>
                   </div></div>
                 </div>
               </div>
               <div class="v-card__text">
                 <div id="ed-msg"></div>
-                <div class="tab" id="t-hw">
-                  <div class="field-grid">
-                    <x-field label="Stepper step_pin" k="step_pin" type="text"></x-field>
-                    <x-field label="Stepper dir_pin" k="dir_pin" type="text"></x-field>
-                    <x-field label="Stepper enable_pin" k="enable_pin" type="text"></x-field>
-                    <x-field label="Mikroschritte" k="microsteps" type="number" step="1" min="1"></x-field>
-                    <x-field label="rotation_distance" k="rotation_distance" type="number" step="0.00001" min="0.001" suffix="mm" style="grid-column:span 2"></x-field>
-                    <x-field label="Motorstrom" k="run_current" type="number" step="0.05" min="0.1" suffix="A"></x-field>
-                    <x-field label="UART-Pin" k="uart_pin" type="text"></x-field>
-                    <x-field label="UART TX-Pin" k="tx_pin" type="text"></x-field>
-                    <x-field label="UART-Adresse" k="uart_address" type="number" step="1" min="0" max="3"></x-field>
-                    <x-field label="Servo-Pin" k="servo_pin" type="text"></x-field>
-                    <x-field label="Sensor 1 Pin" k="loader_in_pin" type="text"></x-field>
-                    <x-field label="Sensor 2 Pin" k="toolhead_in_pin" type="text"></x-field>
-                  </div>
-                  <div class="mt-3"><x-check label="Sensor 2 aktiv (verdrahtet)" k="tool"></x-check></div>
-                  <div class="small muted mt-3">Sensoren sind Öffner (NC): kein Filament = Kontakt geschlossen. „^“ = Pull-up, „!“ = invertiert. Der MCU-Name von Sensor 2 muss zu [mcu …] in nitehawk-sb.cfg passen. Pin-Änderungen wirken nach dem Neustart.</div>
-                </div>
-                <div class="tab hide" id="t-motion">
-                  <div class="field-grid">
-                    <x-field label="Klemmwinkel" k="servo_clamp" type="number" step="1" min="0" max="180" suffix="°"></x-field>
-                    <x-field label="Freiwinkel" k="servo_release" type="number" step="1" min="0" max="180" suffix="°"></x-field>
-                    <x-field label="Servo-Wartezeit" k="servo_settle" type="number" step="0.1" min="0" suffix="s"></x-field>
-                    <x-field label="Tempo" k="speed" type="number" step="1" min="1" suffix="mm/s"></x-field>
-                    <x-field label="Tempo fein" k="slow_speed" type="number" step="1" min="1" suffix="mm/s"></x-field>
-                    <x-field label="Schritt bei Abfrage" k="step_mm" type="number" step="0.5" min="0.5" suffix="mm"></x-field>
-                    <x-field label="Max. Tempo" k="velocity" type="number" step="1" min="1" suffix="mm/s"></x-field>
-                    <x-field label="Beschleunigung" k="accel" type="number" step="10" min="10" suffix="mm/s²"></x-field>
-                  </div>
-                  <div class="mt-3"><x-check label="Servo nach dem Lösen abschalten" k="servo_off_released"></x-check></div>
-                  <div class="small muted mt-3">Die Sensor-Abfrage läuft in Schritten von „Schritt bei Abfrage“. Kleinere Schritte reagieren genauer, brauchen aber mehr Makro-Aufrufe.</div>
-                </div>
-                <div class="tab hide" id="t-len">
-                  <div class="field-grid">
-                    <x-field label="tube_len" k="tube_len" type="number" step="1" min="1" suffix="mm"></x-field>
-                    <x-field label="coarse_len" k="coarse_len" type="number" step="1" min="0" suffix="mm"></x-field>
-                    <x-field label="Reserve (overrun)" k="overrun" type="number" step="1" min="1" suffix="mm"></x-field>
-                    <x-field label="gear_offset" k="gear_offset" type="number" step="0.5" min="0" suffix="mm"></x-field>
-                    <x-field label="gear_push" k="gear_push" type="number" step="0.5" min="0" suffix="mm"></x-field>
-                    <x-field label="ext_to_nozzle" k="ext_to_nozzle" type="number" step="1" min="1" suffix="mm"></x-field>
-                    <x-field label="unload_ext_len" k="unload_ext_len" type="number" step="1" min="1" suffix="mm"></x-field>
-                    <x-field label="unload_hold" k="unload_hold" type="number" step="1" min="0" suffix="mm"></x-field>
-                  </div>
-                  <div class="small muted mt-3">tube_len: Loader-Zahnräder bis Toolhead-Sensor. coarse_len: Strecke ohne Sensorabfrage (kleiner als tube_len). gear_offset: Sensor 2 bis Extruder-Zahnräder. gear_push: Loader schiebt so weit darüber hinaus. ext_to_nozzle: Extruder-Zahnräder bis Düse. unload_hold: Filamentspitze bleibt so weit im Loader-Griff.</div>
-                </div>
-                <div class="tab hide" id="t-auto">
-                  <div class="field-grid">
-                    <x-field label="Standard-Düsentemperatur" k="default_temp" type="number" step="5" min="0" max="300" suffix="°C"></x-field>
-                    <x-field label="Extruder-Tempo" k="ext_speed" type="number" step="0.5" min="0.5" suffix="mm/s"></x-field>
-                    <x-field label="Ausspülen" k="purge_len" type="number" step="1" min="0" suffix="mm"></x-field>
-                    <x-field label="Ausspül-Tempo" k="purge_speed" type="number" step="0.5" min="0.5" suffix="mm/s"></x-field>
-                    <x-field label="Auto-Verzögerung" k="auto_delay" type="number" step="0.5" min="0" suffix="s"></x-field>
-                    <x-field label="Bench-Strecke" k="bench_dist" type="number" step="5" min="1" suffix="mm"></x-field>
-                    <x-select label="Klipper-Meldungen" k="lang"><option value="de">Deutsch</option><option value="en">English</option></x-select>
-                  </div>
-                  <div class="mt-3"><x-check label="Bench-Modus (Auto-Trigger fährt nur die Teststrecke)" k="bench_mode"></x-check></div>
-                  <div class="small muted mt-3">Bench-Modus aus = Auto-Trigger lädt das Filament bis in den Extruder (FILAMENT_LOAD_COLD). Auto-Verzögerung: Zeit zum Nachschieben, bevor der Loader klemmt.</div>
-                </div>
-
-                <div class="tab hide" id="t-tip">
-                  <div class="mb-3"><x-check label="Spitze formen beim Entladen" k="tip_enable"></x-check></div>
-                  <div class="field-grid">
-                    <x-field label="Kühlzone" k="tip_cool_pos" type="number" step="1" min="5" suffix="mm"></x-field>
-                    <x-field label="Kühlweg" k="tip_cool_len" type="number" step="1" min="1" suffix="mm"></x-field>
-                    <x-field label="Kühlbewegungen" k="tip_cool_moves" type="number" step="1" min="0" max="20"></x-field>
-                    <x-field label="Kühlen Start" k="tip_cool_start" type="number" step="1" min="1" suffix="mm/s"></x-field>
-                    <x-field label="Kühlen Ende" k="tip_cool_end" type="number" step="1" min="1" suffix="mm/s"></x-field>
-                    <x-field label="Abreißen" k="tip_speed_start" type="number" step="5" min="1" suffix="mm/s"></x-field>
-                    <x-field label="Zurückziehen" k="tip_speed" type="number" step="1" min="1" suffix="mm/s"></x-field>
-                    <x-field label="Rammen" k="tip_ram_len" type="number" step="0.5" min="0" suffix="mm"></x-field>
-                    <x-field label="Kühltemperatur" k="tip_temp" type="number" step="5" min="0" suffix="°C"></x-field>
-                    <x-field label="Auswerfen" k="tip_eject_speed" type="number" step="1" min="1" suffix="mm/s"></x-field>
-                  </div>
-                  <div class="small muted mt-3">Ablauf: rammen (optional) → 15 mm schnell abreißen → langsamer bis in die Kühlzone → Kühlbewegungen mit steigendem Tempo → restliches Zurückziehen bis unload_ext_len. Startwerte nach Happy Hare; für den Dragon HF mit „Spitze formen“ testen und die Spitze ansehen: Faden → mehr Kühlbewegungen oder Kühlzone höher, Knubbel → Kühlzone tiefer oder Kühltemperatur senken. Kühlzone = Abstand Düse → Mitte der Kühlzone. Kühltemperatur 0 = Temperatur nicht ändern.</div>
-                  <hr role="separator" class="v-divider theme--dark my-4">
-                  <div class="field-grid">
-                    <x-select label="PRINT_START ohne Filament" k="print_start_mode" style="grid-column:span 2"><option value="2">automatisch laden</option><option value="1">nur prüfen (Abbruch)</option><option value="0">aus</option></x-select>
-                  </div>
-                  <div class="mt-3"><x-check label="Nach dem Druck entladen (PRINT_END)" k="unload_after_print"></x-check></div>
-                  <div class="small muted mt-3" id="hook-hint">LOADER_PRINT_START steht nach dem Aufheizen der Düse in PRINT_START, LOADER_PRINT_END vor TURN_OFF_HEATERS in PRINT_END. ./install.sh fügt beide auf Wunsch ein.</div>
-                </div>
-
-                <div class="prev hide" id="ed-prev"></div>
+                <div id="ed-tabs"></div>
+                <div class="res mt-4" id="ed-est"></div>
                 <div class="btn-row mt-4">
                   <x-btn id="ed-save" color="primary" icon="mdiContentSave">Speichern</x-btn>
                   <x-btn id="ed-reset" variant="text">Verwerfen</x-btn>
@@ -495,8 +438,8 @@ const T_EN = {
   "Laden kalt": "Load cold", "Laden heiß": "Load hot", "Entladen": "Unload", "Düse °C": "Nozzle °C",
   "Klemmen": "Clamp", "Lösen": "Release",
   "Auto-Laden bei Filament am Eingang": "Auto load when filament enters", "Bench-Modus (nur Testfahrt)": "Bench mode (test run only)",
-  "Auto-Laden und Bench-Modus gelten bis zum nächsten Neustart. Dauerhaft: Einstellungen → Laden & Auto.":
-    "Auto load and bench mode apply until the next restart. Permanent: Settings → Load & Auto.",
+  "Auto-Laden und Bench-Modus gelten bis zum nächsten Neustart. Dauerhaft: Einstellungen → Allgemein.":
+    "Auto load and bench mode apply until the next restart. Permanent: Settings → General.",
   "Hotend auf {n} °C aufheizen, Filament laden und bis in die Düse fördern?": "Heat the hotend to {n} °C, load the filament and feed it to the nozzle?",
   "Hotend auf {n} °C aufheizen und Filament entladen?": "Heat the hotend to {n} °C and unload the filament?",
   // Setup
@@ -622,6 +565,25 @@ const T_EN = {
   "{k} = {v} übernommen – unter Einstellungen speichern.": "{k} = {v} applied – save it under Settings.",
   "Filament steht an Sensor 2 (Messung)": "Filament at sensor 2 (measuring)", "Messfahrt bis Sensor 2 …": "Measuring run to sensor 2 …",
   "Spitze wird geformt, Extruder zieht zurück …": "Forming the tip, extruder retracting …",
+  // Settings editor
+  "Erweitert": "Advanced", "Voreinstellung:": "Preset:", "Zahl erforderlich": "number required", "mindestens {v}": "at least {v}", "höchstens {v}": "at most {v}",
+  "Pin erforderlich": "pin required", "Pin sieht ungültig aus": "pin looks invalid",
+  "muss kleiner als „Loader → Sensor 2“ sein": "must be smaller than “Loader → sensor 2”",
+  "muss größer als „Rest im Loader“ + 5 mm sein": "must be larger than “Left in the loader” + 5 mm",
+  "muss größer als Kühlzone + Kühlweg sein ({v} mm)": "must be larger than cooling zone + cooling stroke ({v} mm)",
+  "„Extruder zieht zurück“ ist so groß, dass die Spitze schon über Sensor 2 hinaus gezogen wird – üblich ist etwas weniger als „Zahnräder → Düse“.":
+    "“Extruder retracts” is so large that the tip is pulled past sensor 2 – usually it is a bit less than “Gears → nozzle”.",
+  "Sensorsuche braucht {n} Schritte (max. ca. 90) – Schritt vergrößern oder Reserve verkleinern": "the sensor search needs {n} steps (max. about 90) – increase the step or reduce the reserve",
+  "Über 200 mm/s braucht der NEMA17 meist 0,7 A oder mehr, sonst verliert er Schritte.": "Above 200 mm/s the NEMA17 usually needs 0.7 A or more, otherwise it skips steps.",
+  "„Leise bis“ liegt über dem Fördertempo – der Treiber fährt die volle Fahrt im leisen, aber schwächeren StealthChop.":
+    "“Quiet up to” is above the feed speed – the driver runs the full-speed move in the quiet but weaker StealthChop.",
+  "gleich wie der Klemmwinkel": "same as the clamp angle", "Standard: {v}": "Default: {v}",
+  "Geschätzt (ohne Aufheizen): Laden kalt <b>{a} s</b> · bis zur Düse <b>+{b} s</b> · Entladen <b>{c} s</b>":
+    "Estimated (without heating): load cold <b>{a} s</b> · to the nozzle <b>+{b} s</b> · unload <b>{c} s</b>",
+  "Sensorsuche": "Sensor search", "Reserve": "Reserve", "Loader → Sensor 2": "Loader → sensor 2", "Zahnräder → Düse": "Gears → nozzle", "Rest": "Left",
+  "Extruder zieht zurück": "Extruder retracts", "oben: Laden · unten: Entladen · nicht maßstäblich": "top: loading · bottom: unloading · not to scale",
+  "Bitte die rot markierten Felder prüfen.": "Please check the fields marked in red.",
+  "Voreinstellung „{p}“ übernommen – Speichern nicht vergessen.": "Preset “{p}” applied – don't forget to save.",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1490,50 +1452,156 @@ function drawPath() {
 // =====================================================================
 // Settings editor (filament_loader_settings.cfg)
 // Edits the file in place: comments and custom lines are preserved.
+// The form is generated from GROUPS: label, unit, short help, default,
+// limits, "advanced" flag. Inline validation, reset to default, speed
+// presets, a sketch of the lengths and a time estimate.
 // =====================================================================
 const VARS = "gcode_macro _loader_vars";
+const STP = "manual_stepper loader", TMC = "tmc2209 manual_stepper loader";
 const FIELDS = [
-  ["step_pin", "manual_stepper loader", "step_pin", "s"], ["dir_pin", "manual_stepper loader", "dir_pin", "s"],
-  ["enable_pin", "manual_stepper loader", "enable_pin", "s"], ["microsteps", "manual_stepper loader", "microsteps", "n"],
-  ["rotation_distance", "manual_stepper loader", "rotation_distance", "n"], ["velocity", "manual_stepper loader", "velocity", "n"],
-  ["accel", "manual_stepper loader", "accel", "n"],
-  ["uart_pin", "tmc2209 manual_stepper loader", "uart_pin", "s"], ["tx_pin", "tmc2209 manual_stepper loader", "tx_pin", "s"],
-  ["uart_address", "tmc2209 manual_stepper loader", "uart_address", "n"], ["run_current", "tmc2209 manual_stepper loader", "run_current", "n"],
+  ["step_pin", STP, "step_pin", "s"], ["dir_pin", STP, "dir_pin", "s"], ["enable_pin", STP, "enable_pin", "s"],
+  ["microsteps", STP, "microsteps", "n"], ["rotation_distance", STP, "rotation_distance", "n"], ["velocity", STP, "velocity", "n"],
+  ["accel", STP, "accel", "n"],
+  ["uart_pin", TMC, "uart_pin", "s"], ["tx_pin", TMC, "tx_pin", "s"], ["uart_address", TMC, "uart_address", "n"],
+  ["run_current", TMC, "run_current", "n"], ["stealth_speed", TMC, "stealthchop_threshold", "n"],
   ["servo_pin", "servo loader_clamp", "pin", "s"],
   ["loader_in_pin", "filament_switch_sensor loader_in", "switch_pin", "s"],
   ["toolhead_in_pin", TOOL, "switch_pin", "s"],
   ["lang", VARS, "variable_lang", "l"],
-  ...["servo_clamp", "servo_release", "servo_settle", "speed", "slow_speed", "step_mm", "coarse_len", "tube_len", "overrun",
+  ...["servo_clamp", "servo_release", "servo_settle", "speed", "slow_speed", "step_mm", "approach", "tube_len", "overrun",
     "gear_offset", "gear_push", "ext_to_nozzle", "ext_speed", "purge_len", "purge_speed", "default_temp", "unload_ext_len",
     "unload_hold", "auto_delay", "bench_dist", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode"].map((k) => [k, VARS, "variable_" + k, "n"]),
   ["servo_off_released", VARS, "variable_servo_off_released", "b"], ["bench_mode", VARS, "variable_bench_mode", "b"],
   ["tip_enable", VARS, "variable_tip_enable", "b"], ["unload_after_print", VARS, "variable_unload_after_print", "b"],
 ];
-const LABELS = {
-  step_pin: "Stepper step_pin", dir_pin: "Stepper dir_pin", enable_pin: "Stepper enable_pin", microsteps: "Mikroschritte",
-  rotation_distance: "rotation_distance", velocity: "Max. Tempo", accel: "Beschleunigung", uart_pin: "UART-Pin", tx_pin: "UART TX-Pin",
-  uart_address: "UART-Adresse", run_current: "Motorstrom", servo_pin: "Servo-Pin", loader_in_pin: "Sensor 1 Pin",
-  toolhead_in_pin: "Sensor 2 Pin", tool: "Sensor 2 aktiv (verdrahtet)", lang: "Klipper-Meldungen", servo_clamp: "Klemmwinkel",
-  servo_release: "Freiwinkel", servo_settle: "Servo-Wartezeit", servo_off_released: "Servo nach dem Lösen abschalten", speed: "Tempo",
-  slow_speed: "Tempo fein", step_mm: "Schritt bei Abfrage", coarse_len: "coarse_len", tube_len: "tube_len", overrun: "Reserve (overrun)",
-  gear_offset: "gear_offset", gear_push: "gear_push", ext_to_nozzle: "ext_to_nozzle", ext_speed: "Extruder-Tempo",
-  purge_len: "Ausspülen", purge_speed: "Ausspül-Tempo", default_temp: "Standard-Düsentemperatur", unload_ext_len: "unload_ext_len",
-  unload_hold: "unload_hold", auto_delay: "Auto-Verzögerung", bench_mode: "Bench-Modus", bench_dist: "Bench-Strecke",
-  tip_enable: "Spitze formen beim Entladen", tip_ram_len: "Rammen", tip_temp: "Kühltemperatur", tip_speed_start: "Abreißen",
-  tip_speed: "Zurückziehen", tip_cool_pos: "Kühlzone", tip_cool_len: "Kühlweg", tip_cool_moves: "Kühlbewegungen",
-  tip_cool_start: "Kühlen Start", tip_cool_end: "Kühlen Ende", tip_eject_speed: "Auswerfen",
-  print_start_mode: "PRINT_START ohne Filament", unload_after_print: "Nach dem Druck entladen (PRINT_END)",
-};
-/* new variables of newer versions: defaults when the settings file does not have them yet */
-const NEW_DEFAULTS = { tip_enable: 1, tip_ram_len: 0, tip_temp: 0, tip_speed_start: 80, tip_speed: 18, tip_cool_pos: 35, tip_cool_len: 10,
-  tip_cool_moves: 4, tip_cool_start: 10, tip_cool_end: 50, tip_eject_speed: 25, print_start_mode: 2, unload_after_print: 0 };
 const TYPES = Object.fromEntries(FIELDS.map((f) => [f[0], f[3]]).concat([["tool", "b"]]));
-let ED = null;   // { text, schema, base, model }
+/* defaults – same as scripts/installer.py DEFAULTS */
+const DEF = {
+  step_pin: "gpio14", dir_pin: "!gpio13", enable_pin: "!gpio15", microsteps: 16, rotation_distance: 22.6789511, velocity: 150, accel: 1500,
+  uart_pin: "gpio9", tx_pin: "gpio8", uart_address: 3, run_current: 0.6, stealth_speed: 60, servo_pin: "gpio29",
+  loader_in_pin: "^gpio16", toolhead_in_pin: "^nhk:gpio12", tool: 0, lang: "de",
+  servo_clamp: 45, servo_release: 170, servo_settle: 0.5, servo_off_released: 1, speed: 150, slow_speed: 30, step_mm: 2,
+  approach: 30, tube_len: 300, overrun: 40, gear_offset: 8, gear_push: 3, ext_to_nozzle: 70, ext_speed: 5, purge_len: 30,
+  purge_speed: 3, default_temp: 220, unload_ext_len: 65, unload_hold: 15, auto_delay: 2, bench_mode: 1, bench_dist: 50,
+  tip_enable: 1, tip_ram_len: 0, tip_temp: 0, tip_speed_start: 80, tip_speed: 18, tip_cool_pos: 35, tip_cool_len: 10,
+  tip_cool_moves: 4, tip_cool_start: 10, tip_cool_end: 50, tip_eject_speed: 25, print_start_mode: 2, unload_after_print: 0,
+};
+/* variables of newer versions – defaults when the settings file does not have them yet */
+const NEW_KEYS = ["approach", "stealth_speed", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
+  "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "unload_after_print"];
+const NEW_DEFAULTS = Object.fromEntries(NEW_KEYS.map((k) => [k, DEF[k]]));
+
+const L2 = (x) => Array.isArray(x) ? x[LANG === "en" ? 1 : 0] : x;
+/* field: k, l (label [de,en]), u (unit), h (help [de,en]), min, max, st (step), adv, ty (check/select/text), o (options), wide */
+const F = (k, l, u, h, o = {}) => ({ k, l, u, h, ...o });
+const GROUPS = [
+  { id: "gen", t: ["Allgemein", "General"], f: [
+    F("lang", ["Klipper-Meldungen", "Klipper messages"], "", ["Sprache der Meldungen in der Konsole", "Language of the console messages"], { ty: "select", o: [["de", "Deutsch"], ["en", "English"]] }),
+    F("default_temp", ["Standard-Düsentemperatur", "Default nozzle temperature"], "°C", ["Wenn weder TEMP= noch eine Zieltemperatur gesetzt ist", "When neither TEMP= nor a target temperature is set"], { min: 150, max: 320, st: 5 }),
+    F("print_start_mode", ["Druckstart ohne Filament", "Print start without filament"], "", ["Was LOADER_PRINT_START in PRINT_START macht, wenn der Toolhead leer ist", "What LOADER_PRINT_START in PRINT_START does when the toolhead is empty"],
+      { ty: "select", o: [["2", ["automatisch laden", "load automatically"]], ["1", ["nur prüfen – Druck abbrechen", "check only – abort the print"]], ["0", ["nichts tun", "do nothing"]]], wide: true }),
+    F("unload_after_print", ["Nach dem Druck entladen", "Unload after the print"], "", ["LOADER_PRINT_END in PRINT_END formt die Spitze und entlädt", "LOADER_PRINT_END in PRINT_END forms the tip and unloads"], { ty: "check" }),
+    F("auto_delay", ["Wartezeit Auto-Laden", "Auto-load delay"], "s", ["Zeit zum Nachschieben, bevor der Loader zugreift", "Time to push the filament in before the loader grips"], { min: 0, max: 10, st: 0.5 }),
+    F("bench_mode", ["Bench-Modus", "Bench mode"], "", ["Auto-Laden fährt nur die Teststrecke – für Tests am Tisch", "Auto load only runs the test distance – for testing on the table"], { ty: "check" }),
+    F("bench_dist", ["Teststrecke", "Test distance"], "mm", ["Strecke im Bench-Test", "Distance of the bench test"], { min: 5, max: 500, st: 5, adv: true }),
+  ] },
+  { id: "speed", t: ["Tempo", "Speed"], presets: true, f: [
+    F("speed", ["Fördern", "Feed"], "mm/s", ["Volle Fahrt durch den PTFE-Schlauch", "Full speed through the PTFE tube"], { min: 10, max: 400, st: 10 }),
+    F("slow_speed", ["Sensorsuche", "Sensor search"], "mm/s", ["Letztes Stück vor Sensor 2 und Übergabe an den Extruder", "Last part before sensor 2 and hand-over to the extruder"], { min: 5, max: 100, st: 5 }),
+    F("accel", ["Beschleunigung", "Acceleration"], "mm/s²", ["Höher = schneller auf Tempo, braucht mehr Kraft", "Higher = reaches speed sooner, needs more torque"], { min: 100, max: 10000, st: 100 }),
+    F("run_current", ["Motorstrom", "Motor current"], "A", ["Mehr Strom = mehr Kraft bei hohem Tempo, wärmerer Motor", "More current = more torque at high speed, warmer motor"], { min: 0.2, max: 1.5, st: 0.05 }),
+    F("ext_speed", ["Extruder beim Laden", "Extruder while loading"], "mm/s", ["Extruder schiebt bis zur Düse", "Extruder pushes to the nozzle"], { min: 0.5, max: 30, st: 0.5 }),
+    F("stealth_speed", ["Leise bis", "Quiet up to"], "mm/s", ["Darunter leise (StealthChop), darüber kräftig (SpreadCycle). 0 = immer kräftig", "Below: quiet (StealthChop), above: strong (SpreadCycle). 0 = always strong"], { min: 0, max: 999999, st: 10, adv: true }),
+    F("purge_speed", ["Ausspül-Tempo", "Purge speed"], "mm/s", ["Tempo beim Ausspülen nach dem Laden", "Speed of the purge after loading"], { min: 0.5, max: 20, st: 0.5, adv: true }),
+    F("step_mm", ["Suchschritt", "Search step"], "mm", ["Genauigkeit der Sensorsuche – kleiner = genauer, aber langsamer", "Resolution of the sensor search – smaller = more precise but slower"], { min: 0.5, max: 10, st: 0.5, adv: true }),
+  ] },
+  { id: "len", t: ["Längen", "Lengths"], diagram: true, f: [
+    F("tube_len", ["Loader → Sensor 2", "Loader → sensor 2"], "mm", ["Loader-Zahnräder bis Sensor 2 – unter „Stepper kalibrieren“ messen", "Loader gears to sensor 2 – measure it under “Calibrate stepper”"], { min: 20, max: 3000, st: 1 }),
+    F("gear_offset", ["Sensor 2 → Zahnräder", "Sensor 2 → gears"], "mm", ["Bis die Spitze an den Extruder-Zahnrädern ansteht", "Until the tip touches the extruder gears"], { min: 0, max: 100, st: 0.5 }),
+    F("gear_push", ["In die Zahnräder schieben", "Push into the gears"], "mm", ["Zusätzlich, damit der Extruder sicher greift", "Extra, so the extruder grips reliably"], { min: 0, max: 20, st: 0.5 }),
+    F("ext_to_nozzle", ["Zahnräder → Düse", "Gears → nozzle"], "mm", ["So weit fördert der Extruder beim Laden heiß", "The extruder feeds this far when loading hot"], { min: 5, max: 300, st: 1 }),
+    F("purge_len", ["Ausspülen", "Purge"], "mm", ["Nach dem Laden heiß, 0 = aus", "After loading hot, 0 = off"], { min: 0, max: 300, st: 1 }),
+    F("unload_ext_len", ["Extruder zieht zurück", "Extruder retracts"], "mm", ["Beim Entladen insgesamt ab Düse, inklusive Spitze formen", "When unloading, in total from the nozzle, incl. tip forming"], { min: 5, max: 300, st: 1 }),
+    F("unload_hold", ["Rest im Loader", "Left in the loader"], "mm", ["So weit steckt das Filament nach dem Entladen noch im Loader", "How far the filament stays inside the loader after unloading"], { min: 0, max: 100, st: 1 }),
+    F("approach", ["Sensorsuche ab", "Search starts"], "mm", ["So viele mm vor Sensor 2 endet die volle Fahrt", "The full-speed move ends this many mm before sensor 2"], { min: 5, max: 300, st: 5, adv: true }),
+    F("overrun", ["Reserve", "Reserve"], "mm", ["Über den erwarteten Sensorpunkt hinaus, danach Timeout", "Beyond the expected sensor point, then timeout"], { min: 5, max: 300, st: 5, adv: true }),
+  ] },
+  { id: "servo", t: ["Servo", "Servo"], f: [
+    F("servo_clamp", ["Klemmwinkel", "Clamp angle"], "°", ["Hebel drückt das Zahnrad auf das Filament – unter „Manuell & Test“ ermitteln", "Lever presses the gear onto the filament – find it under “Manual & test”"], { min: 0, max: 180, st: 1 }),
+    F("servo_release", ["Freiwinkel", "Release angle"], "°", ["Hebel offen, Filament läuft frei", "Lever open, filament runs free"], { min: 0, max: 180, st: 1 }),
+    F("servo_settle", ["Wartezeit", "Settle time"], "s", ["Nach jeder Servo-Bewegung", "After every servo move"], { min: 0, max: 3, st: 0.1, adv: true }),
+    F("servo_off_released", ["Servo nach dem Lösen abschalten", "Switch servo off after release"], "", ["Kein Brummen, Hebel bleibt trotzdem offen", "No humming, the lever stays open anyway"], { ty: "check", adv: true }),
+  ] },
+  { id: "tip", t: ["Spitze", "Tip"], note: ["Spitze testen: „Manuell & Test → Spitze formen“, Filament ziehen und ansehen. Faden → mehr Kühlbewegungen oder Kühlzone höher. Knubbel oder dicke Spitze → Kühlzone tiefer oder Kühltemperatur senken. Startwerte nach Happy Hare.",
+    "Test the tip: “Manual & test → Form tip”, pull the filament and look at it. String → more cooling moves or a higher cooling zone. Blob or fat tip → lower cooling zone or a lower cooling temperature. Start values from Happy Hare."], f: [
+    F("tip_enable", ["Spitze formen beim Entladen", "Form a tip when unloading"], "", ["Verhindert, dass die geschmolzene Spitze in Zahnrädern oder Schlauch hängen bleibt", "Keeps the molten tip from catching in the gears or the tube"], { ty: "check", wide: true }),
+    F("tip_cool_pos", ["Kühlzone", "Cooling zone"], "mm", ["Abstand Düse → Mitte der Kühlzone (Heatbreak)", "Distance nozzle → middle of the cooling zone (heatbreak)"], { min: 5, max: 100, st: 1 }),
+    F("tip_cool_len", ["Kühlweg", "Cooling stroke"], "mm", ["Hub einer Kühlbewegung", "Stroke of one cooling move"], { min: 1, max: 40, st: 1 }),
+    F("tip_cool_moves", ["Kühlbewegungen", "Cooling moves"], "", ["Mehr = dünnere, festere Spitze", "More = thinner, firmer tip"], { min: 0, max: 20, st: 1 }),
+    F("tip_temp", ["Kühltemperatur", "Cooling temperature"], "°C", ["Während der Kühlbewegungen, 0 = nicht ändern", "During the cooling moves, 0 = keep"], { min: 0, max: 320, st: 5 }),
+    F("tip_cool_start", ["Kühlen Start", "Cooling start"], "mm/s", ["Tempo der ersten Kühlbewegung", "Speed of the first cooling move"], { min: 1, max: 200, st: 1, adv: true }),
+    F("tip_cool_end", ["Kühlen Ende", "Cooling end"], "mm/s", ["Tempo der letzten Kühlbewegung", "Speed of the last cooling move"], { min: 1, max: 200, st: 1, adv: true }),
+    F("tip_speed_start", ["Abreißen", "Break-off"], "mm/s", ["Erste 15 mm schnell aus der Schmelzzone", "First 15 mm fast out of the melt zone"], { min: 5, max: 200, st: 5, adv: true }),
+    F("tip_speed", ["Zurückziehen", "Retract"], "mm/s", ["Weiter bis in die Kühlzone", "On into the cooling zone"], { min: 1, max: 100, st: 1, adv: true }),
+    F("tip_ram_len", ["Rammen", "Ramming"], "mm", ["Vor dem Abreißen extrudieren, 0 = aus", "Extrude before the break-off, 0 = off"], { min: 0, max: 30, st: 0.5, adv: true }),
+    F("tip_eject_speed", ["Auswerfen", "Eject"], "mm/s", ["Restliches Zurückziehen bis „Extruder zieht zurück“", "Remaining retraction up to “Extruder retracts”"], { min: 1, max: 100, st: 1, adv: true }),
+  ] },
+  { id: "hw", t: ["Hardware", "Hardware"], note: ["Sensoren sind Öffner (NC): kein Filament = Kontakt geschlossen. „^“ = Pull-up, „!“ = invertiert. Der MCU-Name von Sensor 2 muss zu [mcu …] in nitehawk-sb.cfg passen. Änderungen an Pins wirken nach dem Neustart.",
+    "Sensors are normally closed (NC): no filament = contact closed. “^” = pull-up, “!” = inverted. The MCU name of sensor 2 must match [mcu …] in nitehawk-sb.cfg. Pin changes take effect after the restart."], f: [
+    F("tool", ["Sensor 2 aktiv (verdrahtet)", "Sensor 2 active (wired)"], "", ["Ohne Sensor 2 nur Tests, kein Laden und Entladen", "Without sensor 2 only tests, no loading or unloading"], { ty: "check", wide: true }),
+    F("toolhead_in_pin", ["Sensor 2 Pin", "Sensor 2 pin"], "", ["Am Toolhead-Board, z. B. ^nhk:gpio12", "On the toolhead board, e.g. ^nhk:gpio12"], { ty: "text" }),
+    F("loader_in_pin", ["Sensor 1 Pin", "Sensor 1 pin"], "", ["Loader-Eingang, z. B. ^gpio16", "Loader entrance, e.g. ^gpio16"], { ty: "text" }),
+    F("servo_pin", ["Servo-Pin", "Servo pin"], "", ["SERVOS-Header, z. B. gpio29", "SERVOS header, e.g. gpio29"], { ty: "text" }),
+    F("dir_pin", ["Stepper dir_pin", "Stepper dir_pin"], "", ["„!“ davor dreht die Richtung um", "“!” in front reverses the direction"], { ty: "text" }),
+    F("rotation_distance", ["rotation_distance", "rotation_distance"], "mm", ["Unter „Stepper kalibrieren“ ermitteln", "Find it under “Calibrate stepper”"], { min: 0.001, max: 200, st: 0.00001 }),
+    F("step_pin", ["Stepper step_pin", "Stepper step_pin"], "", ["", ""], { ty: "text", adv: true }),
+    F("enable_pin", ["Stepper enable_pin", "Stepper enable_pin"], "", ["", ""], { ty: "text", adv: true }),
+    F("microsteps", ["Mikroschritte", "Microsteps"], "", ["", ""], { min: 1, max: 256, st: 1, adv: true }),
+    F("uart_pin", ["UART-Pin", "UART pin"], "", ["", ""], { ty: "text", adv: true }),
+    F("tx_pin", ["UART TX-Pin", "UART TX pin"], "", ["", ""], { ty: "text", adv: true }),
+    F("uart_address", ["UART-Adresse", "UART address"], "", ["E0 am SKR Pico = 3", "E0 on the SKR Pico = 3"], { min: 0, max: 3, st: 1, adv: true }),
+  ] },
+];
+const FDEF = Object.fromEntries(GROUPS.flatMap((g) => g.f.map((f) => [f.k, f])));
+const LABELS = Object.fromEntries(Object.values(FDEF).map((f) => [f.k, f.l]));
+const PRESETS = [
+  { id: "quiet", t: ["Leise", "Quiet"], v: { speed: 60, slow_speed: 15, accel: 600, stealth_speed: 200 } },
+  { id: "normal", t: ["Normal", "Normal"], v: { speed: 150, slow_speed: 30, accel: 1500, stealth_speed: 60 } },
+  { id: "fast", t: ["Schnell", "Fast"], v: { speed: 250, slow_speed: 40, accel: 3000, stealth_speed: 0 } },
+];
+let ED = null;   // { text, schema, base, model, missing }
 
 const numStr = (v) => String(Math.round(Number(v) * 1e6) / 1e6);
 const fmtV = (k, v) => TYPES[k] === "n" ? numStr(v) : TYPES[k] === "b" ? (+v ? "1" : "0") : String(v).trim();
 const same = (k, a, b) => fmtV(k, a) === fmtV(k, b);
+
+/* ---- build the form ---- */
+function fldHTML(f) {
+  const lab = esc(L2(f.l)), help = L2(f.h) || "";
+  let ctl;
+  if (f.ty === "check") ctl = checkHTML({ label: lab, k: f.k });
+  else if (f.ty === "select") ctl = fieldHTML({ label: lab, k: f.k, options: f.o.map(([v, n]) => `<option value="${esc(v)}">${esc(L2(n))}</option>`).join("") });
+  else ctl = fieldHTML({ label: lab, k: f.k, type: f.ty === "text" ? "text" : "number", step: f.st, min: f.min, max: f.max, suffix: f.u });
+  return `<div class="fld${f.adv ? " adv" : ""}${f.wide || f.ty === "check" ? " wide" : ""}" data-f="${f.k}">${ctl}` +
+    `<button type="button" class="rst hide" data-rst="${f.k}">↺</button><div class="hint" data-help="${esc(help)}">${esc(help)}</div></div>`;
+}
+function buildEditor() {
+  const cur = document.querySelector("#tab-bar .v-tab--active");
+  const active = cur ? cur.dataset.t : "t-gen";
+  $("tab-bar").querySelectorAll(".v-tab").forEach((x) => x.remove());
+  $("tab-bar").insertAdjacentHTML("beforeend", GROUPS.map((g) => `<a role="tab" class="v-tab${"t-" + g.id === active ? " v-tab--active" : ""}" data-t="t-${g.id}">${esc(L2(g.t))}</a>`).join(""));
+  $("ed-tabs").innerHTML = GROUPS.map((g) => `<div class="tab${"t-" + g.id === active ? "" : " hide"}" id="t-${g.id}">` +
+    (g.presets ? `<div class="preset-row"><span class="small muted">${esc(t("Voreinstellung:"))}</span>` +
+      PRESETS.map((p) => btnHTML({ text: esc(L2(p.t)), cls: "preset", data: { preset: p.id } })).join("") + `</div>` : "") +
+    (g.diagram ? `<svg id="len-svg" viewBox="0 0 640 150" role="img"></svg>` : "") +
+    `<div class="ed-grid">${g.f.map(fldHTML).join("")}</div>` +
+    (g.note ? `<div class="ed-note">${esc(L2(g.note))}</div>` : "") + `</div>`).join("");
+  $("ed-tabs").classList.toggle("show-adv", store.get("adv", false));
+  setCheck($("ed-adv"), store.get("adv", false));
+  if (ED) fillEditor();
+  fixLegends($("ed-tabs")); moveSlider();
+}
 
 async function fetchCfg(name) {
   const r = await fetch(`/server/files/config/${encodeURIComponent(name)}`, { cache: "no-store" });
@@ -1580,29 +1648,7 @@ async function loadSettings() {
   ED = { text, schema, base: { ...model }, model: { ...model }, missing: FIELDS.filter(([k, s, o]) => (sec[s] || {})[o] === undefined && NEW_DEFAULTS[k] !== undefined).map((f) => f[0]) };
   $("ed-msg").innerHTML = "";
   fillEditor();
-}
-
-const edInputs = () => document.querySelectorAll(".panel[data-p=settings] [data-k]");
-function fillEditor() {
-  if (!ED) return;
-  edInputs().forEach((el) => {
-    const v = ED.model[el.dataset.k];
-    if (el.hasAttribute("data-check")) setCheck(el, !!+v);
-    else if (v !== undefined) el.value = v;
-  });
-  fixLegends();
-}
-function setField(k, val) {
-  const el = document.querySelector(`.panel[data-p=settings] [data-k="${k}"]`);
-  if (el) el.value = val;
-  if (ED) ED.model[k] = val;
-}
-function readEditor() {
-  if (!ED) return;
-  edInputs().forEach((el) => {
-    const k = el.dataset.k;
-    ED.model[k] = el.hasAttribute("data-check") ? (isChecked(el) ? 1 : 0) : String(el.value).trim().replace(/,/g, TYPES[k] === "n" ? "." : ",");
-  });
+  edUpdate();
 }
 
 /* ---- edit the file in place ---- */
@@ -1649,38 +1695,175 @@ function buildText(m) {
   return L.join("\n");
 }
 
-function validate(m) {
-  const err = [], warn = [];
-  for (const [k, , , ty] of FIELDS) {
-    if (ty === "n" && !isFinite(parseFloat(m[k]))) err.push(t("Ungültiger Wert: {k}", { k: t(LABELS[k]) }));
-    if (ty === "s" && !m[k] && !(k === "toolhead_in_pin" && !+m.tool)) err.push(t("Ungültiger Wert: {k}", { k: t(LABELS[k]) }));
-    if (ty === "s" && m[k] && !/^[\^~!]*([A-Za-z0-9_-]+:)?[A-Za-z0-9_]+$/.test(m[k]) && !(k === "toolhead_in_pin" && !+m.tool)) err.push(t("Pin sieht ungültig aus: {k}", { k: t(LABELS[k]) }));
-  }
-  if (err.length) return { err: err[0], warn };
-  const n = (k) => parseFloat(m[k]);
-  for (const k of ["servo_clamp", "servo_release"]) if (n(k) < 0 || n(k) > 180) return { err: t("{k} muss zwischen 0 und 180 liegen.", { k: t(LABELS[k]) }), warn };
-  if (n("rotation_distance") <= 0 || n("step_mm") <= 0 || n("speed") <= 0 || n("slow_speed") <= 0) return { err: t("Tempo, Schritt und rotation_distance müssen größer als 0 sein."), warn };
-  if (n("coarse_len") >= n("tube_len")) warn.push(t("coarse_len sollte kleiner als tube_len sein, sonst fehlt die Sensorabfrage vor dem Ziel."));
-  const depth = (n("tube_len") + n("overrun") - n("coarse_len")) / n("step_mm");
-  if (depth > 100) warn.push(t("Die Sensorabfrage braucht rund {n} Makro-Aufrufe hintereinander (Limit ca. 100) – coarse_len erhöhen oder Schritt vergrößern.", { n: Math.round(depth) }));
-  if (n("run_current") > 1) warn.push(t("Motorstrom über 1 A – für einen NEMA17 am Loader meist unnötig."));
-  if (n("servo_clamp") === n("servo_release")) warn.push(t("Klemm- und Freiwinkel sind gleich."));
-  if (n("unload_ext_len") >= n("ext_to_nozzle") + n("gear_offset")) warn.push(t("unload_ext_len ist so groß, dass der Extruder die Spitze schon über Sensor 2 hinaus zieht – üblich ist etwas weniger als ext_to_nozzle."));
-  if (+m.tip_enable && n("tip_cool_pos") + n("tip_cool_len") >= n("unload_ext_len")) warn.push(t("Die Kühlzone reicht bis an unload_ext_len – unload_ext_len sollte größer als Kühlzone + Kühlweg sein."));
-  return { err: null, warn };
+const edInputs = () => document.querySelectorAll("#ed-tabs [data-k]");
+function fillEditor() {
+  if (!ED) return;
+  edInputs().forEach((el) => {
+    const v = ED.model[el.dataset.k];
+    if (el.hasAttribute("data-check")) setCheck(el, !!+v);
+    else if (v !== undefined) el.value = v;
+  });
+  fixLegends($("ed-tabs"));
+  edUpdate();
+}
+function setField(k, val) {
+  const el = document.querySelector(`#ed-tabs [data-k="${k}"]`);
+  if (el) { if (el.hasAttribute("data-check")) setCheck(el, !!+val); else el.value = val; }
+  if (ED) { ED.model[k] = val; edUpdate(); }
+}
+function readEditor() {
+  if (!ED) return;
+  edInputs().forEach((el) => {
+    const k = el.dataset.k;
+    ED.model[k] = el.hasAttribute("data-check") ? (isChecked(el) ? 1 : 0) : String(el.value).trim().replace(/,/g, TYPES[k] === "n" ? "." : ",");
+  });
 }
 
+/* ---- validation: errors per field + general warnings ---- */
+function validate(m) {
+  const err = {}, warn = [], n = (k) => parseFloat(m[k]);
+  for (const f of Object.values(FDEF)) {
+    const ty = TYPES[f.k], v = m[f.k];
+    if (ty === "n") {
+      if (!isFinite(parseFloat(v))) err[f.k] = t("Zahl erforderlich");
+      else if (f.min != null && n(f.k) < f.min) err[f.k] = t("mindestens {v}", { v: dec(f.min) });
+      else if (f.max != null && n(f.k) > f.max) err[f.k] = t("höchstens {v}", { v: dec(f.max) });
+    } else if (ty === "s") {
+      const off = f.k === "toolhead_in_pin" && !+m.tool;
+      if (!off && !v) err[f.k] = t("Pin erforderlich");
+      else if (!off && !/^[\^~!]*([A-Za-z0-9_-]+:)?[A-Za-z0-9_]+$/.test(v)) err[f.k] = t("Pin sieht ungültig aus");
+    }
+  }
+  if (Object.keys(err).length) return { err, warn };
+  if (n("approach") >= n("tube_len")) err.approach = t("muss kleiner als „Loader → Sensor 2“ sein");
+  if (n("approach") <= n("unload_hold") + 5) err.approach = t("muss größer als „Rest im Loader“ + 5 mm sein");
+  if (+m.tip_enable && n("tip_cool_pos") + n("tip_cool_len") >= n("unload_ext_len")) err.unload_ext_len = t("muss größer als Kühlzone + Kühlweg sein ({v} mm)", { v: dec(n("tip_cool_pos") + n("tip_cool_len")) });
+  if (n("unload_ext_len") >= n("ext_to_nozzle") + n("gear_offset")) warn.push(t("„Extruder zieht zurück“ ist so groß, dass die Spitze schon über Sensor 2 hinaus gezogen wird – üblich ist etwas weniger als „Zahnräder → Düse“."));
+  const depth = (n("approach") + n("overrun")) / n("step_mm");
+  if (depth > 90) err.step_mm = t("Sensorsuche braucht {n} Schritte (max. ca. 90) – Schritt vergrößern oder Reserve verkleinern", { n: Math.round(depth) });
+  if (n("speed") > 200 && n("run_current") < 0.7) warn.push(t("Über 200 mm/s braucht der NEMA17 meist 0,7 A oder mehr, sonst verliert er Schritte."));
+  if (n("speed") > 100 && n("stealth_speed") >= n("speed")) warn.push(t("„Leise bis“ liegt über dem Fördertempo – der Treiber fährt die volle Fahrt im leisen, aber schwächeren StealthChop."));
+  if (n("servo_clamp") === n("servo_release")) err.servo_release = t("gleich wie der Klemmwinkel");
+  return { err, warn };
+}
+
+/* ---- live state of the form: changed / default / errors / estimate / sketch / presets ---- */
+function edUpdate() {
+  if (!ED) return;
+  const m = ED.model, v = validate(m);
+  let changed = 0;
+  document.querySelectorAll("#ed-tabs .fld").forEach((box) => {
+    const k = box.dataset.f, val = m[k];
+    const chg = !same(k, val, ED.base[k]); if (chg) changed++;
+    box.classList.toggle("chg", chg);
+    box.classList.toggle("err", !!v.err[k]);
+    const h = box.querySelector(".hint"); h.textContent = v.err[k] || h.dataset.help;
+    const rst = box.querySelector(".rst"), d = DEF[k];
+    const isDef = d === undefined || same(k, val, d);
+    rst.classList.toggle("hide", isDef);
+    if (!isDef) rst.title = t("Standard: {v}", { v: TYPES[k] === "b" ? t(+d ? "ja" : "nein") : String(d) });
+  });
+  // tabs with errors
+  document.querySelectorAll("#tab-bar .v-tab").forEach((tb) => {
+    const bad = [...document.querySelectorAll(`#${tb.dataset.t} .fld.err`)].length > 0;
+    tb.classList.toggle("error--text", bad);
+  });
+  const sv = $("ed-save").querySelector("span:last-child");
+  if (sv) sv.textContent = t("Speichern") + (changed ? ` (${changed})` : "");
+  document.querySelectorAll(".preset").forEach((b) => {
+    const p = PRESETS.find((x) => x.id === b.dataset.preset);
+    b.classList.toggle("on", Object.entries(p.v).every(([k, x]) => same(k, m[k], x)));
+  });
+  drawLenSketch(); drawEstimate(v);
+}
+
+/* time estimate (without heating), same steps as the macros */
+function drawEstimate(v) {
+  const m = ED.model, n = (k) => Math.max(0, parseFloat(m[k]) || 0);
+  const mv = (d, s) => { const a = n("accel") || 1000; s = Math.max(s, 0.1); const ta = s / a; return d <= s * ta ? 2 * Math.sqrt(d / a) : d / s + ta; };
+  const over = 0.2, stepT = mv(n("step_mm"), n("slow_speed")) + over;
+  const coarse = Math.max(n("tube_len") - n("approach"), 0);
+  const cold = 2 * n("servo_settle") + mv(coarse, n("speed")) + (n("approach") / Math.max(n("step_mm"), 0.1)) * stepT + mv(n("gear_offset") + n("gear_push"), n("slow_speed"));
+  const hot = n("ext_to_nozzle") / Math.max(n("ext_speed"), 0.1) + n("purge_len") / Math.max(n("purge_speed"), 0.1);
+  let tip = 0;
+  if (+m.tip_enable) {
+    const p = n("tip_cool_pos"), f15 = Math.min(15, p), r = p - f15, c0 = n("tip_cool_start"), c1 = n("tip_cool_end"), k = n("tip_cool_moves");
+    tip = f15 / Math.max(n("tip_speed_start"), 1) + r * (0.7 / Math.max(n("tip_speed"), 1) + 0.2 / Math.max(n("tip_speed") / 2, 1) + 0.1 / Math.max(n("tip_speed") * 0.3, 1));
+    for (let i = 0; i < k; i++) { const s = c0 + (c1 - c0) / Math.max(2 * k - 1, 1) * i * 2; tip += 2 * n("tip_cool_len") / Math.max(s, 1); }
+  }
+  const eject = Math.max(n("unload_ext_len") - (+m.tip_enable ? n("tip_cool_pos") : 0), 0) / Math.max(+m.tip_enable ? n("tip_eject_speed") : n("ext_speed"), 0.1);
+  const unload = tip + eject + 2 * n("servo_settle") + ((n("gear_offset") + 10) / Math.max(n("step_mm"), 0.1)) * stepT + mv(n("tube_len") - n("unload_hold"), n("speed"));
+  const s = (x) => dec(x < 10 ? x.toFixed(1) : Math.round(x));
+  const html = `${icon("mdiTimelapse", "mr-1", 16)}` + t("Geschätzt (ohne Aufheizen): Laden kalt <b>{a} s</b> · bis zur Düse <b>+{b} s</b> · Entladen <b>{c} s</b>", { a: s(cold), b: s(hot), c: s(unload) }) +
+    (v.warn.length ? v.warn.map((w) => `<div class="warning--text mt-2">${esc(w)}</div>`).join("") : "");
+  if ($("ed-est").dataset.h !== html) { $("ed-est").innerHTML = html; $("ed-est").dataset.h = html; }
+}
+
+/* sketch of all lengths – click jumps to the field */
+function drawLenSketch() {
+  const svg = $("len-svg"); if (!svg || !ED) return;
+  const m = ED.model, n = (k) => Math.max(0, parseFloat(m[k]) || 0), mm = (k) => `${dec(numStr(n(k)))} mm`;
+  // schematic x positions (not to scale): loader 30, sensor 2 330, gears 420, nozzle 600
+  const X0 = 30, XS = 330, XG = 420, XN = 600, Y = 70;
+  const segW = (k) => `class="seg${HL === k ? " on" : ""}" data-seg="${k}"`;
+  const dim = (k, x1, x2, y, label, below) => `<g ${segW(k)}><rect x="${Math.min(x1, x2)}" y="${y - 12}" width="${Math.abs(x2 - x1)}" height="22" fill="transparent"></rect>` +
+    `<path class="dim" d="M${x1},${y - 4} V${y + 4} M${x1},${y} H${x2} M${x2},${y - 4} V${y + 4}"></path>` +
+    `<text x="${(x1 + x2) / 2}" y="${below ? y + 13 : y - 5}" text-anchor="middle">${esc(label)}</text></g>`;
+  const zone = (k, x1, x2, label, anchor = "middle") => `<g ${segW(k)}><rect class="zone${HL === k ? " on" : ""}" x="${x1}" y="${Y - 7}" width="${x2 - x1}" height="14" rx="2"></rect>` +
+    `<text x="${anchor === "end" ? x2 - 9 : anchor === "start" ? x1 + 9 : (x1 + x2) / 2}" y="${Y - 11}" text-anchor="${anchor}" opacity=".8">${esc(label)}</text></g>`;
+  const scaleS = Math.min(1, n("approach") / Math.max(n("tube_len"), 1));
+  const xA = XS - Math.max(60, (XS - X0) * scaleS);
+  const xO = XS + Math.min(60, 20 + n("overrun") / 3);
+  const xP = XG + Math.min(30, 6 + n("gear_push") * 3);
+  const xC = XN - Math.min(120, 20 + n("tip_cool_pos") * 1.6);
+  const xU = Math.max(XG + 8, XN - Math.min(170, 20 + n("unload_ext_len") * 1.6));
+  svg.innerHTML =
+    // filament path, parts
+    `<line x1="${X0}" y1="${Y}" x2="${XN}" y2="${Y}" stroke="#3b82f6" stroke-opacity=".35" stroke-width="8" stroke-linecap="round"></line>` +
+    zone("approach", xA, XS, t("Sensorsuche"), "end") + zone("overrun", XS, xO, t("Reserve"), "start") +
+    (+m.tip_enable ? zone("tip_cool_pos", xC - 8, xC + 8, t("Kühlzone")) : "") +
+    `<rect x="${X0 - 18}" y="${Y - 16}" width="30" height="32" rx="3" fill="#f5c400" fill-opacity=".9"></rect>` +
+    `<rect x="${XS - 7}" y="${Y - 9}" width="14" height="18" rx="2" fill="#e53935"></rect>` +
+    `<circle cx="${XG}" cy="${Y - 8}" r="6" fill="#757575"></circle><circle cx="${XG}" cy="${Y + 8}" r="6" fill="#757575"></circle>` +
+    `<path d="M${XN},${Y - 8} L${XN + 12},${Y} L${XN},${Y + 8} Z" fill="#bdbdbd"></path>` +
+    `<text x="${X0 - 3}" y="${Y + 30}" text-anchor="middle">${esc(t("Loader"))}</text>` +
+    `<text x="${XS}" y="${Y + 30}" text-anchor="middle">${esc(t("Sensor 2"))}</text>` +
+    `<text x="${XG}" y="${Y + 30}" text-anchor="middle">${esc(t("Extruder"))}</text>` +
+    `<text x="${XN + 6}" y="${Y + 30}" text-anchor="middle">${esc(t("Düse"))}</text>` +
+    // lengths above the path
+    dim("tube_len", X0, XS, 22, `${t("Loader → Sensor 2")}: ${mm("tube_len")}`) +
+    dim("gear_offset", XS, XG, 22, mm("gear_offset")) +
+    dim("ext_to_nozzle", XG, XN, 22, `${t("Zahnräder → Düse")}: ${mm("ext_to_nozzle")}`) +
+    dim("gear_push", XG, xP, 44, `+${mm("gear_push")}`) +
+    // unloading below the path
+    dim("unload_hold", X0, X0 + 46, 122, `${t("Rest")}: ${mm("unload_hold")}`, true) +
+    dim("unload_ext_len", xU, XN, 122, `${t("Extruder zieht zurück")}: ${mm("unload_ext_len")}`, true) +
+    `<text x="${(X0 + XN) / 2 - 40}" y="148" text-anchor="middle" opacity=".55">${esc(t("oben: Laden · unten: Entladen · nicht maßstäblich"))}</text>`;
+}
+let HL = null;
+function highlight(k) {
+  HL = k;
+  document.querySelectorAll("#ed-tabs .fld").forEach((b) => b.classList.toggle("hl", b.dataset.f === k));
+  drawLenSketch();
+}
 async function saveSettings() {
   if (!ED) return;
   readEditor();
   const m = ED.model, v = validate(m);
-  if (v.err) return snack(v.err);
+  const bad = Object.keys(v.err);
+  if (bad.length) {
+    edUpdate();
+    const g = GROUPS.find((x) => x.f.some((f) => f.k === bad[0]));
+    if (g) openTab("t-" + g.id);
+    if (FDEF[bad[0]] && FDEF[bad[0]].adv && !store.get("adv", false)) { store.set("adv", true); $("ed-tabs").classList.add("show-adv"); setCheck($("ed-adv"), true); }
+    return snack(t("Bitte die rot markierten Felder prüfen."));
+  }
   if (printing()) return snack(t("Während eines Drucks gesperrt."));
   if ((S.configfile || {}).save_config_pending) return dialog(t("Erst speichern"), esc(t("Es gibt ungespeicherte Kalibrierwerte (SAVE_CONFIG ausstehend). Bitte zuerst Save Config ausführen – ein Neustart würde sie verwerfen.")), null);
 
-  const show = (k, x) => TYPES[k] === "b" ? t(+x ? "ja" : "nein") : TYPES[k] === "n" ? dec(numStr(x)) : TYPES[k] === "l" ? (x === "en" ? "English" : "Deutsch") : x === "" ? "–" : x;
+  const show = (k, x) => TYPES[k] === "b" ? t(+x ? "ja" : "nein") : TYPES[k] === "n" ? dec(numStr(x)) + (FDEF[k] && FDEF[k].u ? " " + FDEF[k].u : "") : TYPES[k] === "l" ? (x === "en" ? "English" : "Deutsch") : x === "" ? "–" : x;
   const diff = [];
-  for (const k in LABELS) if (!same(k, m[k], ED.base[k])) diff.push([t(LABELS[k]), esc(show(k, ED.base[k])), esc(show(k, m[k]))]);
+  for (const k in LABELS) if (!same(k, m[k], ED.base[k])) diff.push([L2(LABELS[k]), esc(show(k, ED.base[k])), esc(show(k, m[k]))]);
   if (!diff.length && !(ED.missing || []).length) return snack(t("Keine Änderungen."));
   if ((ED.missing || []).length) diff.push([t("Neue Einstellungen"), "–", esc(t("{n} Werte werden ergänzt", { n: ED.missing.length }))]);
 
@@ -1701,6 +1884,32 @@ async function saveSettings() {
     await rpc("printer.restart");
   } catch (e) { dialog(t("Fehler beim Speichern"), esc(e.message), null); }
 }
+
+/* ---- editor events ---- */
+document.addEventListener("input", (e) => {
+  if (!ED || !e.target.closest("#ed-tabs")) return;
+  readEditor(); edUpdate();
+});
+document.addEventListener("change", (e) => {
+  if (!ED || !e.target.closest("#ed-tabs")) return;
+  readEditor(); edUpdate();
+});
+document.addEventListener("focusin", (e) => { const f = e.target.closest("#ed-tabs .fld"); if (f) highlight(f.dataset.f); });
+document.addEventListener("click", (e) => {
+  const r = e.target.closest("[data-rst]");
+  if (r && ED) { setField(r.dataset.rst, DEF[r.dataset.rst]); return; }
+  const p = e.target.closest("[data-preset]");
+  if (p && ED) { readEditor(); const pr = PRESETS.find((x) => x.id === p.dataset.preset); for (const [k, v] of Object.entries(pr.v)) setField(k, v); return snack(t("Voreinstellung „{p}“ übernommen – Speichern nicht vergessen.", { p: L2(pr.t) })); }
+  const sg = e.target.closest("#len-svg [data-seg]");
+  if (sg) {
+    const k = sg.dataset.seg, f = FDEF[k];
+    const g = GROUPS.find((x) => x.f.some((y) => y.k === k));
+    if (f && f.adv && !store.get("adv", false)) { store.set("adv", true); $("ed-tabs").classList.add("show-adv"); setCheck($("ed-adv"), true); }
+    if (g) openTab("t-" + g.id);
+    const el = document.querySelector(`#ed-tabs [data-k="${k}"]`); if (el) { el.focus(); el.select && el.select(); }
+    highlight(k);
+  }
+});
 
 /* switch the Klipper message language immediately and persistently (no restart) */
 async function syncMacroLang(l) {
@@ -1883,7 +2092,8 @@ function setLang(l, persist) {
   translateStatic();
   showLangBtn();
   if (lastAvail) buildNav(lastAvail);
-  if (ED) { readEditor(); fillEditor(); }
+  if (ED) readEditor();
+  buildEditor();
   drawHistory();
   fixLegends(); moveSlider();
   $("setup-list").dataset.h = ""; $("cal-res").dataset.h = ""; PATH.built = false;
@@ -1920,7 +2130,8 @@ document.addEventListener("click", async (e) => {
     setCheck(chk, !isChecked(chk));
     if (chk.id === "auto") gcode(`LOADER_AUTO ENABLE=${isChecked(chk) ? 1 : 0}`);
     else if (chk.id === "bench") gcode(`LOADER_BENCH VALUE=${isChecked(chk) ? 1 : 0}`);
-    else if (ED && chk.dataset.k) readEditor();
+    else if (chk.id === "ed-adv") { store.set("adv", isChecked(chk)); $("ed-tabs").classList.toggle("show-adv", isChecked(chk)); fixLegends($("ed-tabs")); }
+    else if (ED && chk.dataset.k) { readEditor(); edUpdate(); }
     return;
   }
   const tb = e.target.closest("#tabs .v-tab");
@@ -1930,7 +2141,7 @@ document.addEventListener("click", async (e) => {
     const a = Math.round(parseFloat($("sv-a").value));
     if (!isFinite(a)) return;
     setField(sv.dataset.f, a);
-    openTab("t-motion");
+    openTab("t-servo");
     return snack(t("Winkel {a}° übernommen – unter Einstellungen speichern.", { a }));
   }
   const si = e.target.closest("[data-step]");
@@ -2041,6 +2252,7 @@ function wire() {
     try { if (window.top.loaderShow) { window.top.loaderShow(); history.back(); return; } } catch { /* foreign page */ }
   }
   expand();
+  buildEditor();
   drawHistory();
   wire();
   NAV.open = !isMobile(); layoutNav(); layoutCols();

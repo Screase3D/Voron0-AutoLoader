@@ -1,4 +1,4 @@
-#@schema 2
+#@schema 3
 # =====================================================================
 # voron0-autoloader - Einstellungen (vom Installer erzeugt)
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -22,7 +22,7 @@ dir_pin: ${dir_pin}                # "!" invertiert die Drehrichtung
 enable_pin: ${enable_pin}
 microsteps: ${microsteps}
 rotation_distance: ${rotation_distance}    # mm Filament pro Motorumdrehung - mit LOADER_MOVE DIST=100 nachmessen
-velocity: ${velocity}
+velocity: ${velocity}                  # Standardtempo, die Makros geben das Tempo immer selbst vor
 accel: ${accel}
 
 [tmc2209 manual_stepper loader]
@@ -30,7 +30,7 @@ uart_pin: ${uart_pin}                # gemeinsamer UART-Bus des Pico
 tx_pin: ${tx_pin}
 uart_address: ${uart_address}              # E0-Treiber
 run_current: ${run_current}
-stealthchop_threshold: 999999
+stealthchop_threshold: ${stealth_speed}      # mm/s: darunter leise (StealthChop), darueber kraeftig (SpreadCycle). 0 = immer SpreadCycle
 
 [servo loader_clamp]
 pin: ${servo_pin}                    # SKR Pico: SERVOS-Header. gpio21 waere der Bed-Heater!
@@ -71,10 +71,10 @@ variable_servo_release: ${servo_release}       # Winkel: Hebel frei
 variable_servo_settle: ${servo_settle}       # s Wartezeit nach Servo-Bewegung
 variable_servo_off_released: ${servo_off_released}   # 1 = nach Loesen Servo-Signal abschalten
 # --- Loader-Stepper ---
-variable_speed: ${speed}               # mm/s Normalfoerderung
-variable_slow_speed: ${slow_speed}          # mm/s Feinanfahrt / Uebergabe
+variable_speed: ${speed}               # mm/s volle Fahrt durch den Schlauch
+variable_slow_speed: ${slow_speed}          # mm/s Sensorsuche, Uebergabe an den Extruder
 variable_step_mm: ${step_mm}              # mm pro Schritt bei der Sensor-Abfrage (Rekursion!)
-variable_coarse_len: ${coarse_len}         # mm ohne Sensorabfrage (muss kleiner als tube_len sein)
+variable_approach: ${approach}            # mm vor Sensor 2: ab hier Sensorsuche statt voller Fahrt
 variable_tube_len: ${tube_len}           # mm Loader-Zahnraeder -> Toolhead-Sensor
 variable_overrun: ${overrun}             # mm Reserve bis Timeout
 # --- Toolhead ---

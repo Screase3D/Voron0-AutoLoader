@@ -24,7 +24,10 @@ extruder gears in the toolhead.
 - **Bench mode** – the auto trigger only clamps, runs a test distance and releases. Safe for testing
   the loader on the table before it is mounted.
 - **Mainsail page** with a live drawing of the filament path, status, setup checklist, manual tests,
-  servo-angle and `rotation_distance` calibration, a helper to measure the lengths, history and a settings editor.
+  servo-angle and `rotation_distance` calibration, a helper to measure the lengths, history and a settings editor
+  with plain-language fields, speed presets, a sketch of all lengths and a time estimate.
+- **Fast** – full speed (150 mm/s by default, presets up to 250 mm/s) through the tube, the sensor is
+  only searched on the last few centimetres.
 - **KlipperScreen menu** (More → AutoLoader).
 - German and English – UI, installer and Klipper messages.
 - Updates through Moonraker's update manager.
@@ -39,9 +42,9 @@ extruder gears in the toolhead.
 |---|---|---|
 | ![Manual](docs/images/manual.png) | ![Calibration](docs/images/calibration.png) | ![Settings](docs/images/settings.png) |
 
-| Measuring the lengths | Tip forming & print hooks |
-|---|---|
-| ![Measure](docs/images/measure.png) | ![Tip settings](docs/images/tip-settings.png) |
+| Measuring the lengths | Speed presets | Lengths sketch |
+|---|---|---|
+| ![Measure](docs/images/measure.png) | ![Speed](docs/images/settings-speed.png) | ![Lengths](docs/images/settings-lengths.png) |
 
 ## Hardware
 
@@ -160,8 +163,10 @@ The page has a setup checklist that ticks itself off where it can. The order:
 ### Load cold – `FILAMENT_LOAD_COLD`
 
 1. Servo clamps.
-2. The loader feeds `coarse_len` without checking the sensor.
-3. It continues in steps of `step_mm` until sensor 2 triggers (timeout after `tube_len + overrun`).
+2. The loader feeds `tube_len − approach` at full `speed` without checking the sensor.
+3. It continues in steps of `step_mm` at `slow_speed` until sensor 2 triggers (timeout after another
+   `approach + overrun`). If sensor 2 already triggers during the full-speed move, `tube_len` is too
+   large – the load stops with an error instead of ramming the filament into the extruder.
 4. It pushes `gear_offset + gear_push` further, so the tip ends up between the extruder gears.
 5. Servo releases, the stepper is switched off.
 
@@ -257,19 +262,27 @@ The macros refuse to run while printing, except when called by the print hooks.
 
 ## Settings
 
-All values live in `filament_loader_settings.cfg` and can be edited on the page (diff preview,
-previous version kept as `.bak`, Klipper restarts after saving).
+All values live in `filament_loader_settings.cfg` and are edited on the page under **Settings**:
+
+- grouped by task: *General, Speed, Lengths, Servo, Tip, Hardware*,
+- every field has a unit and a one-line explanation; fine-tuning and pins are hidden behind **Advanced**,
+- **↺** resets a field to its default, changed fields are marked, wrong values are marked in red with the reason,
+- **Speed presets** *Quiet / Normal / Fast*,
+- a **sketch of the filament path** on the *Lengths* tab – click a dimension to jump to its field,
+- a **time estimate** for loading and unloading that updates while you type,
+- saving shows a diff, keeps the previous version as `.bak` and restarts Klipper.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `servo_clamp` / `servo_release` | 45 / 170 | servo angles in degrees |
-| `servo_settle` | 0.5 | s to wait after a servo move |
-| `servo_off_released` | 1 | switch the servo signal off after releasing |
-| `speed` / `slow_speed` | 25 / 10 | mm/s loader speed / fine speed |
+| `speed` | 150 | mm/s full speed through the tube |
+| `slow_speed` | 30 | mm/s sensor search and hand-over to the extruder |
+| `accel` (`[manual_stepper loader]`) | 1500 | mm/s² acceleration of the loader |
+| `run_current` (`[tmc2209 …]`) | 0.6 | A motor current – more for high speeds |
+| `stealthchop_threshold` (`[tmc2209 …]`) | 60 | mm/s: below quiet StealthChop, above strong SpreadCycle (0 = always SpreadCycle) |
 | `step_mm` | 2 | mm per sensor check |
-| `coarse_len` | 240 | mm fed without checking (must be shorter than `tube_len`) |
+| `approach` | 30 | mm before sensor 2 where the full-speed move ends and the sensor search starts |
 | `tube_len` | 300 | mm from the loader gears to sensor 2 |
-| `overrun` | 60 | mm reserve before the timeout |
+| `overrun` | 40 | mm beyond the expected sensor point before the timeout |
 | `gear_offset` | 8 | mm from sensor 2 to the extruder gears |
 | `gear_push` | 3 | mm the loader pushes beyond the gears |
 | `ext_to_nozzle` | 70 | mm from the extruder gears to the nozzle |
@@ -278,6 +291,9 @@ previous version kept as `.bak`, Klipper restarts after saving).
 | `default_temp` | 220 | °C when no `TEMP=` is given |
 | `unload_ext_len` | 65 | mm the extruder retracts in total when unloading (from the nozzle, incl. tip forming) |
 | `unload_hold` | 15 | mm of filament left in the loader after unloading |
+| `servo_clamp` / `servo_release` | 45 / 170 | servo angles in degrees |
+| `servo_settle` | 0.5 | s to wait after a servo move |
+| `servo_off_released` | 1 | switch the servo signal off after releasing |
 | `auto_delay` | 2.0 | s before the auto trigger clamps |
 | `bench_mode` / `bench_dist` | 1 / 50 | bench mode and its test distance |
 | `lang` | de | language of the Klipper messages (`de` / `en`) |
@@ -292,8 +308,16 @@ previous version kept as `.bak`, Klipper restarts after saving).
 | `print_start_mode` | 2 | 0 off, 1 check only, 2 load automatically |
 | `unload_after_print` | 0 | unload in `PRINT_END` |
 
-Keep `(tube_len + overrun − coarse_len) / step_mm` below about 100. The sensor check is a chain of
-macro calls, and the page warns you when you get close.
+`(approach + overrun) / step_mm` must stay below about 90 – the sensor search is a chain of macro calls.
+The page checks this.
+
+### Speed notes
+
+With BMG gears (`rotation_distance` ≈ 23 mm) 150 mm/s are about 6.5 motor revolutions per second,
+250 mm/s about 11. That needs SpreadCycle (`stealthchop_threshold` below the feed speed), enough
+acceleration and usually 0.6–0.8 A. If the loader skips steps or stalls: lower the speed or the
+acceleration first, then raise the current a little. The *Fast* preset is a starting point – watch the
+first runs.
 
 ## Files
 
@@ -318,6 +342,10 @@ pages does not reload anything.
 - **Unknown pin / MCU** for sensor 2 – the prefix (`nhk:`) must match the MCU name of the toolhead board.
 - **Loader runs backwards** – invert `dir_pin` in the settings.
 - **Timeout before sensor 2** – increase `tube_len` / `overrun`, check for friction in the tube.
+- **"Sensor 2 was already reached during the full-speed move"** – `tube_len` is too large (or the
+  filament stuck out further than `approach`). Measure `tube_len` with *To sensor 2*.
+- **Loader stalls or skips at high speed** – lower `speed` / `accel`, set `stealthchop_threshold`
+  below the speed, raise `run_current` slightly.
 - **Filament stays in front of the extruder gears** – increase `gear_push` a little, check `gear_offset`.
 - **Filament jams in the tube or the loader after unloading** – the tip is too fat or stringy; tune the
   tip forming (see above).
