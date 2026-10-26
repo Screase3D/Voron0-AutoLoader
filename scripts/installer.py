@@ -1083,7 +1083,7 @@ def do_install(env, A, args, ops, asker):
     info("  2. LOADER_MOVE DIST=100     – Drehrichtung und rotation_distance prüfen")
     info("  3. Servo-Winkel klemmen/frei am Aufbau ermitteln und in den Einstellungen speichern")
     info("  4. Am Voron: tube_len, gear_offset, ext_to_nozzle messen, Sensor 2 aktivieren, Bench-Modus aus")
-    info("  5. FILAMENT_LOAD_COLD → FILAMENT_LOAD TEMP=… → FILAMENT_UNLOAD TEMP=… (mit Tip-Forming)")
+    info("  5. FILAMENT_PREPARE → FILAMENT_LOAD_COLD → FILAMENT_LOAD TEMP=… → FILAMENT_PARK → FILAMENT_UNLOAD (Vorbereiten, Laden, Heiß laden, Parken, Entladen)")
     info(f"Bei Problemen: Backup liegt in {b}, Deinstallation mit ./uninstall.sh")
 
 

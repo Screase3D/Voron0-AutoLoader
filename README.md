@@ -25,8 +25,8 @@ right above the extruder gears – tell Klipper where the filament is.
 - **Three ways to load:**
   - *Prepare* – up to the toolhead sensor and stop. The filament is not in the extruder yet and can be pulled out by
     hand, even with the printer off.
-  - *Load* – into the extruder; loader and extruder push the last few mm together, so the extruder grips the filament
-    with a cold nozzle. Ready for the next print.
+  - *Load* – into the extruder; the extruder already turns before the tip arrives and pulls it in a few mm, even with
+    a cold nozzle. Ready for the next print.
   - *Load hot* – heats up and loads to the nozzle with purge.
 - **Park / unload where the filament is** – the nozzle only heats if the filament can be molten in it; prepared or
   cold-gripped filament is pulled back cold. With heat: tip forming (ERCF / Happy Hare approach).
@@ -103,18 +103,23 @@ Switch the page to **Setup & calibration** and follow the checklist:
 **Position.** Klipper adds up every clamped loader move; sensor 2 resets it to the exact value. After every operation
 the position is saved (`none`, `loader`, `tube`, `sensor2`, `gears`, `nozzle` + tip in mm). At start-up it is
 compared with the sensors: filament removed or pulled back while the printer was off is detected and reported. If the
-place in the tube is unknown, the next load searches sensor 2 in 5 mm steps instead of the fast move.
+place in the tube is unknown, the next load searches sensor 2 step by step instead of the fast move.
 
-**Prepare / load / load hot.** Clamp → full speed to `approach` mm before sensor 2 → search in `step_mm` steps.
-*Prepare* stops a few mm past sensor 2 and releases (`sensor2`). *Load* pushes on by `gear_offset + gear_push`, then
-loader and extruder push `grip_len` together and the loader releases (`gears`). *Load hot* heats, does the same and
+**Prepare / load / load hot.** Clamp → full speed to `approach` mm before sensor 2 (50 mm earlier for freshly inserted
+filament, in case it was pushed in by hand) → search in 5 mm steps → back a little and search again in `step_mm`
+steps, so the tip is never more than `step_mm` past the sensor. *Prepare* stops a few mm past sensor 2 and releases
+(`sensor2`). *Load* hands the filament over to the extruder (below) (`gears`). *Load hot* heats, does the same and
 extrudes the rest of `ext_to_nozzle` plus the purge (`nozzle`). Each one continues from wherever the filament is –
 from parked or prepared it only feeds the remaining distance.
 
-**Cold grip.** Klipper refuses extruder moves below `min_extrude_temp`. `FORCE_MOVE` drives the extruder stepper
-directly and is not limited by that, so the extruder can pull the tip into its gears while the nozzle is cold. It needs
-`[force_move]` with `enable_force_move: True` (the installer adds it; it also enables `SET_KINEMATIC_POSITION`). The
-filament only moves a few mm into the cold heatsink, nothing is extruded.
+**Hand-over to the extruder.** The loader alone only pushes until the tip is 4 mm before the extruder gears
+(`gear_offset`). From there loader and extruder move together at `grip_speed` – the extruder gears are already
+turning when the tip arrives, so it is pulled in instead of being pushed against standing gears – through
+`gear_push` and another `grip_len` mm. Klipper refuses extruder moves below `min_extrude_temp`; `FORCE_MOVE` drives
+the extruder stepper directly and is not limited by that, so this works with a cold nozzle. It needs `[force_move]`
+with `enable_force_move: True` (the installer adds it; it also enables `SET_KINEMATIC_POSITION`). The filament only
+moves a few mm into the cold heatsink, nothing is extruded. Without `[force_move]` the extruder motor is switched off
+during the hand-over, so its gears can at least turn freely.
 
 **Unload / park.** First the macros decide whether the filament can be molten in the nozzle: yes if it was loaded
 hot, or if the extruder has extruded since it was prepared or gripped (`toolhead.position.e` is compared with the
@@ -127,6 +132,9 @@ value at the last position change); unknown filament at sensor 2 counts as yes.
 
 Then *park* stops `park_dist` behind sensor 2, *unload* goes back to `unload_hold` inside the loader. *Prepare* on
 loaded filament also works: it pulls the filament out (hot or cold) and stops at sensor 2.
+
+**Filament change in a pause.** Unload, insert new filament – during a pause the auto trigger always loads to the
+nozzle with purge. The buttons on the page that make sense in a pause stay usable.
 
 **Print hooks.** `LOADER_PRINT_START` (after `M109`) looks where the filament is: loaded → nothing; prepared or
 gripped → loads it on to the nozzle (no purge – your purge line follows); toolhead empty → loads from the loader or
@@ -170,7 +178,7 @@ directly in `filament_loader_settings.cfg`, where every value is commented. The 
 | `accel` | 500 | mm/s² start and stop of the loader (gentle on full spools) |
 | `tube_len` | 300 | mm loader gears → sensor 2 (measure it) |
 | `gear_offset` / `gear_push` | 8 / 3 | mm sensor 2 → extruder gears / extra push |
-| `grip_len` / `grip_speed` | 5 / 5 | cold grip: mm / mm/s loader and extruder push together (0 = off) |
+| `grip_len` / `grip_speed` | 5 / 5 | mm the extruder pulls in after the hand-over / mm/s of the hand-over |
 | `ext_to_nozzle` | 70 | mm extruder gears → nozzle |
 | `approach` / `overrun` | 30 / 40 | mm where the slow search starts / timeout margin |
 | `park_dist` / `unload_hold` | 20 / 15 | mm behind sensor 2 when parking / left in the loader |

@@ -115,6 +115,7 @@ PHRASES = [
      "[save_variables] added – the filament position is now stored permanently"),
     ("Druck-Hooks in PRINT_START / PRINT_END einfügen", "Insert the print hooks into PRINT_START / PRINT_END"),
     ("(mit Tip-Forming)", "(with tip forming)"),
+    ("(Vorbereiten, Laden, Heiß laden, Parken, Entladen)", "(prepare, load, load hot, park, unload)"),
     ("schreibe ", "write "), ("entferne ", "remove "), ("Backup nach ", "backup to "),
 ]
 PHRASES.sort(key=lambda p: -len(p[0]))
