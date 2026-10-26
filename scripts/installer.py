@@ -49,7 +49,7 @@ KS_NAME = "autoloader_klipperscreen.conf"
 KS_INCLUDE = f"[include {KS_NAME}]"
 KS_CREATED = "# created by voron0-autoloader"
 
-SETTINGS_SCHEMA = 6  # matches "#@schema" in filament_loader_settings.cfg.tpl
+SETTINGS_SCHEMA = 7  # matches "#@schema" in filament_loader_settings.cfg.tpl
 TOOL_SECTION = "filament_switch_sensor toolhead_in"
 
 # icon: Material Design Icons "printer-3d-nozzle" (Pictogrammers, Apache-2.0)
@@ -85,8 +85,8 @@ FIELDS = [
     "purge_len", "purge_speed", "default_temp", "unload_ext_len", "unload_hold", "auto_delay", "bench_mode",
     "bench_dist", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
-    "print_end_action", "park_dist", "auto_enable", "auto_target", "heater_off", "slip_warn")]
-NEW_VARS_V2 = ["slip_warn", "park_dist", "print_end_action", "auto_enable", "auto_target", "heater_off", "approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
+    "print_end_action", "park_dist", "auto_enable", "auto_target", "heater_off", "slip_warn", "grip_len", "grip_speed")]
+NEW_VARS_V2 = ["grip_len", "grip_speed", "slip_warn", "park_dist", "print_end_action", "auto_enable", "auto_target", "heater_off", "approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
                "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode"]
 
 HOOK_TAG = "# autoloader"
@@ -110,6 +110,7 @@ DEFAULTS = {
     "tip_cool_pos": "35", "tip_cool_len": "10", "tip_cool_moves": "4", "tip_cool_start": "10", "tip_cool_end": "50",
     "tip_eject_speed": "25", "print_start_mode": "2", "print_end_action": "0", "park_dist": "20",
     "auto_enable": "1", "auto_target": "cold", "heater_off": "1", "slip_warn": "10",
+    "grip_len": "5", "grip_speed": "5",
 }
 
 QUOTED = {"lang", "auto_target"}   # string variables, written with quotes
@@ -331,6 +332,9 @@ def analyze(env):
     A["navi"] = navi.exists() and any(h in navi.read_text(errors="replace") for h in OLD_HREFS)
     A["save_vars_elsewhere"] = any(sec.lname == "save_variables" and os.path.realpath(sec.file) != os.path.realpath(settings)
                                    for sec in ctx["sections"])
+    # [force_move] for the cold grip: None = not in the config, otherwise the value of enable_force_move
+    fm = [sec for sec in ctx["sections"] if sec.lname == "force_move" and os.path.realpath(sec.file) != os.path.realpath(settings)]
+    A["force_move_elsewhere"] = (fm[-1].options.get("enable_force_move", "false").strip().lower() in ("true", "1", "yes")) if fm else None
     A["um"] = bool(env["moonraker_conf"] and f"[{UM_SECTION}]" in env["moonraker_conf"].read_text(errors="replace"))
     return A
 
@@ -452,6 +456,17 @@ def save_vars_block(env, A):
             f"[save_variables]\nfilename: {env['cfg']}/autoloader_variables.cfg")
 
 
+def force_move_block(A):
+    """[force_move] so the extruder can grip the filament while cold (FORCE_MOVE) – only if the printer has none yet"""
+    if A["force_move_elsewhere"] is True:
+        return "# [force_move] ist bereits in deiner Konfiguration aktiv – das kalte Greifen (grip_len) nutzt es"
+    if A["force_move_elsewhere"] is False:
+        return ("# [force_move] steht in deiner Konfiguration mit enable_force_move: False -\n"
+                "# fuer das kalte Greifen (grip_len) dort auf True setzen")
+    return ("# Kaltes Greifen: FORCE_MOVE bewegt den Extruder ohne Mindesttemperatur (nur grip_len mm beim Laden)\n"
+            "[force_move]\nenable_force_move: True")
+
+
 def upgrade_settings(env, A, ops):
     """add variables introduced by newer versions to an existing settings file (values stay untouched)"""
     path = env["cfg"] / SETTINGS_NAME
@@ -462,11 +477,17 @@ def upgrade_settings(env, A, ops):
     have = vals.get("gcode_macro _loader_vars", {})
     missing = [k for k in NEW_VARS_V2 if "variable_" + k not in have]
     add_sv = not A["save_vars_elsewhere"] and "save_variables" not in vals
-    if not missing and not add_sv:
+    add_fm = A["force_move_elsewhere"] is None and "force_move" not in vals
+    if A["force_move_elsewhere"] is False:
+        warn("[force_move] steht mit enable_force_move: False in deiner Konfiguration – für das kalte Greifen dort auf True setzen")
+    if not missing and not add_sv and not add_fm:
         return
     if add_sv:
         lines += ["", save_vars_block(env, A)]
         ok("[save_variables] ergänzt – die Filament-Position wird jetzt dauerhaft gespeichert")
+    if add_fm:
+        lines += ["", force_move_block(A)]
+        ok("[force_move] ergänzt – der Extruder kann das Filament jetzt auch kalt greifen")
     if not missing:
         ops.write(path, "\n".join(lines))
         return
@@ -557,6 +578,7 @@ def gather(env, A, asker):
         V["toolhead_in_pin"] = asker.ask("Sensor 2 Pin (MCU-Name:gpioX), Öffner", V["toolhead_in_pin"])
     V["tool"] = "" if tool_on else OFF
     V["save_vars"] = save_vars_block(env, A)
+    V["force_move"] = force_move_block(A)
     return V
 
 

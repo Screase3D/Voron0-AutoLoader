@@ -23,6 +23,8 @@ right above the extruder gears – tell Klipper where the filament is.
 ## Features
 
 - **Load cold / hot** – into the extruder gears, or on to the nozzle with purge.
+- **Cold grip** – loader and extruder push the last few mm together, so the extruder grips the filament even with a
+  cold nozzle.
 - **Park** – forms a tip and leaves the filament in the tube just behind the toolhead sensor; the next load takes seconds.
 - **Unload with tip forming** – ramming, break-off and cooling moves (ERCF / Happy Hare approach).
 - **Remembers the filament position** across restarts and power-off; at start-up it is checked against the sensors.
@@ -74,7 +76,7 @@ cd Voron0-AutoLoader
 ```
 
 The installer backs up your config, links the macros, creates `filament_loader_settings.cfg` (yours – updates never
-overwrite it) and `[save_variables]`, comments out clashing sections, adds the includes and – on request – the
+overwrite it), `[save_variables]` and `[force_move]`, comments out clashing sections, adds the includes and – on request – the
 print hooks, the Mainsail page, the update manager entry and the KlipperScreen menu.
 Options: `--analyze`, `--reconfigure`, `--yes`, `--lang de|en`, `--no-web`, `--no-hooks`, `--no-restart`,
 `--no-klipperscreen`.
@@ -101,7 +103,13 @@ compared with the sensors: filament removed or pulled back while the printer was
 place in the tube is unknown, the next load searches sensor 2 in 5 mm steps instead of the fast move.
 
 **Load.** Clamp → full speed to `approach` mm before sensor 2 → search in `step_mm` steps → push `gear_offset +
-gear_push` into the extruder → release. Hot load then extrudes `ext_to_nozzle` and purges.
+gear_push` into the extruder → loader and extruder push `grip_len` together → release. Hot load then extrudes the rest
+of `ext_to_nozzle` and purges.
+
+**Cold grip.** Klipper refuses extruder moves below `min_extrude_temp`. `FORCE_MOVE` drives the extruder stepper
+directly and is not limited by that, so the extruder can pull the tip into its gears while the nozzle is cold. It needs
+`[force_move]` with `enable_force_move: True` (the installer adds it; it also enables `SET_KINEMATIC_POSITION`). The
+filament only moves a few mm into the cold heatsink, nothing is extruded.
 
 **Unload / park.** Heat → form the tip → extruder retracts `unload_ext_len` → loader pulls until sensor 2 is free →
 park `park_dist` behind sensor 2, or unload to `unload_hold` inside the loader. The nozzle is switched off afterwards
@@ -147,6 +155,7 @@ directly in `filament_loader_settings.cfg`, where every value is commented. The 
 | `accel` | 500 | mm/s² start and stop of the loader (gentle on full spools) |
 | `tube_len` | 300 | mm loader gears → sensor 2 (measure it) |
 | `gear_offset` / `gear_push` | 8 / 3 | mm sensor 2 → extruder gears / extra push |
+| `grip_len` / `grip_speed` | 5 / 5 | cold grip: mm / mm/s loader and extruder push together (0 = off) |
 | `ext_to_nozzle` | 70 | mm extruder gears → nozzle |
 | `approach` / `overrun` | 30 / 40 | mm where the slow search starts / timeout margin |
 | `park_dist` / `unload_hold` | 20 / 15 | mm behind sensor 2 when parking / left in the loader |
@@ -166,6 +175,7 @@ skips: lower `speed` or `accel` first, then raise `run_current`.
 - **"Sensor 2 reached during the full-speed move"** – `tube_len` too large or wrong stored position.
 - **Position notice after power-on** – filament was moved while off; check it or correct it under *Manual & test*.
 - **Filament stuck after unloading** – tune the tip forming.
+- **"Cold grip skipped"** – `[force_move]` with `enable_force_move: True` is missing; `./install.sh` adds it.
 - **Page not reachable** – `sudo nginx -t`, and `chmod o+x ~`.
 
 ## Credits

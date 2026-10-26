@@ -128,6 +128,8 @@ RULES = [
     (r"^\[(.+)\] in (\S+) auskommentieren$", r"Comment out [\1] in \2"),
     (r"^\[(.+)\] in (\S+) auskommentiert$", r"[\1] in \2 commented out"),
     (r"^alte (\S+) gesichert als (\S+)$", r"old \1 saved as \2"),
+    (r"^\[force_move\] steht mit enable_force_move: False in deiner Konfiguration – für das kalte Greifen dort auf True setzen$", r"[force_move] has enable_force_move: False in your config – set it to True there for the cold grip"),
+    (r"^\[force_move\] ergänzt – der Extruder kann das Filament jetzt auch kalt greifen$", r"[force_move] added – the extruder can now grip the filament while cold"),
     (r"^alte (\S+) von vor der Installation wiederherstellen\?$", r"Restore the old \1 from before the installation?"),
     (r"^alte (\S+) wiederhergestellt und in printer.cfg eingebunden$", r"old \1 restored and included in printer.cfg"),
     (r"^(\S+) existiert – Werte neu abfragen", r"\1 exists – ask for the values again"),

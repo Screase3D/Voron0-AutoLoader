@@ -1,4 +1,4 @@
-#@schema 6
+#@schema 7
 # =====================================================================
 # voron0-autoloader - Einstellungen (vom Installer erzeugt)
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -83,6 +83,8 @@ variable_gear_offset: ${gear_offset}          # mm Toolhead-Sensor -> Extruder-Z
 variable_gear_push: ${gear_push}            # mm Loader schiebt ueber die Zahnraeder hinaus
 variable_ext_to_nozzle: ${ext_to_nozzle}       # mm Extruder-Zahnraeder -> Duese (inkl. Cold-End)
 variable_ext_speed: ${ext_speed}            # mm/s Extruder beim Laden
+variable_grip_len: ${grip_len}            # mm: Loader und Extruder schieben gemeinsam, damit der Extruder auch kalt sicher greift (0 = aus, braucht [force_move])
+variable_grip_speed: ${grip_speed}          # mm/s beim Greifen
 variable_purge_len: ${purge_len}          # mm Ausspuelen nach dem Laden
 variable_purge_speed: ${purge_speed}          # mm/s
 variable_default_temp: ${default_temp}      # Standard-Duesentemperatur
@@ -115,3 +117,5 @@ variable_print_end_action: ${print_end_action}    # nach dem Druck (PRINT_END): 
 gcode:
 
 ${save_vars}
+
+${force_move}

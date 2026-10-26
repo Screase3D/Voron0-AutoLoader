@@ -318,6 +318,7 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                 <table class="kv">
                   <tr><td>Druck-Hooks</td><td id="s-hooks">–</td></tr>
                   <tr><td>Position speichern</td><td id="s-persist">–</td></tr>
+                  <tr><td>Kalt greifen</td><td id="s-grip">–</td></tr>
                   <tr><td>Modus</td><td id="s-mode">–</td></tr>
                 </table>
               </div>
@@ -502,7 +503,7 @@ const OFF = "#off# ";                            // prefix of deactivated config
 const TOOL = "filament_switch_sensor toolhead_in";
 const BASE = location.pathname.replace(/[^/]*$/, "") || "/autoloader/";   // /autoloader/ or /server/autoloader/
 const SELF_RE = /^\/(autoloader|server\/autoloader)\/?$/;
-const SCHEMA = 6;                                // version of the settings file format
+const SCHEMA = 7;                                // version of the settings file format
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const store = {
@@ -739,6 +740,11 @@ const T_EN = {
     "Deviation {d} at sensor 2: plus = later than expected (slip or lost steps), minus = earlier (tube_len too large).",
   "Beschleunigung über 1000 mm/s²: Mit voller 1-kg-Rolle muss die Rolle mitbeschleunigt werden und läuft beim Bremsen nach – 500 ist schonender und kostet nur Bruchteile einer Sekunde.":
     "Acceleration above 1000 mm/s²: with a full 1 kg spool the spool has to be accelerated too and keeps turning when the loader stops – 500 is gentler and costs only a fraction of a second.",
+  "Kalt greifen": "Cold grip", "{n} mm mit FORCE_MOVE": "{n} mm with FORCE_MOVE",
+  "[force_move] fehlt – ./install.sh ergänzt es": "[force_move] missing – ./install.sh adds it",
+  "[force_move] enable_force_move: False – auf True setzen": "[force_move] enable_force_move: False – set it to True",
+  "neu – unter Einstellungen einmal speichern": "new – save the settings once",
+  "+ {g} mm beim kalten Greifen = <b>{s} mm</b>": "+ {g} mm from the cold grip = <b>{s} mm</b>",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1231,6 +1237,13 @@ function posHTML() {
   if (["loader", "tube"].includes(p) && st.tip != null) h += chip(t("{n} mm ab Loader", { n: Math.round(Number(st.tip)) }) + (+st.tip_known ? "" : " · " + t("ungenau")), +st.tip_known ? "muted" : "warning--text");
   return h;
 }
+/* mm the extruder already fed while gripping cold (same formula as _LOADER_TO_NOZZLE) */
+function gripDone() {
+  const st = ls(), v = lv();
+  if (st.pos !== "gears" || !+st.tip_known) return 0;
+  const base = (+v.tube_len || 0) + (+v.gear_offset || 0) + (+v.gear_push || 0);
+  return Math.max(0, Math.min(Number(st.tip) - base, 30, +v.ext_to_nozzle || 30));
+}
 /* deviation at sensor 2 on the last load: + = later than expected (slip / lost steps), - = earlier (tube_len too large) */
 const slipTxt = (d) => `${d > 0 ? "+" : ""}${dec(Number(d).toFixed(1))} mm`;
 function slipHTML(st, v) {
@@ -1308,6 +1321,10 @@ function draw() {
   $("s-slip").innerHTML = slipHTML(st, v);
   const psel = $("pos-sel");
   if (psel && psel.dataset.touched !== "1" && psel.value !== st.pos && [...psel.options].some((o) => o.value === st.pos)) psel.value = st.pos;
+  const fmOn = !!((CFG.force_move || {}).enable_force_move), gl = Number(v.grip_len ?? 0);
+  $("s-grip").innerHTML = !ready || v.grip_len === undefined ? (ready ? chip(t("neu – unter Einstellungen einmal speichern"), "muted") : "–")
+    : gl <= 0 ? chip(t("aus"), "muted") : fmOn ? chip(t("{n} mm mit FORCE_MOVE", { n: dec(String(gl)) }), "success--text")
+    : chip(CFG.force_move ? t("[force_move] enable_force_move: False – auf True setzen") : t("[force_move] fehlt – ./install.sh ergänzt es"), "warning--text");
   $("s-persist").innerHTML = hasSV ? chip(t("aktiv – überlebt Neustart und Ausschalten"), "success--text") : chip(t("fehlt – ./install.sh ergänzt [save_variables]"), "warning--text");
   autoSync(ready);
   $("s-servo").innerHTML = st.clamped === undefined ? "–" : st.clamped ? chip(t("klemmt"), "warning--text") : chip(t("frei"), "success--text");
@@ -1366,7 +1383,9 @@ function drawMeasure() {
   const set = (id, html) => { if ($(id).dataset.h !== html) { $(id).innerHTML = html; $(id).dataset.h = html; } };
   set("ms-tube-res", fed > 0 ? t("Gefahren bis Sensor 2: <b>{a} mm</b> (eingestellt: tube_len {b})", { a: dec(fed.toFixed(1)), b: dec(String(lv().tube_len ?? "–")) }) : t("Noch nicht gemessen."));
   set("ms-gear-res", t("Nach Sensor 2 geschoben: <b>{a} mm</b> (eingestellt: gear_offset {b})", { a: dec(MS.gear.toFixed(1)), b: dec(String(lv().gear_offset ?? "–")) }));
-  set("ms-e-res", t("Extrudiert: <b>{a} mm</b> (eingestellt: ext_to_nozzle {b})", { a: dec(MS.e.toFixed(1)), b: dec(String(lv().ext_to_nozzle ?? "–")) }));
+  const gd = gripDone();
+  set("ms-e-res", t("Extrudiert: <b>{a} mm</b> (eingestellt: ext_to_nozzle {b})", { a: dec(MS.e.toFixed(1)), b: dec(String(lv().ext_to_nozzle ?? "–")) }) +
+    (gd > 0 ? " " + t("+ {g} mm beim kalten Greifen = <b>{s} mm</b>", { g: dec(gd.toFixed(1)), s: dec((MS.e + gd).toFixed(1)) }) : ""));
   setDis($("ms-tube"), !ED || !(fed > 0)); setDis($("ms-gear"), !ED || !(MS.gear > 0)); setDis($("ms-e2n"), !ED || !(MS.e > 0));
   if (!hasTool) setDis($("ms-sensor"), true);
 }
@@ -1774,7 +1793,7 @@ const FIELDS = [
     "gear_offset", "gear_push", "ext_to_nozzle", "ext_speed", "purge_len", "purge_speed", "default_temp", "unload_ext_len",
     "unload_hold", "auto_delay", "bench_dist", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
-    "print_end_action", "park_dist", "slip_warn"].map((k) => [k, VARS, "variable_" + k, "n"]),
+    "print_end_action", "park_dist", "slip_warn", "grip_len", "grip_speed"].map((k) => [k, VARS, "variable_" + k, "n"]),
   ["servo_off_released", VARS, "variable_servo_off_released", "b"], ["bench_mode", VARS, "variable_bench_mode", "b"],
   ["tip_enable", VARS, "variable_tip_enable", "b"],
   ["auto_enable", VARS, "variable_auto_enable", "b"], ["heater_off", VARS, "variable_heater_off", "b"],
@@ -1791,11 +1810,11 @@ const DEF = {
   purge_speed: 3, default_temp: 220, unload_ext_len: 65, unload_hold: 15, auto_delay: 2, bench_mode: 1, bench_dist: 50,
   tip_enable: 1, tip_ram_len: 0, tip_temp: 0, tip_speed_start: 80, tip_speed: 18, tip_cool_pos: 35, tip_cool_len: 10,
   tip_cool_moves: 4, tip_cool_start: 10, tip_cool_end: 50, tip_eject_speed: 25, print_start_mode: 2, print_end_action: 0, park_dist: 20,
-  auto_enable: 1, auto_target: "cold", heater_off: 1, slip_warn: 10,
+  auto_enable: 1, auto_target: "cold", heater_off: 1, slip_warn: 10, grip_len: 5, grip_speed: 5,
 };
 /* variables of newer versions – defaults when the settings file does not have them yet */
 const NEW_KEYS = ["auto_enable", "auto_target", "heater_off", "approach", "stealth_speed", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
-  "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "print_end_action", "park_dist", "slip_warn"];
+  "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "print_end_action", "park_dist", "slip_warn", "grip_len", "grip_speed"];
 const NEW_DEFAULTS = Object.fromEntries(NEW_KEYS.map((k) => [k, DEF[k]]));
 
 const L2 = (x) => Array.isArray(x) ? x[LANG === "en" ? 1 : 0] : x;
@@ -1825,6 +1844,7 @@ const GROUPS = [
     F("ext_speed", ["Extruder beim Laden", "Extruder while loading"], "mm/s", ["Extruder schiebt bis zur Düse", "Extruder pushes to the nozzle"], { min: 0.5, max: 30, st: 0.5 }),
     F("stealth_speed", ["Leise bis", "Quiet up to"], "mm/s", ["Darunter leise (StealthChop), darüber kräftig (SpreadCycle). 0 = immer kräftig", "Below: quiet (StealthChop), above: strong (SpreadCycle). 0 = always strong"], { min: 0, max: 999999, st: 10, adv: true }),
     F("purge_speed", ["Ausspül-Tempo", "Purge speed"], "mm/s", ["Tempo beim Ausspülen nach dem Laden", "Speed of the purge after loading"], { min: 0.5, max: 20, st: 0.5, adv: true }),
+    F("grip_speed", ["Kalt greifen", "Cold grip"], "mm/s", ["Tempo, mit dem Loader und Extruder gemeinsam schieben", "Speed at which loader and extruder push together"], { min: 1, max: 20, st: 1, adv: true }),
     F("slip_warn", ["Schlupf-Warnung ab", "Slip warning from"], "mm", ["Warnung, wenn Sensor 2 beim Laden so viel später kommt als erwartet (Schlupf oder Schrittverlust)", "Warning when sensor 2 comes this much later than expected while loading (slip or lost steps)"], { min: 2, max: 200, st: 1, adv: true }),
     F("step_mm", ["Suchschritt", "Search step"], "mm", ["Genauigkeit der Sensorsuche – kleiner = genauer, aber langsamer", "Resolution of the sensor search – smaller = more precise but slower"], { min: 0.5, max: 10, st: 0.5, adv: true }),
   ] },
@@ -1832,6 +1852,7 @@ const GROUPS = [
     F("tube_len", ["Loader → Sensor 2", "Loader → sensor 2"], "mm", ["Loader-Zahnräder bis Sensor 2 – unter „Stepper kalibrieren“ messen", "Loader gears to sensor 2 – measure it under “Calibrate stepper”"], { min: 20, max: 3000, st: 1 }),
     F("gear_offset", ["Sensor 2 → Zahnräder", "Sensor 2 → gears"], "mm", ["Bis die Spitze an den Extruder-Zahnrädern ansteht", "Until the tip touches the extruder gears"], { min: 0, max: 100, st: 0.5 }),
     F("gear_push", ["In die Zahnräder schieben", "Push into the gears"], "mm", ["Zusätzlich, damit der Extruder sicher greift", "Extra, so the extruder grips reliably"], { min: 0, max: 20, st: 0.5 }),
+    F("grip_len", ["Kalt greifen", "Cold grip"], "mm", ["Loader und Extruder schieben danach gemeinsam – der Extruder fasst das Filament auch bei kalter Düse. 0 = aus, braucht [force_move]", "Loader and extruder then push together – the extruder grips the filament even with a cold nozzle. 0 = off, needs [force_move]"], { min: 0, max: 20, st: 1 }),
     F("ext_to_nozzle", ["Zahnräder → Düse", "Gears → nozzle"], "mm", ["So weit fördert der Extruder beim Laden heiß", "The extruder feeds this far when loading hot"], { min: 5, max: 300, st: 1 }),
     F("purge_len", ["Ausspülen", "Purge"], "mm", ["Nach dem Laden heiß, 0 = aus", "After loading hot, 0 = off"], { min: 0, max: 300, st: 1 }),
     F("unload_ext_len", ["Extruder zieht zurück", "Extruder retracts"], "mm", ["Beim Entladen insgesamt ab Düse, inklusive Spitze formen", "When unloading, in total from the nozzle, incl. tip forming"], { min: 5, max: 300, st: 1 }),
@@ -2098,7 +2119,7 @@ function drawEstimate(v) {
   const mv = (d, s) => { const a = n("accel") || 1000; s = Math.max(s, 0.1); const ta = s / a; return d <= s * ta ? 2 * Math.sqrt(d / a) : d / s + ta; };
   const over = 0.2, stepT = mv(n("step_mm"), n("slow_speed")) + over;
   const coarse = Math.max(n("tube_len") - n("approach"), 0);
-  const cold = 2 * n("servo_settle") + mv(coarse, n("speed")) + (n("approach") / Math.max(n("step_mm"), 0.1)) * stepT + mv(n("gear_offset") + n("gear_push"), n("slow_speed"));
+  const cold = 2 * n("servo_settle") + mv(coarse, n("speed")) + (n("approach") / Math.max(n("step_mm"), 0.1)) * stepT + mv(n("gear_offset") + n("gear_push"), n("slow_speed")) + n("grip_len") / Math.max(n("grip_speed"), 0.5);
   const hot = n("ext_to_nozzle") / Math.max(n("ext_speed"), 0.1) + n("purge_len") / Math.max(n("purge_speed"), 0.1);
   let tip = 0;
   if (+m.tip_enable) {
@@ -2601,7 +2622,7 @@ function wire() {
   const ext = (d) => gcode(`LOADER_EXTRUDE DIST=${d} TEMP=${Math.round(num("temp3", hotTemp()))}`).then((ok) => { if (ok) { MS.e += d; render(); } });
   $("ms-e5").onclick = () => ext(5);
   $("ms-e1").onclick = () => ext(1);
-  $("ms-e2n").onclick = () => apply("ext_to_nozzle", MS.e, "t-len");
+  $("ms-e2n").onclick = () => apply("ext_to_nozzle", MS.e + gripDone(), "t-len");
   $("ms-reset").onclick = () => { MS.gear = 0; MS.e = 0; render(); };
 
   const mv = (sign) => gcode(`LOADER_MOVE DIST=${sign * Math.max(1, num("mv-d", 50))} SPEED=${Math.max(1, num("mv-s", 10))} CLAMP=${isChecked($("mv-clamp")) ? 1 : 0}`);
