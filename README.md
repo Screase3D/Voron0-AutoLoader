@@ -143,6 +143,8 @@ shows what happened, in which step (e.g. *search for sensor 2*), the likely caus
 are now, and offers *Retry*, *Retry carefully* (searches sensor 2 step by step along the whole tube) or *Retry hot*
 (unload with heating), plus *OK*, which releases the servo, switches the loader motor off and checks the position
 against the sensors. If Klipper itself aborts an operation (e.g. a heater error), its error message is shown.
+*Reset …* (in the error, on the control panel and under *Manual & test*) is for when the filament has to come out by
+hand, e.g. after a clog: it releases the servo, switches loader and extruder motor off and forgets the stored position.
 
 ![Error with retry](docs/images/error.png)
 
@@ -175,11 +177,20 @@ or a lower `tip_temp`. The defaults are Happy Hare's starting values.
 | `LOADER_PRINT_START` / `LOADER_PRINT_END` | print hooks |
 | `LOADER_STATUS`, `LOADER_SYNC`, `LOADER_SET_POS POS=` | show / check / correct the stored position |
 | `LOADER_ACK`, `LOADER_CAREFUL` | acknowledge an error / make the next sensor search careful; `HOT=1` on unload or park always heats |
+| `LOADER_RESET CONFIRM=1` | when everything goes wrong (e.g. a clog): servo released, loader and extruder motor off, errors cleared, position forgotten – the filament can be pulled out by hand, the next load searches carefully |
 | `LOADER_CLAMP`, `LOADER_RELEASE`, `LOADER_STOP` | servo and stepper |
 | `LOADER_MOVE DIST= SPEED= CLAMP=`, `LOADER_BENCHTEST`, `LOADER_FORM_TIP TEMP=` | tests |
 | `LOADER_TO_SENSOR`, `LOADER_NUDGE`, `LOADER_EXTRUDE` | measuring |
 
 The macros refuse to run while printing, except when called by the print hooks.
+
+**No accidental runs.** Mainsail and KlipperScreen list every macro without a leading `_`, and both have Load/Unload
+buttons. Those buttons call `LOAD_FILAMENT` / `UNLOAD_FILAMENT` (Mainsail also `FILAMENT_LOAD` / `FILAMENT_UNLOAD`),
+which all lead to the loader; the installer comments out older macros with these names, and the page warns if another
+`LOAD_FILAMENT` / `UNLOAD_FILAMENT` further down in the config overrides them. Test and measuring macros refuse to run
+without their parameters (`LOADER_MOVE DIST=`, `LOADER_TO_SENSOR COARSE=`, `LOADER_NUDGE`, `LOADER_EXTRUDE DIST=`,
+`LOADER_BENCH VALUE=`, `LOADER_RESET CONFIRM=1`), `LOADER_MOVE` and the bench test refuse moves that could reach
+sensor 2 or the extruder (`FORCE=1` overrides), and `LOADER_FORM_TIP` only runs with filament in the nozzle.
 
 ## Settings
 
