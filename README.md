@@ -138,6 +138,14 @@ value at the last position change); unknown filament at sensor 2 counts as yes.
 Then *park* stops `park_dist` behind sensor 2, *unload* goes back to `unload_hold` inside the loader. *Prepare* on
 loaded filament also works: it pulls the filament out (hot or cold) and stops at sensor 2.
 
+**When something goes wrong.** Every operation remembers its command and the step it is in. If it fails, the page
+shows what happened, in which step (e.g. *search for sensor 2*), the likely causes, where the filament and the servo
+are now, and offers *Retry*, *Retry carefully* (searches sensor 2 step by step along the whole tube) or *Retry hot*
+(unload with heating), plus *OK*, which releases the servo, switches the loader motor off and checks the position
+against the sensors. If Klipper itself aborts an operation (e.g. a heater error), its error message is shown.
+
+![Error with retry](docs/images/error.png)
+
 **Filament change in a pause.** Unload, insert new filament – during a pause the auto trigger always loads to the
 nozzle with purge. The buttons on the page that make sense in a pause stay usable.
 
@@ -166,6 +174,7 @@ or a lower `tip_temp`. The defaults are Happy Hare's starting values.
 | `LOAD_FILAMENT` / `UNLOAD_FILAMENT` | Mainsail / KlipperScreen buttons |
 | `LOADER_PRINT_START` / `LOADER_PRINT_END` | print hooks |
 | `LOADER_STATUS`, `LOADER_SYNC`, `LOADER_SET_POS POS=` | show / check / correct the stored position |
+| `LOADER_ACK`, `LOADER_CAREFUL` | acknowledge an error / make the next sensor search careful; `HOT=1` on unload or park always heats |
 | `LOADER_CLAMP`, `LOADER_RELEASE`, `LOADER_STOP` | servo and stepper |
 | `LOADER_MOVE DIST= SPEED= CLAMP=`, `LOADER_BENCHTEST`, `LOADER_FORM_TIP TEMP=` | tests |
 | `LOADER_TO_SENSOR`, `LOADER_NUDGE`, `LOADER_EXTRUDE` | measuring |

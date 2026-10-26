@@ -77,6 +77,8 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 .dot.on { opacity: 1; }
 .kv td:last-child .chip + .chip { margin-left: 6px; }
 .range { width: 100%; accent-color: var(--v-primary-base); }
+.err-list { margin: 2px 0 0; padding-left: 20px; }
+.err-list li { margin: 1px 0; }
 .op-hint { display: flex; gap: 8px; align-items: flex-start; font-size: .875rem; line-height: 1.4; }
 .op-hint .v-icon { flex: none; margin-top: 1px; }
 .op-hint:empty { display: none; }
@@ -790,6 +792,35 @@ const T_EN = {
   "Das Filament ist schon bis zur Düse geladen. Hotend auf {n} °C aufheizen und {p} mm ausspülen?": "The filament is already loaded to the nozzle. Heat the hotend to {n} °C and purge {p} mm?",
   "Hotend auf {n} °C aufheizen, Filament bis in die Düse fördern und {p} mm ausspülen?": "Heat the hotend to {n} °C, feed the filament to the nozzle and purge {p} mm?",
   "Zu den Einstellungen": "Go to the settings",
+  // Errors
+  "schnelle Fahrt durch den Schlauch": "fast move through the tube", "Suche nach Sensor 2": "search for sensor 2", "Übergabe an den Extruder": "hand-over to the extruder",
+  "Aufheizen": "heating up", "Formen der Spitze": "forming the tip", "Zurückziehen mit dem Extruder": "retracting with the extruder", "Loader zieht zurück, bis Sensor 2 frei ist": "loader pulling back until sensor 2 is clear",
+  "Lösen aus den Extruder-Zahnrädern": "releasing from the extruder gears", "Zurückziehen in Schlauch bzw. Loader": "pulling back into the tube or loader", "Fördern bis zur Düse": "feeding to the nozzle",
+  "Spitze neu suchen": "searching the tip again",
+  "Sensor 2 hat in der erwarteten Strecke kein Filament gemeldet.": "Sensor 2 did not report filament within the expected distance.",
+  "Filament hängt im Schlauch oder ist geknickt": "The filament is stuck in the tube or kinked", "Der Loader greift nicht oder rutscht durch – Klemmwinkel prüfen": "The loader does not grip or slips – check the clamp angle",
+  "tube_len ist kürzer eingestellt als der echte Weg – unter Längen messen prüfen": "tube_len is shorter than the real path – check it under Measure lengths", "Sensor 2 meldet nichts – Verdrahtung prüfen": "Sensor 2 does not report anything – check the wiring",
+  "Sensor 2 hat schon während der schnellen Fahrt ausgelöst.": "Sensor 2 already triggered during the fast move.",
+  "tube_len ist zu groß eingestellt – unter Längen messen neu messen": "tube_len is too large – measure it again under Measure lengths", "Das Filament wurde von Hand weitergeschoben": "The filament was pushed in further by hand",
+  "Die gespeicherte Position stimmte nicht": "The stored position was wrong",
+  "Sensor 2 wurde beim Zurückziehen nicht frei.": "Sensor 2 did not clear while pulling back.",
+  "Die Spitze steckt noch im Extruder oder ist angeschmolzen – heiß wiederholen": "The tip is still in the extruder or partly molten – retry hot", "Der Loader rutscht durch – Klemmwinkel prüfen": "The loader slips – check the clamp angle", "Sensor 2 klemmt": "Sensor 2 is stuck",
+  "Das Filament am Loader-Eingang ist verschwunden.": "The filament at the loader entrance is gone.", "Die Rolle ist leer": "The spool is empty", "Das Filament wurde herausgezogen": "The filament was pulled out",
+  "Am Loader-Eingang ist kein Filament.": "There is no filament at the loader entrance.", "Filament in den Loader-Eingang schieben, bis Sensor 1 es meldet": "Push filament into the loader entrance until sensor 1 reports it",
+  "Sensor 2 meldet schon Filament.": "Sensor 2 already reports filament.", "Das Filament steckt schon im Toolhead – die gespeicherte Position stimmte nicht": "The filament is already in the toolhead – the stored position was wrong",
+  "Sensor 2 ist nicht aktiv.": "Sensor 2 is not active.", "Unter Einstellungen → Hardware aktivieren": "Enable it under Settings → Hardware",
+  "Während eines Drucks nicht möglich.": "Not possible while printing.", "Kein Filament im Toolhead – der Druck wurde abgebrochen.": "No filament in the toolhead – the print was aborted.",
+  "Filament einlegen und den Druck neu starten": "Insert filament and start the print again",
+  "Das Hotend heizt nicht wie erwartet – Heizung und Thermistor prüfen": "The hotend does not heat as expected – check heater and thermistor",
+  "Die Düse ist zu kalt (min_extrude_temp) oder verstopft": "The nozzle is too cold (min_extrude_temp) or clogged", "Die Düse ist zu kalt (min_extrude_temp)": "The nozzle is too cold (min_extrude_temp)",
+  "{o} wurde abgebrochen": "{o} was aborted", "{o} ist fehlgeschlagen": "{o} failed", "Vorgang": "Operation", "Bei: {p}": "During: {p}", "bei: {p}": "during: {p}",
+  "Klipper hat den Vorgang abgebrochen – die Meldung steht in der Konsole.": "Klipper aborted the operation – the message is in the console.",
+  "Was: {m}": "What: {m}", "Meldung: {m}": "Message: {m}", "Mögliche Ursachen:": "Possible causes:", "Jetzt:": "Now:",
+  "Filament: {p}": "filament: {p}", "Sensor 1: {v}": "sensor 1: {v}", "Sensor 2: {v}": "sensor 2: {v}", "Servo: {v}": "servo: {v}",
+  "Wiederholen": "Retry", "Vorsichtig wiederholen": "Retry carefully", "Heiß wiederholen": "Retry hot",
+  "Sucht Sensor 2 Schritt für Schritt über den ganzen Schlauch, ohne schnelle Fahrt": "Searches sensor 2 step by step along the whole tube, without the fast move",
+  "Heizt auf und formt die Spitze, auch wenn das Filament nicht in der Düse sein sollte": "Heats up and forms the tip, even if the filament should not be in the nozzle",
+  "Meldung schließen – löst den Servo, schaltet den Loader-Motor aus und gleicht die Position mit den Sensoren ab": "Close the message – releases the servo, switches the loader motor off and checks the position against the sensors",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1207,6 +1238,7 @@ function merge(o) {
       else if (st.event > EV.last) {
         EV.last = st.event;
         const it = { t: Date.now() / 1000, op: st.op || "", r: st.result || "", m: st.msg || "", d: EV.t0 ? Math.round((Date.now() - EV.t0) / 100) / 10 : null };
+        if (st.result === "error" && st.err_phase) it.ph = st.err_phase;
         if (["load", "load_cold"].includes(st.op) && Number(st.slip) > -900) { it.sl = Number(st.slip); it.sp = Math.round(Number(st.slip_speed) || 0); }
         histAdd(it);
         EV.t0 = 0;
@@ -1251,8 +1283,10 @@ async function gcode(script) {
   finally { busy--; render(); }
 }
 
+let LASTERR = null;   // last error line from Klipper – shown when an operation was aborted
 function onResponse(raw) {
   const line = String(raw).replace(/^\/\/\s?/, "");      // Klipper info lines start with "// "
+  if (line.startsWith("!!")) { LASTERR = { t: Date.now(), m: line.replace(/^!!\s*/, "") }; render(); }
   log(line, line.startsWith("!!") ? "e" : "");
 }
 
@@ -1336,6 +1370,60 @@ function opHint() {
   if (p === "nozzle") return ["Bis zur Düse geladen.", {}];
   return ["Filament an Sensor 2, Position unklar – unter Einrichten → Position korrigieren oder einfach Entladen.", {}];
 }
+/* ---- what went wrong, where, why – and how to go on ---- */
+const PHASES = { fast: "schnelle Fahrt durch den Schlauch", search: "Suche nach Sensor 2", handover: "Übergabe an den Extruder",
+  heat: "Aufheizen", tip: "Formen der Spitze", retract: "Zurückziehen mit dem Extruder", pull: "Loader zieht zurück, bis Sensor 2 frei ist",
+  release: "Lösen aus den Extruder-Zahnrädern", back: "Zurückziehen in Schlauch bzw. Loader", extrude: "Fördern bis zur Düse",
+  purge: "Ausspülen", reref: "Spitze neu suchen" };
+const ERRS = {
+  timeout_s2: { t: "Sensor 2 hat in der erwarteten Strecke kein Filament gemeldet.", careful: true,
+    c: ["Filament hängt im Schlauch oder ist geknickt", "Der Loader greift nicht oder rutscht durch – Klemmwinkel prüfen",
+        "tube_len ist kürzer eingestellt als der echte Weg – unter Längen messen prüfen", "Sensor 2 meldet nichts – Verdrahtung prüfen"] },
+  overshoot: { t: "Sensor 2 hat schon während der schnellen Fahrt ausgelöst.", careful: true,
+    c: ["tube_len ist zu groß eingestellt – unter Längen messen neu messen", "Das Filament wurde von Hand weitergeschoben", "Die gespeicherte Position stimmte nicht"] },
+  timeout_clear: { t: "Sensor 2 wurde beim Zurückziehen nicht frei.", hot: true,
+    c: ["Die Spitze steckt noch im Extruder oder ist angeschmolzen – heiß wiederholen", "Der Loader rutscht durch – Klemmwinkel prüfen", "Sensor 2 klemmt"] },
+  s1_lost: { t: "Das Filament am Loader-Eingang ist verschwunden.", c: ["Die Rolle ist leer", "Das Filament wurde herausgezogen"] },
+  no_filament: { t: "Am Loader-Eingang ist kein Filament.", c: ["Filament in den Loader-Eingang schieben, bis Sensor 1 es meldet"] },
+  s2_occupied: { t: "Sensor 2 meldet schon Filament.", sync: true,
+    c: ["Das Filament steckt schon im Toolhead – die gespeicherte Position stimmte nicht", "Sensor 2 klemmt"] },
+  no_sensor2: { t: "Sensor 2 ist nicht aktiv.", c: ["Unter Einstellungen → Hardware aktivieren"] },
+  printing: { t: "Während eines Drucks nicht möglich.", noretry: true, c: [] },
+  print_no_filament: { t: "Kein Filament im Toolhead – der Druck wurde abgebrochen.", noretry: true, c: ["Filament einlegen und den Druck neu starten"] },
+};
+const ABORT_CAUSES = { heat: ["Das Hotend heizt nicht wie erwartet – Heizung und Thermistor prüfen"],
+  extrude: ["Die Düse ist zu kalt (min_extrude_temp) oder verstopft"], purge: ["Die Düse ist zu kalt (min_extrude_temp) oder verstopft"],
+  retract: ["Die Düse ist zu kalt (min_extrude_temp)"], tip: ["Die Düse ist zu kalt (min_extrude_temp)"] };
+function errorCard() {
+  const st = ls(), stale = st.state !== "error", code = stale ? "aborted" : (st.err_code || "error"), e = ERRS[code] || {};
+  const phase = stale ? st.phase : st.err_phase, op = t(OPS[st.op] || st.op || "Vorgang");
+  const { s1, s2 } = sens(), s2o = S["filament_switch_sensor toolhead_in"];
+  let html = `<b>${esc(t(stale ? "{o} wurde abgebrochen" : "{o} ist fehlgeschlagen", { o: op }))}</b>`;
+  if (phase && PHASES[phase]) html += `<div class="mt-1">${esc(t("Bei: {p}", { p: t(PHASES[phase]) }))}</div>`;
+  const what = stale ? (LASTERR ? LASTERR.m : t("Klipper hat den Vorgang abgebrochen – die Meldung steht in der Konsole.")) : e.t ? t(e.t) : st.msg;
+  html += `<div class="mt-1">${esc(t("Was: {m}", { m: what }))}</div>`;
+  if (!stale && e.t && st.msg) html += `<div class="small muted">${esc(t("Meldung: {m}", { m: st.msg }))}</div>`;
+  const causes = stale ? (ABORT_CAUSES[phase] || []) : (e.c || []);
+  if (causes.length) html += `<div class="mt-1">${esc(t("Mögliche Ursachen:"))}</div><ul class="err-list">${causes.map((c) => `<li>${esc(t(c))}</li>`).join("")}</ul>`;
+  const now = [t("Filament: {p}", { p: t(POS_TXT[st.pos] || st.pos || "unbekannt") }), t("Sensor 1: {v}", { v: t(s1 ? "Filament" : "leer") }),
+    t("Sensor 2: {v}", { v: s2o ? t(s2 ? "Filament" : "leer") : t("nicht konfiguriert") }), t("Servo: {v}", { v: t(+st.clamped ? "klemmt" : "frei") })];
+  html += `<div class="small muted mt-1">${esc(t("Jetzt:"))} ${esc(now.join(" · "))}</div>`;
+  const b = [];
+  const canRetry = st.cmd && !e.noretry;
+  if (canRetry) b.push(btnHTML({ text: t("Wiederholen"), color: "primary", icon: "mdiReload", g: st.cmd, cls: "err-act" }));
+  const loadOp = ["prepare", "load_cold", "load", "measure"].includes(st.op);
+  if (canRetry && loadOp && (e.careful || (stale && ["fast", "search"].includes(phase))))
+    b.push(btnHTML({ text: t("Vorsichtig wiederholen"), variant: "text", color: "primary", g: "LOADER_CAREFUL\n" + st.cmd, cls: "err-act",
+      title: t("Sucht Sensor 2 Schritt für Schritt über den ganzen Schlauch, ohne schnelle Fahrt") }));
+  if (canRetry && ["unload", "park"].includes(st.op) && (e.hot || stale))
+    b.push(btnHTML({ text: t("Heiß wiederholen"), variant: "text", color: "primary", icon: "mdiFire", g: st.cmd + " HOT=1", cls: "err-act",
+      title: t("Heizt auf und formt die Spitze, auch wenn das Filament nicht in der Düse sein sollte") }));
+  if (e.sync) b.push(btnHTML({ text: t("Mit Sensoren abgleichen"), variant: "text", color: "primary", g: "LOADER_SYNC", cls: "err-act" }));
+  if (code === "no_sensor2" || code === "overshoot") b.push(btnHTML({ text: t("Zu den Einstellungen"), variant: "text", color: "primary", id: "go-settings" }));
+  b.push(btnHTML({ text: t("Verstanden"), variant: "text", g: "LOADER_ACK", cls: "err-act",
+    title: t("Meldung schließen – löst den Servo, schaltet den Loader-Motor aus und gleicht die Position mit den Sensoren ab") }));
+  return alertHTML(stale ? "warning" : "error", stale ? "mdiAlertOutline" : "mdiAlertCircleOutline", html, `<div class="d-flex flex-wrap" style="gap:8px">${b.join("")}</div>`);
+}
 /* deviation at sensor 2 on the last load: + = later than expected (slip / lost steps), - = earlier (tube_len too large) */
 const slipTxt = (d) => `${d > 0 ? "+" : ""}${dec(Number(d).toFixed(1))} mm`;
 function slipHTML(st, v) {
@@ -1387,9 +1475,7 @@ function draw() {
     al.push(alertHTML("info", "mdiInformationOutline", esc(t("Sensor 2 (Toolhead) ist nicht aktiv – Laden und Entladen sind gesperrt. Nach dem Verdrahten unter Einstellungen → Hardware aktivieren."))));
   if (ready && installed && Number(v.bench_mode) === 1)
     al.push(alertHTML("info", "mdiInformationOutline", esc(t("Bench-Modus aktiv: Der Auto-Trigger klemmt nur, fährt die Teststrecke und löst."))));
-  if (ready && opStale()) al.push(alertHTML("warning", "mdiAlertOutline", esc(t("Der letzte Vorgang wurde abgebrochen – die Ursache steht in der Konsole. Servo und Stepper ggf. mit „Lösen“ freigeben.")),
-    btnHTML({ text: t("Lösen"), color: "warning", g: "LOADER_STOP" })));
-  if (st.state === "error" && st.msg) al.push(alertHTML("error", "mdiAlertCircleOutline", esc(t("Loader: {m}", { m: st.msg }))));
+  if (ready && installed && (st.state === "error" || opStale())) al.push(errorCard());
   if ((S.configfile || {}).save_config_pending)
     al.push(alertHTML("warning", "mdiContentSave", esc(t("Ungespeicherte Kalibrierwerte – erst nach SAVE_CONFIG dauerhaft. Klipper startet dabei neu.")),
       btnHTML({ text: t("Save Config"), color: "warning", g: "SAVE_CONFIG", confirm: t("Konfiguration speichern und Klipper neu starten?"), cls: pr ? "v-btn--disabled" : "" })));
@@ -1432,6 +1518,7 @@ function draw() {
   document.querySelectorAll(".act").forEach((b) => setDis(b, lock));
   // the five main buttons: also usable in a print pause (filament change), each only when it makes sense
   const lockOps = !ready || (pr && !isPaused()) || busy > 0 || opRunning();
+  document.querySelectorAll(".err-act").forEach((b) => setDis(b, lockOps));
   const why = opAvail();
   for (const id of ["prepare", "load-cold", "load-hot", "park", "unload"]) {
     const reason = !hasTool ? "Sensor 2 ist nicht aktiv" : why[id];
@@ -1607,7 +1694,7 @@ function drawHistory() {
     `<div class="v-data-table v-data-table--dense theme--${TH} hlist"><div class="v-data-table__wrapper"><table><tbody>` +
     shown.map((e) => `<tr><td>${esc(dMid(e.t))}</td><td>${esc(t(OPS[e.op] || e.op || "–"))}</td>` +
       `<td>${e.r === "ok" ? chip(t("ok"), "success--text") : chip(t("Fehler"), "error--text")}</td>` +
-      `<td class="small muted">${esc(e.m || "")}${e.d != null ? ` · ${esc(dec(e.d))} s` : ""}${e.sl != null ? ` · ${esc(t("Abweichung"))} ${esc(slipTxt(e.sl))}${e.sp ? ` @ ${esc(e.sp)} mm/s` : ""}` : ""}</td></tr>`).join("") +
+      `<td class="small muted">${esc(e.m || "")}${e.ph && PHASES[e.ph] ? ` · ${esc(t("bei: {p}", { p: t(PHASES[e.ph]) }))}` : ""}${e.d != null ? ` · ${esc(dec(e.d))} s` : ""}${e.sl != null ? ` · ${esc(t("Abweichung"))} ${esc(slipTxt(e.sl))}${e.sp ? ` @ ${esc(e.sp)} mm/s` : ""}` : ""}</td></tr>`).join("") +
     `</tbody></table></div></div>` +
     (items.length > 10 ? `<div class="mt-2"><button type="button" class="v-btn v-btn--text theme--${TH} v-size--small primary--text" id="hist-more"><span class="v-btn__content">${esc(HIST.all ? t("Weniger anzeigen") : t("Alle anzeigen ({n})", { n: items.length }))}</span></button></div>` : "");
   const more = $("hist-more");
