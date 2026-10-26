@@ -87,6 +87,63 @@ html.theme--light .kv td { border-bottom-color: rgba(0,0,0,.12); }
 .step-row { cursor: pointer; }
 .step-ic.auto { cursor: default; }
 
+/* main controls: the five targets along the filament path */
+.stn-track { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; --frac: 0;
+  --fil: #ff8a3d; --stn-dot: #2c2d30; --stn-line: rgba(255,255,255,.16); --stn-edge: rgba(255,255,255,.22); --stn-bg: rgba(255,255,255,.04); }
+html.theme--light .stn-track { --stn-dot: #eceff1; --stn-line: rgba(0,0,0,.14); --stn-edge: rgba(0,0,0,.2); --stn-bg: rgba(0,0,0,.025); }
+.stn-rail { position: absolute; top: 18px; height: 4px; border-radius: 2px; background: var(--stn-line); pointer-events: none;
+  left: calc((100% - 32px) / 10); right: calc((100% - 32px) / 10); }
+.stn-fill { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--frac) * 100%); border-radius: inherit; background: var(--fil); transition: width .5s ease, height .5s ease; }
+.stn-track.empty .stn-fill { display: none; }
+.stn-track.unsure .stn-fill { background: repeating-linear-gradient(90deg, var(--fil) 0 8px, transparent 8px 13px); }
+.stn-track.moving .stn-fill { background-image: repeating-linear-gradient(-45deg, rgba(0,0,0,.28) 0 5px, transparent 5px 10px); background-size: 28px 28px; animation: stn-flow .8s linear infinite; }
+.stn-track.moving.back .stn-fill { animation-direction: reverse; }
+@keyframes stn-flow { to { background-position: 28px 0; } }
+.stn { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.stn-dot { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--stn-dot); border: 2px solid var(--stn-edge);
+  transition: background .3s, border-color .3s, box-shadow .3s; }
+.stn-dot .v-icon { font-size: 20px; opacity: .75; }
+.stn.reached .stn-dot { background: var(--fil); border-color: var(--fil); }
+.stn.reached .stn-dot .v-icon { color: #1d1d1f !important; opacity: .9; }
+.stn.here .stn-dot { box-shadow: 0 0 0 4px rgba(255,138,61,.28); }
+.stn.run .stn-dot { animation: stn-pulse 1.1s ease-in-out infinite; border-color: var(--v-primary-base); }
+@keyframes stn-pulse { 50% { box-shadow: 0 0 0 7px rgba(33,150,243,.25); } }
+.stn-place { font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; opacity: .62; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.stn.here .stn-place { opacity: 1; color: var(--fil); font-weight: 600; }
+.stn-btn { width: 100%; min-height: 56px; margin-top: 2px; padding: 7px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  border: 1px solid var(--stn-edge); border-radius: 6px; background: var(--stn-bg); color: inherit; font: 500 .8125rem Roboto, sans-serif; letter-spacing: .03em;
+  text-transform: uppercase; cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s; }
+.stn-btn:hover:not(:disabled) { border-color: var(--v-primary-base); background: rgba(33,150,243,.12); }
+.stn-btn:focus-visible { outline: 2px solid var(--v-primary-base); outline-offset: 2px; }
+.stn-btn:disabled { cursor: default; }
+.stn-btn:disabled .stn-act { opacity: .38; }
+.stn-btn:disabled:not(:hover) { border-style: dashed; }
+.stn.run .stn-btn { border-color: var(--v-primary-base); box-shadow: 0 0 0 1px var(--v-primary-base) inset; }
+.stn.run .stn-btn .stn-act { opacity: 1; }
+.stn-act { line-height: 1.2; }
+.stn-chip { display: inline-block; font-size: .6875rem; font-weight: 500; letter-spacing: .01em; text-transform: none; line-height: 18px; padding: 0 7px; border-radius: 9px; white-space: nowrap; }
+.stn-chip.cold { color: #90caf9; background: rgba(144,202,249,.12); }
+.stn-chip.hot { color: #ff8a65; background: rgba(255,112,67,.16); }
+.stn-chip.here { color: #1d1d1f; background: var(--fil); font-weight: 600; }
+.stn-chip.unsure { color: #ffb300; background: rgba(255,179,0,.15); }
+.stn-chip.run { color: #fff; background: var(--v-primary-base); }
+html.theme--light .stn-chip.cold { color: #1565c0; background: rgba(21,101,192,.1); }
+html.theme--light .stn-chip.hot { color: #d84315; background: rgba(216,67,21,.1); }
+html.theme--light .stn-chip.unsure { color: #b26a00; }
+.stn-btn:disabled .stn-chip:not(.here):not(.run):not(.unsure) { opacity: .5; }
+@media (max-width: 600px) {
+  .stn-track { grid-template-columns: 1fr; gap: 8px; }
+  .stn-rail { left: 18px; right: auto; width: 4px; height: auto; top: 28px; bottom: 28px; }
+  .stn-fill { width: auto; right: 0; bottom: auto; height: calc(var(--frac) * 100%); }
+  .stn-track.unsure .stn-fill { background: repeating-linear-gradient(180deg, var(--fil) 0 8px, transparent 8px 13px); }
+  .stn { flex-direction: row; gap: 12px; min-height: 56px; }
+  .stn-place { width: 66px; flex: none; text-align: left; }
+  .stn-btn { flex: 1; flex-direction: row; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; min-height: 48px; margin-top: 0; padding: 6px 10px; letter-spacing: .02em; }
+  .stn-act { white-space: nowrap; }
+  /* long status chips in the table: wrap instead of overflowing */
+  .kv .chip { height: auto; min-height: 22px; line-height: 1.3; padding: 2px 10px; white-space: normal; }
+}
+
 /* filament path graphic */
 #fpath { width: 100%; max-width: 560px; display: block; margin: 0 auto; overflow: visible;
   --fp-black: #222326; --fp-blk2: #2d2e32; --fp-edge: rgba(255,255,255,.2); --fp-acc: #d42a2a; --fp-acc-edge: rgba(0,0,0,.35);
@@ -293,21 +350,23 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                   <tr><td>Hotend</td><td id="s-temp">–</td></tr>
                   <tr><td>Letzte Meldung</td><td id="s-msg">–</td></tr>
                 </table>
+                <div class="stn-track mt-4" id="stn-track" role="group" aria-label="Filament bewegen">
+                  <div class="stn-rail"><div class="stn-fill"></div></div>
+                  <div class="stn"><span class="stn-dot"><span data-icon="mdiCog"></span></span><span class="stn-place">Loader</span><button type="button" class="stn-btn" id="unload"><span class="stn-act">Entladen</span><span class="stn-badge"></span></button></div>
+                  <div class="stn"><span class="stn-dot"><span data-icon="mdiParking"></span></span><span class="stn-place">Schlauch</span><button type="button" class="stn-btn" id="park"><span class="stn-act">Parken</span><span class="stn-badge"></span></button></div>
+                  <div class="stn"><span class="stn-dot"><span data-icon="mdiArrowCollapseDown"></span></span><span class="stn-place">Sensor 2</span><button type="button" class="stn-btn" id="prepare"><span class="stn-act">Vorbereiten</span><span class="stn-badge"></span></button></div>
+                  <div class="stn"><span class="stn-dot"><span data-icon="mdiSnowflake"></span></span><span class="stn-place">Extruder</span><button type="button" class="stn-btn" id="load-cold" data-g="FILAMENT_LOAD_COLD"><span class="stn-act">Laden</span><span class="stn-badge"></span></button></div>
+                  <div class="stn"><span class="stn-dot"><span data-icon="mdiFire"></span></span><span class="stn-place">Düse</span><button type="button" class="stn-btn" id="load-hot"><span class="stn-act">Heiß laden</span><span class="stn-badge"></span></button></div>
+                </div>
+                <div class="small muted mt-2 stn-legend">Ziel antippen – das Filament fährt dorthin. Geheizt wird nur, wo es dabeisteht.</div>
+                <div class="op-hint mt-3" id="op-hint"></div>
                 <div class="d-flex align-center flex-wrap mt-4" style="gap:10px 12px">
                   <x-field label="Düse °C" id="temp" cls="temp-in" type="number" min="0" max="320" step="5" value="220" style="width:110px"></x-field>
                   <x-field label="Ausspülen" id="purge" type="number" min="0" max="300" step="5" suffix="mm" style="width:120px"></x-field>
                   <div class="chips" id="mat-chips"></div>
                 </div>
-                <div class="btn-row mt-4">
-                  <x-btn id="prepare" act icon="mdiArrowCollapseDown">Vorbereiten</x-btn>
-                  <x-btn id="load-cold" g="FILAMENT_LOAD_COLD" act color="primary" icon="mdiSnowflake">Laden</x-btn>
-                  <x-btn id="load-hot" act color="primary" icon="mdiFire">Heiß laden</x-btn>
-                  <x-btn id="park" act icon="mdiParking">Parken</x-btn>
-                  <x-btn id="unload" act icon="mdiArrowUpBold">Entladen</x-btn>
-                </div>
-                <div class="op-hint mt-3" id="op-hint"></div>
+                <div class="small muted mt-1">Temperatur für Heiß laden und für das Herausziehen aus der Düse · Ausspülen nach dem Heiß laden</div>
                 <div class="d-flex align-center flex-wrap mt-2" style="gap:4px 12px"><x-btn id="reset" variant="text" icon="mdiRestore">Zurücksetzen …</x-btn><span class="small muted">Wenn etwas hängt (z. B. Clog) und das Filament von Hand heraus muss.</span></div>
-                <div class="small muted mt-2">Vorbereiten: bis Sensor 2 – noch nicht im Extruder, lässt sich auch ausgeschaltet von Hand herausziehen. Laden: bis in den Extruder, der greift kalt ein paar Millimeter mit – bereit für den nächsten Druck. Heiß laden: bis zur Düse und ausspülen. Parken / Entladen: zurück in den Schlauch bzw. in den Loader – geheizt wird nur, wenn das Filament in der Düse ist.</div>
               </div>
               <hr role="separator" class="v-divider theme--dark">
               <div class="v-card__text">
@@ -849,6 +908,17 @@ const T_EN = {
   "Modul autoloader_sync fehlt – ./install.sh": "module autoloader_sync missing – ./install.sh",
   "aktiv – greift kalt {n} mm": "active – cold grip {n} mm", "aktiv": "active",
   "So geht es weiter:": "How to continue:",
+  // station track
+  "Schlauch": "Tube",
+  "Filament bewegen": "Move the filament",
+  "Ziel antippen – das Filament fährt dorthin. Geheizt wird nur, wo es dabeisteht.": "Tap a target – the filament moves there. It only heats where it says so.",
+  "Temperatur für Heiß laden und für das Herausziehen aus der Düse · Ausspülen nach dem Heiß laden": "Temperature for load hot and for pulling out of the nozzle · purge after load hot",
+  "Zurück bis in den Loader (unload_hold). Geheizt wird nur, wenn das Filament in der Düse ist.": "Back into the loader (unload_hold). Heats only if the filament is in the nozzle.",
+  "Knapp hinter Sensor 2 in den Schlauch – das nächste Laden geht schnell. Geheizt wird nur, wenn das Filament in der Düse ist.": "Into the tube just behind sensor 2 – the next load is quick. Heats only if the filament is in the nozzle.",
+  "Bis Sensor 2 – noch nicht im Extruder, lässt sich auch ausgeschaltet von Hand herausziehen.": "Up to sensor 2 – not in the extruder yet, can be pulled out by hand even when the printer is off.",
+  "Bis in den Extruder, der greift kalt ein paar Millimeter mit – bereit für den nächsten Druck. Die Düse bleibt aus.": "Into the extruder, which grips a few millimetres cold – ready for the next print. The nozzle stays off.",
+  "Heizt auf, fördert bis zur Düse und spült aus.": "Heats up, feeds to the nozzle and purges.",
+  "läuft …": "running …", "Filament hier": "filament here", "vermutlich hier": "probably here", "heizt · {n} °C": "heats · {n} °C", "kalt": "cold",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1395,6 +1465,48 @@ function opAvail() {
     "unload": none ? "Kein Filament im Loader" : inLoader ? "Filament steckt schon im Loader" : needSync("unload") ? "Braucht das Klipper-Modul autoloader_sync (Hinweis oben)" : "",
   };
 }
+/* the five targets along the filament path (left = loader, right = nozzle) */
+const STN = [
+  ["unload", "Zurück bis in den Loader (unload_hold). Geheizt wird nur, wenn das Filament in der Düse ist."],
+  ["park", "Knapp hinter Sensor 2 in den Schlauch – das nächste Laden geht schnell. Geheizt wird nur, wenn das Filament in der Düse ist."],
+  ["prepare", "Bis Sensor 2 – noch nicht im Extruder, lässt sich auch ausgeschaltet von Hand herausziehen."],
+  ["load-cold", "Bis in den Extruder, der greift kalt ein paar Millimeter mit – bereit für den nächsten Druck. Die Düse bleibt aus."],
+  ["load-hot", "Heizt auf, fördert bis zur Düse und spült aus."],
+];
+const STN_OP = { unload: 0, park: 1, prepare: 2, load_cold: 3, load: 4 };
+/* station of the filament tip: { i: -1…4, sure } */
+function stnIndex() {
+  const p = ls().pos || "unknown", { s1, s2 } = sens();
+  const m = { loader: 0, tube: 1, sensor2: 2, gears: 3, nozzle: 4 };
+  if (p === "none") return { i: s1 ? 0 : -1, sure: true };
+  if (p in m) return { i: m[p], sure: s2 === (m[p] >= 2) || !hasTool };
+  return s2 ? { i: 2, sure: false } : s1 ? { i: 0, sure: false } : { i: -1, sure: true };
+}
+function drawTrack() {
+  const tr = $("stn-track");
+  if (!tr) return;
+  const { i, sure } = stnIndex(), st = ls(), run = opRunning();
+  const target = run ? STN_OP[st.op] : undefined;
+  tr.style.setProperty("--frac", String(Math.max(0, i) / 4));
+  tr.classList.toggle("empty", i < 0);
+  tr.classList.toggle("unsure", !sure);
+  tr.classList.toggle("moving", target !== undefined);
+  tr.classList.toggle("back", target !== undefined && target < i);
+  const heat = inNozzle(), tv = parseFloat(($("temp") || {}).value), temp = isFinite(tv) && tv > 0 ? Math.round(tv) : 220;
+  STN.forEach(([id], k) => {
+    const b = $(id), stn = b.closest(".stn");
+    stn.classList.toggle("reached", i >= 0 && k <= i);
+    stn.classList.toggle("here", k === i);
+    stn.classList.toggle("run", k === target);
+    let txt, cls;
+    if (k === target) [txt, cls] = [t("läuft …"), "run"];
+    else if (k === i) [txt, cls] = [sure ? t("Filament hier") : t("vermutlich hier"), sure ? "here" : "unsure"];
+    else if (id === "load-hot" || (["unload", "park", "prepare"].includes(id) && heat)) [txt, cls] = [t("heizt · {n} °C", { n: temp }), "hot"];
+    else [txt, cls] = [t("kalt"), "cold"];
+    const bd = b.querySelector(".stn-badge"), h = `<span class="stn-chip ${cls}">${esc(txt)}</span>`;
+    if (bd.dataset.h !== h) { bd.innerHTML = h; bd.dataset.h = h; }
+  });
+}
 /* one line: where the filament is and what makes sense next */
 function opHint() {
   const st = ls(), v = lv(), p = st.pos || "unknown", { s1, s2 } = sens();
@@ -1575,11 +1687,12 @@ function draw() {
   const lockOps = !ready || (pr && !isPaused()) || busy > 0 || opRunning();
   document.querySelectorAll(".err-act").forEach((b) => setDis(b, lockOps));
   const why = opAvail();
-  for (const id of ["prepare", "load-cold", "load-hot", "park", "unload"]) {
+  for (const [id, help] of STN) {
     const reason = !hasTool ? "Sensor 2 ist nicht aktiv" : why[id];
     setDis($(id), lockOps || !!reason);
-    $(id).title = reason ? t(reason) : "";
+    $(id).title = reason ? t(reason) : t(help);
   }
+  drawTrack();
   const hint = ready && installed ? opHint() : "";
   const hintHTML = hint ? icon("mdiInformationOutline", "", 18) + `<span>${esc(t(hint[0], hint[1]))}</span>` : "";
   if ($("op-hint").dataset.h !== hintHTML) { $("op-hint").innerHTML = hintHTML; $("op-hint").dataset.h = hintHTML; }
