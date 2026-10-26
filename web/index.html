@@ -1786,8 +1786,7 @@ function filamentModel() {
   let head, tail = 0, moving = false, dir = 1, text, warnTxt = false;
   if (s2 || (!s2o && ["sensor2", "gears", "nozzle"].includes(pos))) {
     tail = s1 ? 0 : 1.15;
-    const go = +v.gear_offset || 8, lead = Math.min(4, go);
-    const push = Math.max(go - lead, 0) / (+v.slow_speed || 10) + (lead + (+v.gear_push || 3) + (+v.grip_len || 0)) / (+v.grip_speed || 5);
+    const push = ((+v.gear_offset || 8) + (+v.gear_push || 3) + (+v.grip_len || 0)) / (+v.grip_speed || 5);
     if (st.op === "measure" && !run) { head = 3 + Math.min(1, MS.gear / ((+v.gear_offset || 8) + (+v.gear_push || 3))); text = "Filament steht an Sensor 2 (Messung)"; }
     else if (loading && st.op === "prepare") { head = 3.2; text = "Filament an Sensor 2 – Loader löst …"; }
     else if (loading && !PATH.extT) {
@@ -1959,7 +1958,7 @@ const GROUPS = [
     F("tube_len", ["Loader → Sensor 2", "Loader → sensor 2"], "mm", ["Loader-Zahnräder bis Sensor 2 – unter „Längen messen“ ermitteln", "Loader gears to sensor 2 – measure it under “Measure lengths”"], { min: 20, max: 3000, st: 1 }),
     F("gear_offset", ["Sensor 2 → Zahnräder", "Sensor 2 → gears"], "mm", ["Bis die Spitze an den Extruder-Zahnrädern ansteht", "Until the tip touches the extruder gears"], { min: 0, max: 100, st: 0.5 }),
     F("gear_push", ["In die Zahnräder schieben", "Push into the gears"], "mm", ["Zusätzlich, damit der Extruder sicher greift", "Extra, so the extruder grips reliably"], { min: 0, max: 20, st: 0.5 }),
-    F("grip_len", ["Kalt greifen", "Cold grip"], "mm", ["So weit zieht der Extruder das Filament nach der Übergabe kalt ein. Die Übergabe selbst läuft immer mit drehendem Extruder: der Loader stoppt kurz vor den Zahnrädern, dann schieben beide gemeinsam. 0 = nur übergeben. Braucht [force_move]", "How far the extruder pulls the filament in cold after the hand-over. The hand-over itself always runs with the extruder turning: the loader stops just before the gears, then both push together. 0 = hand-over only. Needs [force_move]"], { min: 0, max: 20, st: 1 }),
+    F("grip_len", ["Kalt greifen", "Cold grip"], "mm", ["So weit zieht der Extruder das Filament nach der Übergabe kalt ein. Die Übergabe selbst läuft immer mit drehendem Extruder: ab Sensor 2 schieben Loader und Extruder gemeinsam. 0 = nur übergeben. Braucht [force_move]", "How far the extruder pulls the filament in cold after the hand-over. The hand-over itself always runs with the extruder turning: from sensor 2 on, loader and extruder push together. 0 = hand-over only. Needs [force_move]"], { min: 0, max: 20, st: 1 }),
     F("ext_to_nozzle", ["Zahnräder → Düse", "Gears → nozzle"], "mm", ["So weit fördert der Extruder beim Laden heiß", "The extruder feeds this far when loading hot"], { min: 5, max: 300, st: 1 }),
     F("purge_len", ["Ausspülen", "Purge"], "mm", ["Nach dem Laden heiß, 0 = aus", "After loading hot, 0 = off"], { min: 0, max: 300, st: 1 }),
     F("unload_ext_len", ["Extruder zieht zurück", "Extruder retracts"], "mm", ["Beim Entladen insgesamt ab Düse, inklusive Spitze formen", "When unloading, in total from the nozzle, incl. tip forming"], { min: 5, max: 300, st: 1 }),
@@ -2227,10 +2226,9 @@ function drawEstimate(v) {
   const over = 0.2, stepT = mv(n("step_mm"), n("slow_speed")) + over;
   const coarse = Math.max(n("tube_len") - n("approach"), 0);
   const cstep = Math.max(Math.min(5, n("gear_offset") - 2), n("step_mm"), 0.5), cspeed = Math.min(n("speed"), 60) || 30;
-  const lead = Math.min(4, n("gear_offset"));
   const cold = 2 * n("servo_settle") + mv(coarse, n("speed")) + (n("approach") / cstep) * (mv(cstep, cspeed) + over) +
     mv(cstep + 3, n("slow_speed")) + ((cstep + 3) / Math.max(n("step_mm"), 0.1)) * stepT +
-    mv(Math.max(n("gear_offset") - lead, 0), n("slow_speed")) + (lead + n("gear_push") + n("grip_len")) / Math.max(n("grip_speed"), 0.5);
+    (n("gear_offset") + n("gear_push") + n("grip_len")) / Math.max(n("grip_speed"), 0.5);
   const hot = n("ext_to_nozzle") / Math.max(n("ext_speed"), 0.1) + n("purge_len") / Math.max(n("purge_speed"), 0.1);
   let tip = 0;
   if (+m.tip_enable) {

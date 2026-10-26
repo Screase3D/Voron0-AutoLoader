@@ -112,14 +112,19 @@ steps, so the tip is never more than `step_mm` past the sensor. *Prepare* stops 
 extrudes the rest of `ext_to_nozzle` plus the purge (`nozzle`). Each one continues from wherever the filament is –
 from parked or prepared it only feeds the remaining distance.
 
-**Hand-over to the extruder.** The loader alone only pushes until the tip is 4 mm before the extruder gears
-(`gear_offset`). From there loader and extruder move together at `grip_speed` – the extruder gears are already
-turning when the tip arrives, so it is pulled in instead of being pushed against standing gears – through
-`gear_push` and another `grip_len` mm. Klipper refuses extruder moves below `min_extrude_temp`; `FORCE_MOVE` drives
-the extruder stepper directly and is not limited by that, so this works with a cold nozzle. It needs `[force_move]`
-with `enable_force_move: True` (the installer adds it; it also enables `SET_KINEMATIC_POSITION`). The filament only
-moves a few mm into the cold heatsink, nothing is extruded. Without `[force_move]` the extruder motor is switched off
-during the hand-over, so its gears can at least turn freely.
+**Hand-over to the extruder.** From sensor 2 on, loader and extruder move together at `grip_speed` – the extruder
+gears are already turning long before the tip arrives, so it is pulled in instead of being pushed against standing
+gears, however exact `gear_offset` is. They move through `gear_offset + gear_push` and another `grip_len` mm. Klipper
+refuses extruder moves below `min_extrude_temp`; `FORCE_MOVE` drives the extruder stepper directly and is not limited
+by that, so this works with a cold nozzle. It needs `[force_move]` with `enable_force_move: True` (the installer adds
+it; it also enables `SET_KINEMATIC_POSITION`). The filament only moves a few mm into the cold heatsink, nothing is
+extruded. Without `[force_move]` the extruder motor is switched off during the hand-over, so its gears can at least
+turn freely.
+
+**Tolerances.** In a PTFE tube with 3 mm bore the filament snakes a little, so pushing and pulling the same distance
+can differ by a few mm. The macros never rely on the exact length: every load and unload is referenced at sensor 2,
+after the coarse search the loader backs off until sensor 2 is really free before the fine search, the search windows
+have tens of mm of reserve, and prepared filament stops only a couple of mm past sensor 2, well before the gears.
 
 **Unload / park.** First the macros decide whether the filament can be molten in the nozzle: yes if it was loaded
 hot, or if the extruder has extruded since it was prepared or gripped (`toolhead.position.e` is compared with the
