@@ -94,7 +94,7 @@ variable_unload_hold: ${unload_hold}         # mm Spitze bleibt im Loader-Griff
 variable_park_dist: ${park_dist}          # mm hinter Sensor 2 beim Parken (Filament bleibt im Schlauch)
 # --- Auto-Trigger ---
 variable_auto_enable: ${auto_enable}         # 1 = Filament am Loader-Eingang wird automatisch geladen
-variable_auto_target: "${auto_target}"       # "cold" = bis in den Extruder, "hot" = bis zur Duese (heizt auf)
+variable_auto_target: "${auto_target}"       # "prepare" = bis Sensor 2, "cold" = in den Extruder (greift kalt), "hot" = bis zur Duese (heizt auf)
 variable_heater_off: ${heater_off}          # 1 = Duese nach Laden/Entladen ausschalten (nicht im Druck / in der Pause)
 variable_auto_delay: ${auto_delay}         # s Zeit zum Nachschieben, bevor der Loader klemmt
 variable_bench_mode: ${bench_mode}          # 1 = Auto-Trigger macht nur den Bench-Test (klemmen, bench_dist fahren, loesen)
@@ -112,7 +112,7 @@ variable_tip_cool_start: ${tip_cool_start}      # mm/s erste Kuehlbewegung
 variable_tip_cool_end: ${tip_cool_end}        # mm/s letzte Kuehlbewegung
 variable_tip_eject_speed: ${tip_eject_speed}     # mm/s restliches Zurueckziehen bis unload_ext_len
 # --- Druck-Hooks ---
-variable_print_start_mode: ${print_start_mode}    # 0 = aus, 1 = nur pruefen (Abbruch ohne Filament), 2 = automatisch laden
+variable_print_start_mode: ${print_start_mode}    # 0 = aus, 1 = nur fertig laden, was an Sensor 2 / im Extruder steht (sonst Abbruch), 2 = immer automatisch laden
 variable_print_end_action: ${print_end_action}    # nach dem Druck (PRINT_END): 0 = nichts, 1 = parken, 2 = ganz entladen
 gcode:
 

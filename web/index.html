@@ -287,19 +287,20 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                   <div class="chips" id="mat-chips"></div>
                 </div>
                 <div class="btn-row mt-4">
-                  <x-btn g="FILAMENT_LOAD_COLD" act color="primary" icon="mdiSnowflake">Laden kalt</x-btn>
-                  <x-btn id="load-hot" act color="primary" icon="mdiFire">Laden heiß</x-btn>
+                  <x-btn id="prepare" act icon="mdiArrowCollapseDown">Vorbereiten</x-btn>
+                  <x-btn id="load-cold" g="FILAMENT_LOAD_COLD" act color="primary" icon="mdiSnowflake">Laden</x-btn>
+                  <x-btn id="load-hot" act color="primary" icon="mdiFire">Heiß laden</x-btn>
                   <x-btn id="park" act icon="mdiParking">Parken</x-btn>
                   <x-btn id="unload" act icon="mdiArrowUpBold">Entladen</x-btn>
                 </div>
-                <div class="small muted mt-2">Laden kalt: bis in die Extruder-Zahnräder. Laden heiß: bis zur Düse und ausspülen. Parken: Spitze formen und knapp hinter Sensor 2 im Schlauch abstellen. Entladen: ganz zurück in den Loader.</div>
+                <div class="small muted mt-2">Vorbereiten: bis Sensor 2 – noch nicht im Extruder, lässt sich auch ausgeschaltet von Hand herausziehen. Laden: bis in den Extruder, der greift kalt ein paar Millimeter mit – bereit für den nächsten Druck. Heiß laden: bis zur Düse und ausspülen. Parken / Entladen: zurück in den Schlauch bzw. in den Loader – geheizt wird nur, wenn das Filament in der Düse ist.</div>
               </div>
               <hr role="separator" class="v-divider theme--dark">
               <div class="v-card__text">
                 <div class="d-flex align-center flex-wrap" style="gap:10px 24px">
                   <x-check label="Auto-Laden bei Filament am Eingang" id="auto"></x-check>
                   <div class="d-flex align-center" style="gap:8px"><span class="small muted">Laden bis</span>
-                    <div class="seg" id="auto-target" role="group"><x-btn variant="text" cls="tgt" data-tgt="cold" icon="mdiSnowflake">Extruder (kalt)</x-btn><x-btn variant="text" cls="tgt" data-tgt="hot" icon="mdiFire">Düse (heiß)</x-btn></div>
+                    <div class="seg" id="auto-target" role="group"><x-btn variant="text" cls="tgt" data-tgt="prepare" icon="mdiArrowCollapseDown">Sensor 2</x-btn><x-btn variant="text" cls="tgt" data-tgt="cold" icon="mdiSnowflake">Extruder</x-btn><x-btn variant="text" cls="tgt" data-tgt="hot" icon="mdiFire">Düse (heiß)</x-btn></div>
                   </div>
                 </div>
                 <div class="d-flex align-center flex-wrap mt-3" style="gap:10px 24px">
@@ -566,6 +567,7 @@ const T_EN = {
   "Längen messen": "Measure lengths", "tube_len, gear_offset und ext_to_nozzle am Voron messen.": "Measure tube_len, gear_offset and ext_to_nozzle on the Voron.",
   "Bench-Modus ausschalten": "Turn bench mode off", "Danach lädt der Auto-Trigger bis in den Extruder.": "Afterwards the auto trigger loads all the way into the extruder.",
   "Filament sitzt in den Extruder-Zahnrädern.": "Filament is seated in the extruder gears.",
+  "Filament steht an Sensor 2.": "Filament is waiting at sensor 2.", "Filament sitzt im Extruder, kalt gegriffen.": "Filament is in the extruder, gripped cold.",
   "Filament bis in die Düse, Ausspülen.": "Filament all the way to the nozzle, purge.",
   "Filament wird vollständig zurückgezogen.": "Filament is pulled back completely.",
   // Manual / calibration
@@ -585,7 +587,7 @@ const T_EN = {
   "Als CSV exportieren": "Export as CSV", "Verlauf löschen": "Clear history", "Verlauf: {m}": "History: {m}",
   "Alle Einträge des Verlaufs löschen? Das betrifft alle Browser.": "Delete all history entries? This affects all browsers.", "Löschen": "Delete",
   "Noch keine Einträge. Laden, Entladen und Bench-Tests werden hier aufgezeichnet.": "No entries yet. Loads, unloads and bench tests are recorded here.",
-  "Laden (kalt)": "Load (cold)", "Laden (heiß)": "Load (hot)", "Laden": "Loads", "Letzte Dauer": "Last duration", "ok": "ok",
+  "Laden (kalt)": "Load (cold)", "Laden (heiß)": "Load (hot)", "Ladungen": "Loads", "Letzte Dauer": "Last duration", "ok": "ok",
   "Weniger anzeigen": "Show less", "Alle anzeigen ({n})": "Show all ({n})",
   // Settings
   "Einstellungen": "Settings", "Hardware": "Hardware", "Servo & Stepper": "Servo & stepper", "Längen": "Lengths", "Laden & Auto": "Load & auto",
@@ -745,6 +747,17 @@ const T_EN = {
   "[force_move] enable_force_move: False – auf True setzen": "[force_move] enable_force_move: False – set it to True",
   "neu – unter Einstellungen einmal speichern": "new – save the settings once",
   "+ {g} mm beim kalten Greifen = <b>{s} mm</b>": "+ {g} mm from the cold grip = <b>{s} mm</b>",
+  "Vorbereiten": "Prepare", "Laden": "Load", "Heiß laden": "Load hot", "Sensor 2 (vorbereiten)": "Sensor 2 (prepare)",
+  "Vorbereiten: bis Sensor 2 – noch nicht im Extruder, lässt sich auch ausgeschaltet von Hand herausziehen. Laden: bis in den Extruder, der greift kalt ein paar Millimeter mit – bereit für den nächsten Druck. Heiß laden: bis zur Düse und ausspülen. Parken / Entladen: zurück in den Schlauch bzw. in den Loader – geheizt wird nur, wenn das Filament in der Düse ist.":
+    "Prepare: up to sensor 2 – not in the extruder yet, can be pulled out by hand even with the printer off. Load: into the extruder, which grips a few mm cold – ready for the next print. Load hot: to the nozzle and purge. Park / unload: back into the tube or the loader – it only heats if the filament is in the nozzle.",
+  "vorbereitet (an Sensor 2)": "prepared (at sensor 2)", "im Extruder (kalt gegriffen)": "in the extruder (gripped cold)",
+  "Filament knapp hinter Sensor 2 im Schlauch parken? Es ist nicht in der Düse – die Düse bleibt aus.": "Park the filament just behind sensor 2 in the tube? It is not in the nozzle – the nozzle stays off.",
+  "Filament zurück in den Loader ziehen? Es ist nicht in der Düse – die Düse bleibt aus.": "Pull the filament back into the loader? It is not in the nozzle – the nozzle stays off.",
+  "Das Filament ist in der Düse. Hotend auf {n} °C aufheizen, Spitze formen, herausziehen und an Sensor 2 abstellen?": "The filament is in the nozzle. Heat the hotend to {n} °C, form the tip, pull it out and leave it at sensor 2?",
+  "Filament an Sensor 2 – Loader löst …": "Filament at sensor 2 – loader releases …", "Wird bis Sensor 2 gefördert …": "Feeding up to sensor 2 …",
+  "Filament im Extruder (kalt gegriffen) – bereit zum Drucken": "Filament in the extruder (gripped cold) – ready to print",
+  "Vorbereitet: Filament steht an Sensor 2 – noch nicht im Extruder": "Prepared: filament waiting at sensor 2 – not in the extruder yet",
+  "+0,5 mm": "+0.5 mm", "−0,5 mm": "−0.5 mm",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
 };
@@ -1127,7 +1140,7 @@ async function subscribe() {
   const want = {
     extruder: ["temperature", "target"],
     "filament_switch_sensor loader_in": ["filament_detected", "enabled"],
-    "filament_switch_sensor toolhead_in": ["filament_detected", "enabled"],
+    "filament_switch_sensor toolhead_in": ["filament_detected", "enabled"], toolhead: ["position"],
     "gcode_macro _LOADER_STATE": null, "gcode_macro _LOADER_VARS": null,
     configfile: ["save_config_pending"], print_stats: ["state"], webhooks: ["state", "state_message"], idle_timeout: ["state"],
   };
@@ -1228,8 +1241,18 @@ const opStale = () => BUSY_STATES.includes(ls().state) && !opRunning();
 const lv = () => S["gcode_macro _LOADER_VARS"] || {};
 const chip = (txt, cls = "") => `<span class="chip ${cls}">${esc(txt)}</span>`;
 
-const POS_TXT = { none: "nicht eingelegt", loader: "im Loader", tube: "im Schlauch (geparkt)", sensor2: "an Sensor 2",
-  gears: "in den Extruder-Zahnrädern", nozzle: "bis zur Düse geladen", unknown: "unbekannt" };
+const POS_TXT = { none: "nicht eingelegt", loader: "im Loader", tube: "im Schlauch (geparkt)", sensor2: "vorbereitet (an Sensor 2)",
+  gears: "im Extruder (kalt gegriffen)", nozzle: "bis zur Düse geladen", unknown: "unbekannt" };
+/* can the filament be molten in the nozzle? Same rule as the macros: loaded to the nozzle, or extruded since it was
+   prepared / gripped cold. Then parking and unloading heat up – otherwise they pull it back cold. */
+function inNozzle() {
+  const st = ls(), p = st.pos || "unknown";
+  const s2 = !!(S["filament_switch_sensor toolhead_in"] || {}).filament_detected;
+  if (!s2) return false;
+  if (!["sensor2", "gears"].includes(p)) return true;
+  const e = Number(((S.toolhead || {}).position || [])[3]);
+  return isFinite(e) && Math.abs(e - Number(st.e_ref || 0)) > 2;
+}
 function posHTML() {
   const st = ls(), p = st.pos || "unknown";
   const cls = { none: "muted", loader: "", tube: "info--text", sensor2: "warning--text", gears: "success--text", nozzle: "success--text", unknown: "warning--text" }[p] || "";
@@ -1338,6 +1361,8 @@ function draw() {
   document.querySelectorAll(".act").forEach((b) => setDis(b, lock));
   // hot operations additionally need sensor 2
   setDis($("load-hot"), lock || !hasTool);
+  setDis($("prepare"), lock || !hasTool);
+  setDis($("load-cold"), lock || !hasTool);
   setDis($("unload"), lock || !hasTool);
   setDis($("park"), lock || !hasTool);
   setDis($("ed-save"), !ED || !ready || pr || busy > 0);
@@ -1407,8 +1432,9 @@ const STEPS = [
   { id: "s2", t: "Sensor 2 aktivieren", d: "Am Toolhead verdrahten und unter Einstellungen aktivieren.", auto: () => hasTool },
   { id: "len", t: "Längen messen", d: "tube_len, gear_offset und ext_to_nozzle am Voron messen." },
   { id: "normal", t: "Bench-Modus ausschalten", d: "Danach lädt der Auto-Trigger bis in den Extruder.", auto: () => lv().bench_mode !== undefined && Number(lv().bench_mode) === 0 },
-  { id: "cold", t: "Laden kalt", d: "Filament sitzt in den Extruder-Zahnrädern.", auto: () => histOk("load_cold") },
-  { id: "hot", t: "Laden heiß", d: "Filament bis in die Düse, Ausspülen.", auto: () => histOk("load") },
+  { id: "prep", t: "Vorbereiten", d: "Filament steht an Sensor 2.", auto: () => histOk("prepare") },
+  { id: "cold", t: "Laden", d: "Filament sitzt im Extruder, kalt gegriffen.", auto: () => histOk("load_cold") },
+  { id: "hot", t: "Heiß laden", d: "Filament bis in die Düse, Ausspülen.", auto: () => histOk("load") },
   { id: "unload", t: "Entladen", d: "Filament wird vollständig zurückgezogen.", auto: () => histOk("unload") },
 ];
 
@@ -1448,7 +1474,7 @@ function calcRd() {
 // =====================================================================
 const HIST = { items: [], loaded: false, all: false };
 const HIST_NS = "autoloader", HIST_KEY = "history", HIST_MAX = 300;
-const OPS = { load_cold: "Laden (kalt)", load: "Laden (heiß)", unload: "Entladen", park: "Parken", bench: "Bench-Test", measure: "Messen" };
+const OPS = { prepare: "Vorbereiten", load_cold: "Laden", load: "Heiß laden", unload: "Entladen", park: "Parken", bench: "Bench-Test", measure: "Messen" };
 const locale = () => (LANG === "de" ? "de-DE" : "en-GB");
 const dMid = (s) => new Date(s * 1000).toLocaleString(locale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -1496,7 +1522,7 @@ function drawHistory() {
   const last = items.find((e) => e.d != null);
   const shown = HIST.all ? items : items.slice(0, 10);
   box.innerHTML = `<div class="kpi-row">` +
-    kpi("Laden", n((e) => (e.op === "load" || e.op === "load_cold") && e.r === "ok")) +
+    kpi("Ladungen", n((e) => (e.op === "load" || e.op === "load_cold") && e.r === "ok")) +
     kpi("Entladen", n((e) => e.op === "unload" && e.r === "ok")) +
     kpi("Fehler", n((e) => e.r === "error")) +
     kpi("Letzte Dauer", last ? `${dec(last.d)} s` : "–") + `</div>` +
@@ -1684,6 +1710,7 @@ function filamentModel() {
     tail = s1 ? 0 : 1.15;
     const push = ((+v.gear_offset || 8) + (+v.gear_push || 3)) / (+v.slow_speed || 10);
     if (st.op === "measure" && !run) { head = 3 + Math.min(1, MS.gear / ((+v.gear_offset || 8) + (+v.gear_push || 3))); text = "Filament steht an Sensor 2 (Messung)"; }
+    else if (loading && st.op === "prepare") { head = 3.2; text = "Filament an Sensor 2 – Loader löst …"; }
     else if (loading && !PATH.extT) {
       head = 3 + Math.min(1, sec(PATH.s2t) / push);
       moving = head < 4;
@@ -1694,8 +1721,9 @@ function filamentModel() {
       moving = hot; dir = -1; text = hot ? (+v.tip_enable !== 0 ? "Spitze wird geformt, Extruder zieht zurück …" : "Extruder zieht zurück …") : "Hotend heizt auf …";
       if (hot && head <= 4) { head = 3.95; text = "Loader zieht das Filament aus dem Extruder …"; }
     } else if (pos === "nozzle") { head = 5; text = "Filament geladen bis zur Düse"; }
-    else if (pos === "gears") { head = 4; text = "Filament in den Extruder-Zahnrädern"; }
+    else if (pos === "gears") { head = 4.1; text = "Filament im Extruder (kalt gegriffen) – bereit zum Drucken"; }
     else if (st.result === "error") { head = 3.5; warnTxt = true; text = "Filament hängt an Sensor 2 – vor den Extruder-Zahnrädern (nicht gegriffen)"; }
+    else if (pos === "sensor2") { head = 3.2; text = "Vorbereitet: Filament steht an Sensor 2 – noch nicht im Extruder"; }
     else { head = 3.5; warnTxt = true; text = "Filament an Sensor 2 – ob die Extruder-Zahnräder greifen, ist unbekannt"; }
   } else if (s1) {
     head = inTube(Number(st.tip) || 0);
@@ -1704,7 +1732,7 @@ function filamentModel() {
     if (loading) {
       const est = Math.min(PATH.tip0 + sec(EV.t0) * sp, tube - (+v.approach || 30));
       head = inTube(Math.max(Number(st.tip) || 0, est)); moving = true;
-      text = st.op === "measure" ? "Messfahrt bis Sensor 2 …" : "Wird durch den PTFE-Schlauch gefördert …";
+      text = st.op === "measure" ? "Messfahrt bis Sensor 2 …" : st.op === "prepare" ? "Wird bis Sensor 2 gefördert …" : "Wird durch den PTFE-Schlauch gefördert …";
     } else if (unloading) {
       const target = st.op === "park" ? tube - (+v.park_dist || 20) : (+v.unload_hold || 15);
       head = inTube(Math.max(target, Math.min(Number(st.tip) || tube, tube - sec(PATH.s2t) * sp))); moving = true; dir = -1;
@@ -1824,13 +1852,13 @@ const GROUPS = [
   { id: "gen", t: ["Allgemein", "General"], f: [
     F("lang", ["Klipper-Meldungen", "Klipper messages"], "", ["Sprache der Meldungen in der Konsole", "Language of the console messages"], { ty: "select", o: [["de", "Deutsch"], ["en", "English"]] }),
     F("default_temp", ["Standard-Düsentemperatur", "Default nozzle temperature"], "°C", ["Wenn weder TEMP= noch eine Zieltemperatur gesetzt ist", "When neither TEMP= nor a target temperature is set"], { min: 150, max: 320, st: 5 }),
-    F("print_start_mode", ["Druckstart ohne Filament", "Print start without filament"], "", ["Was LOADER_PRINT_START in PRINT_START macht, wenn der Toolhead leer ist", "What LOADER_PRINT_START in PRINT_START does when the toolhead is empty"],
-      { ty: "select", o: [["2", ["automatisch laden", "load automatically"]], ["1", ["nur prüfen – Druck abbrechen", "check only – abort the print"]], ["0", ["nichts tun", "do nothing"]]], wide: true }),
+    F("print_start_mode", ["Druckstart", "Print start"], "", ["LOADER_PRINT_START in PRINT_START schaut, wo das Filament ist: steht es an Sensor 2 oder im Extruder, wird es bis zur Düse geladen. Ist der Toolhead leer, entscheidet diese Einstellung", "LOADER_PRINT_START in PRINT_START checks where the filament is: waiting at sensor 2 or in the extruder, it is loaded to the nozzle. If the toolhead is empty, this setting decides"],
+      { ty: "select", o: [["2", ["leerer Toolhead: automatisch laden", "empty toolhead: load automatically"]], ["1", ["leerer Toolhead: Druck abbrechen", "empty toolhead: abort the print"]], ["0", ["nichts tun", "do nothing"]]], wide: true }),
     F("print_end_action", ["Nach dem Druck", "After the print"], "", ["LOADER_PRINT_END in PRINT_END: Parken = Spitze formen und knapp hinter Sensor 2 abstellen, Entladen = ganz zurück in den Loader", "LOADER_PRINT_END in PRINT_END: park = form the tip and stop just behind sensor 2, unload = all the way back into the loader"],
       { ty: "select", o: [["0", ["nichts tun", "do nothing"]], ["1", ["parken (im Schlauch)", "park (in the tube)"]], ["2", ["ganz entladen", "unload completely"]]], wide: true }),
     F("auto_enable", ["Auto-Laden", "Auto load"], "", ["Filament am Loader-Eingang wird automatisch geladen", "Filament inserted at the loader entrance is loaded automatically"], { ty: "check" }),
-    F("auto_target", ["Auto-Laden bis", "Auto load to"], "", ["Kalt: bis in die Extruder-Zahnräder. Heiß: heizt auf und lädt bis zur Düse", "Cold: into the extruder gears. Hot: heats up and loads to the nozzle"],
-      { ty: "select", o: [["cold", ["Extruder (kalt)", "extruder (cold)"]], ["hot", ["Düse (heiß)", "nozzle (hot)"]]] }),
+    F("auto_target", ["Auto-Laden bis", "Auto load to"], "", ["Sensor 2: nur vorbereiten. Extruder: der greift kalt mit. Düse: heizt auf und lädt bis zur Düse", "Sensor 2: prepare only. Extruder: it grips cold. Nozzle: heats up and loads to the nozzle"],
+      { ty: "select", o: [["prepare", ["Sensor 2 (vorbereiten)", "sensor 2 (prepare)"]], ["cold", ["Extruder (kalt)", "extruder (cold)"]], ["hot", ["Düse (heiß)", "nozzle (hot)"]]] }),
     F("heater_off", ["Düse nach Laden/Entladen ausschalten", "Switch the nozzle off after loading/unloading"], "", ["Nicht während eines Drucks oder einer Pause", "Not during a print or a pause"], { ty: "check" }),
     F("auto_delay", ["Wartezeit Auto-Laden", "Auto-load delay"], "s", ["Zeit zum Nachschieben, bevor der Loader zugreift", "Time to push the filament in before the loader grips"], { min: 0, max: 10, st: 0.5 }),
     F("bench_mode", ["Bench-Modus", "Bench mode"], "", ["Auto-Laden fährt nur die Teststrecke – für Tests am Tisch", "Auto load only runs the test distance – for testing on the table"], { ty: "check" }),
@@ -2584,10 +2612,16 @@ function wire() {
   $("restart").onclick = async () => { if (await dialog(t("Neustart"), esc(t("Klipper per FIRMWARE_RESTART neu starten?")), t("Neustart"))) rpc("printer.firmware_restart").catch((e) => log("!! " + e.message, "e")); };
 
   $("load-hot").onclick = async () => {
-    if (await dialog(t("Laden heiß"), esc(t("Hotend auf {n} °C aufheizen, Filament laden und bis in die Düse fördern?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_LOAD TEMP=${hotTemp()} PURGE=${purgeLen()}`);
+    if (await dialog(t("Heiß laden"), esc(t("Hotend auf {n} °C aufheizen, Filament laden und bis in die Düse fördern?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_LOAD TEMP=${hotTemp()} PURGE=${purgeLen()}`);
   };
   $("park").onclick = async () => {
-    if (await dialog(t("Parken"), esc(t("Hotend auf {n} °C aufheizen, Spitze formen und das Filament knapp hinter Sensor 2 im Schlauch parken?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_PARK TEMP=${hotTemp()}`);
+    const txt = inNozzle() ? t("Hotend auf {n} °C aufheizen, Spitze formen und das Filament knapp hinter Sensor 2 im Schlauch parken?", { n: hotTemp() })
+      : t("Filament knapp hinter Sensor 2 im Schlauch parken? Es ist nicht in der Düse – die Düse bleibt aus.");
+    if (await dialog(t("Parken"), esc(txt), "OK")) gcode(`FILAMENT_PARK TEMP=${hotTemp()}`);
+  };
+  $("prepare").onclick = async () => {
+    if (!inNozzle()) return gcode("FILAMENT_PREPARE");
+    if (await dialog(t("Vorbereiten"), esc(t("Das Filament ist in der Düse. Hotend auf {n} °C aufheizen, Spitze formen, herausziehen und an Sensor 2 abstellen?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_PREPARE TEMP=${hotTemp()}`);
   };
   $("pos-sel").onchange = () => { $("pos-sel").dataset.touched = "1"; };
   $("pos-set").onclick = async () => {
@@ -2598,7 +2632,9 @@ function wire() {
   $("mat-chips").onclick = (e) => { const b = e.target.closest("[data-mat]"); if (b) setTemp(b.dataset.mat); };
   document.querySelectorAll(".mode").forEach((b) => { b.onclick = () => setMode(b.dataset.mode); });
   $("unload").onclick = async () => {
-    if (await dialog(t("Entladen"), esc(t("Hotend auf {n} °C aufheizen, Spitze formen und Filament entladen?", { n: hotTemp() })), "OK")) gcode(`FILAMENT_UNLOAD TEMP=${hotTemp()}`);
+    const txt = inNozzle() ? t("Hotend auf {n} °C aufheizen, Spitze formen und Filament entladen?", { n: hotTemp() })
+      : t("Filament zurück in den Loader ziehen? Es ist nicht in der Düse – die Düse bleibt aus.");
+    if (await dialog(t("Entladen"), esc(txt), "OK")) gcode(`FILAMENT_UNLOAD TEMP=${hotTemp()}`);
   };
   $("tip-test").onclick = async () => {
     const tt = Math.round(num("temp2", hotTemp()));

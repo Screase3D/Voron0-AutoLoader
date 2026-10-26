@@ -22,17 +22,20 @@ right above the extruder gears – tell Klipper where the filament is.
 
 ## Features
 
-- **Load cold / hot** – into the extruder gears, or on to the nozzle with purge.
-- **Cold grip** – loader and extruder push the last few mm together, so the extruder grips the filament even with a
-  cold nozzle.
-- **Park** – forms a tip and leaves the filament in the tube just behind the toolhead sensor; the next load takes seconds.
-- **Unload with tip forming** – ramming, break-off and cooling moves (ERCF / Happy Hare approach).
+- **Three ways to load:**
+  - *Prepare* – up to the toolhead sensor and stop. The filament is not in the extruder yet and can be pulled out by
+    hand, even with the printer off.
+  - *Load* – into the extruder; loader and extruder push the last few mm together, so the extruder grips the filament
+    with a cold nozzle. Ready for the next print.
+  - *Load hot* – heats up and loads to the nozzle with purge.
+- **Park / unload where the filament is** – the nozzle only heats if the filament can be molten in it; prepared or
+  cold-gripped filament is pulled back cold. With heat: tip forming (ERCF / Happy Hare approach).
 - **Remembers the filament position** across restarts and power-off; at start-up it is checked against the sensors.
 - **Fast** – 150 mm/s by default, only the last centimetres are searched slowly.
 - **Slip check** – every load compares where sensor 2 triggers with where it should; slip or lost steps (e.g. with a
   heavy spool) are shown on the page and in the history.
-- **Auto load** when filament is inserted, **print hooks** for `PRINT_START` / `PRINT_END`, Mainsail and
-  KlipperScreen buttons `LOAD_FILAMENT` / `UNLOAD_FILAMENT`.
+- **Auto load** when filament is inserted (prepare, load or load hot), **print hooks** that finish loading from
+  wherever the filament is, Mainsail and KlipperScreen buttons `LOAD_FILAMENT` / `UNLOAD_FILAMENT`.
 - **Mainsail page** with an *Operate* mode for daily use and a separate *Setup & calibration* mode.
 - **Bench mode**, English / German, updates through Moonraker's update manager.
 
@@ -93,7 +96,7 @@ Switch the page to **Setup & calibration** and follow the checklist:
 3. Mount on the printer, enable sensor 2.
 4. *Measure lengths*: `tube_len` (*To sensor 2*), `gear_offset` (nudge until the tip touches the gears),
    `ext_to_nozzle` (extrude until filament appears).
-5. Test the tip (*Form tip*), turn bench mode off, then load cold → load hot → park → unload.
+5. Test the tip (*Form tip*), turn bench mode off, then prepare → load → load hot → park → unload.
 
 ## How it works
 
@@ -102,22 +105,33 @@ the position is saved (`none`, `loader`, `tube`, `sensor2`, `gears`, `nozzle` + 
 compared with the sensors: filament removed or pulled back while the printer was off is detected and reported. If the
 place in the tube is unknown, the next load searches sensor 2 in 5 mm steps instead of the fast move.
 
-**Load.** Clamp → full speed to `approach` mm before sensor 2 → search in `step_mm` steps → push `gear_offset +
-gear_push` into the extruder → loader and extruder push `grip_len` together → release. Hot load then extrudes the rest
-of `ext_to_nozzle` and purges.
+**Prepare / load / load hot.** Clamp → full speed to `approach` mm before sensor 2 → search in `step_mm` steps.
+*Prepare* stops a few mm past sensor 2 and releases (`sensor2`). *Load* pushes on by `gear_offset + gear_push`, then
+loader and extruder push `grip_len` together and the loader releases (`gears`). *Load hot* heats, does the same and
+extrudes the rest of `ext_to_nozzle` plus the purge (`nozzle`). Each one continues from wherever the filament is –
+from parked or prepared it only feeds the remaining distance.
 
 **Cold grip.** Klipper refuses extruder moves below `min_extrude_temp`. `FORCE_MOVE` drives the extruder stepper
 directly and is not limited by that, so the extruder can pull the tip into its gears while the nozzle is cold. It needs
 `[force_move]` with `enable_force_move: True` (the installer adds it; it also enables `SET_KINEMATIC_POSITION`). The
 filament only moves a few mm into the cold heatsink, nothing is extruded.
 
-**Unload / park.** Heat → form the tip → extruder retracts `unload_ext_len` → loader pulls until sensor 2 is free →
-park `park_dist` behind sensor 2, or unload to `unload_hold` inside the loader. The nozzle is switched off afterwards
-(not during a print or pause).
+**Unload / park.** First the macros decide whether the filament can be molten in the nozzle: yes if it was loaded
+hot, or if the extruder has extruded since it was prepared or gripped (`toolhead.position.e` is compared with the
+value at the last position change); unknown filament at sensor 2 counts as yes.
+- *In the nozzle:* heat → form the tip → extruder retracts `unload_ext_len` → loader pulls until sensor 2 is free.
+  The nozzle is switched off afterwards (not during a print or pause).
+- *Prepared or gripped cold:* no heating – loader and extruder pull the tip out of the extruder gears together
+  (`FORCE_MOVE`), the loader pulls until sensor 2 is free.
+- *In the tube:* the loader just pulls back; if the place is unknown, it first feeds to sensor 2 as a reference.
 
-**Print hooks.** `LOADER_PRINT_START` (after `M109`) loads if the toolhead is empty or aborts without filament
-(`print_start_mode`). `LOADER_PRINT_END` (before `TURN_OFF_HEATERS`) does nothing, parks or unloads
-(`print_end_action` 0/1/2).
+Then *park* stops `park_dist` behind sensor 2, *unload* goes back to `unload_hold` inside the loader. *Prepare* on
+loaded filament also works: it pulls the filament out (hot or cold) and stops at sensor 2.
+
+**Print hooks.** `LOADER_PRINT_START` (after `M109`) looks where the filament is: loaded → nothing; prepared or
+gripped → loads it on to the nozzle (no purge – your purge line follows); toolhead empty → loads from the loader or
+the tube (`print_start_mode` 2) or aborts the print (1). `LOADER_PRINT_END` (before `TURN_OFF_HEATERS`) does
+nothing, parks or unloads (`print_end_action` 0/1/2).
 
 **Full spools.** The loader has to accelerate the spool, and the spool keeps turning when the loader stops. A gentle
 acceleration (`accel` 500 mm/s², default) avoids both and costs only a fraction of a second. Every load reports the
@@ -133,8 +147,9 @@ or a lower `tip_temp`. The defaults are Happy Hare's starting values.
 
 | Macro | Purpose |
 |---|---|
-| `FILAMENT_LOAD_COLD` / `FILAMENT_LOAD TEMP= PURGE=` | load into the gears / to the nozzle |
-| `FILAMENT_PARK TEMP=` / `FILAMENT_UNLOAD TEMP=` | park in the tube / unload into the loader |
+| `FILAMENT_PREPARE` | prepare: up to sensor 2 (`TEMP=` only used if it has to come out of the nozzle first) |
+| `FILAMENT_LOAD_COLD` / `FILAMENT_LOAD TEMP= PURGE=` | load into the extruder (cold grip) / load hot to the nozzle |
+| `FILAMENT_PARK TEMP=` / `FILAMENT_UNLOAD TEMP=` | park in the tube / unload into the loader – heat only if needed |
 | `LOAD_FILAMENT` / `UNLOAD_FILAMENT` | Mainsail / KlipperScreen buttons |
 | `LOADER_PRINT_START` / `LOADER_PRINT_END` | print hooks |
 | `LOADER_STATUS`, `LOADER_SYNC`, `LOADER_SET_POS POS=` | show / check / correct the stored position |
@@ -159,7 +174,7 @@ directly in `filament_loader_settings.cfg`, where every value is commented. The 
 | `ext_to_nozzle` | 70 | mm extruder gears → nozzle |
 | `approach` / `overrun` | 30 / 40 | mm where the slow search starts / timeout margin |
 | `park_dist` / `unload_hold` | 20 / 15 | mm behind sensor 2 when parking / left in the loader |
-| `auto_enable` / `auto_target` | 1 / "cold" | auto load and its target (`cold` / `hot`) |
+| `auto_enable` / `auto_target` | 1 / "cold" | auto load and its target (`prepare` / `cold` / `hot`) |
 | `print_start_mode` / `print_end_action` | 2 / 0 | print hooks (see above) |
 | `slip_warn` | 10 | mm deviation at sensor 2 before a warning |
 
