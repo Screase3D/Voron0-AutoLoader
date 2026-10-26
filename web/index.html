@@ -1164,7 +1164,7 @@ async function buildNav(avail) {
 // Connection to Moonraker
 // =====================================================================
 const S = {};
-let CFG = {}, ws = null, rid = 0, busy = 0, klippy = "disconnected", components = [], installed = true, hasTool = false, hasSV = true;
+let CFG = {}, CFGSEC = new Set(), ws = null, rid = 0, busy = 0, klippy = "disconnected", components = [], installed = true, hasTool = false, hasSV = true;
 const pending = new Map();
 
 function connect() {
@@ -1244,7 +1244,9 @@ async function subscribe() {
   for (const k in want) if (avail.includes(k)) objects[k] = want[k];
   EV.last = null;
   merge((await rpc("printer.objects.subscribe", { objects })).status);
-  CFG = (await rpc("printer.objects.query", { objects: { configfile: ["settings"] } })).status.configfile.settings || {};
+  const cf = (await rpc("printer.objects.query", { objects: { configfile: ["settings", "config"] } })).status.configfile;
+  CFG = cf.settings || {};
+  CFGSEC = new Set(Object.keys(cf.config || {}).map((k) => k.toLowerCase()));   // sections really written in the config files
   installed = avail.includes("gcode_macro _LOADER_STATE");
   hasTool = avail.includes("filament_switch_sensor toolhead_in");
   hasSV = avail.includes("save_variables");
@@ -1374,8 +1376,9 @@ function wrapState() {
   return { bad, html: bad.length ? chip(t("{m} umgeht den AutoLoader", { m: bad.join(", ") }), "warning--text") : chip(t("führen zum AutoLoader"), "success--text") };
 }
 const isPaused = () => (S.print_stats || {}).state === "paused";
-/* [force_move]: "on" | "off" (in the config with enable_force_move: False) | "missing" – without it the extruder can only turn along when hot */
-const fmState = () => { const f = CFG.force_move; return !f ? "missing" : f.enable_force_move === true || /^(true|1|yes)$/i.test(String(f.enable_force_move)) ? "on" : "off"; };
+/* [force_move]: "on" | "off" (in the config with enable_force_move: False) | "missing" – without it the extruder can only turn along when hot.
+   Klipper always loads force_move, so its settings show enable_force_move: False even without the section – only the raw config tells */
+const fmState = () => { const f = CFG.force_move || {}; return f.enable_force_move === true || /^(true|1|yes)$/i.test(String(f.enable_force_move)) ? "on" : CFGSEC.has("force_move") ? "off" : "missing"; };
 const fmFixable = () => fmState() === "missing" || (ED && /^\[force_move\]/m.test(ED.text));
 const coldOk = () => fmState() === "on" || !!(S.extruder || {}).can_extrude;
 const sens = () => {
@@ -1559,10 +1562,10 @@ function draw() {
   $("s-slip").innerHTML = slipHTML(st, v);
   const psel = $("pos-sel");
   if (psel && psel.dataset.touched !== "1" && psel.value !== st.pos && [...psel.options].some((o) => o.value === st.pos)) psel.value = st.pos;
-  const fmOn = !!((CFG.force_move || {}).enable_force_move), gl = Number(v.grip_len ?? 0);
+  const fmOn = fmState() === "on", gl = Number(v.grip_len ?? 0);
   $("s-grip").innerHTML = !ready || v.grip_len === undefined ? (ready ? chip(t("neu – unter Einstellungen einmal speichern"), "muted") : "–")
     : gl <= 0 ? chip(t("aus"), "muted") : fmOn ? chip(t("{n} mm mit FORCE_MOVE", { n: dec(String(gl)) }), "success--text")
-    : chip(CFG.force_move ? t("[force_move] enable_force_move: False – auf True setzen") : t("[force_move] fehlt – Hinweis oben"), "warning--text");
+    : chip(fmState() === "off" ? t("[force_move] enable_force_move: False – auf True setzen") : t("[force_move] fehlt – Hinweis oben"), "warning--text");
   $("s-wrap").innerHTML = wrapState().html;
   $("s-persist").innerHTML = hasSV ? chip(t("aktiv – überlebt Neustart und Ausschalten"), "success--text") : chip(t("fehlt – ./install.sh ergänzt [save_variables]"), "warning--text");
   autoSync(ready);
