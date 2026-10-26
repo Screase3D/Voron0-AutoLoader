@@ -117,9 +117,9 @@ gears are already turning long before the tip arrives, so it is pulled in instea
 gears, however exact `gear_offset` is. They move through `gear_offset + gear_push` and another `grip_len` mm. Klipper
 refuses extruder moves below `min_extrude_temp`; `FORCE_MOVE` drives the extruder stepper directly and is not limited
 by that, so this works with a cold nozzle. It needs `[force_move]` with `enable_force_move: True` (the installer adds
-it; it also enables `SET_KINEMATIC_POSITION`). The filament only moves a few mm into the cold heatsink, nothing is
-extruded. Without `[force_move]` the extruder motor is switched off during the hand-over, so its gears can at least
-turn freely.
+it, and the page can add it with one click; it also enables `SET_KINEMATIC_POSITION`). The filament only moves a few mm
+into the cold heatsink, nothing is extruded. The loader never pushes into stationary gears: without `[force_move]`
+*Load* (cold) is refused, *Load hot* waits at sensor 2 until the nozzle is hot and then turns the extruder with `G1 E`.
 
 **Tolerances.** In a PTFE tube with 3 mm bore the filament snakes a little, so pushing and pulling the same distance
 can differ by a few mm. The macros never rely on the exact length: every load and unload is referenced at sensor 2,
@@ -223,7 +223,8 @@ skips: lower `speed` or `accel` first, then raise `run_current`.
 - **"Sensor 2 reached during the full-speed move"** – `tube_len` too large or wrong stored position.
 - **Position notice after power-on** – filament was moved while off; check it or correct it under *Manual & test*.
 - **Filament stuck after unloading** – tune the tip forming.
-- **"Cold grip skipped"** – `[force_move]` with `enable_force_move: True` is missing; `./install.sh` adds it.
+- **"The extruder cannot turn while cold"** – `[force_move]` with `enable_force_move: True` is missing (e.g. after an
+  update via the Update Manager, which doesn't run the installer). Click *Enable now* on the page, or run `./install.sh`.
 - **Page not reachable** – `sudo nginx -t`, and `chmod o+x ~`.
 
 ## Credits
