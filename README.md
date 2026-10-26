@@ -78,11 +78,12 @@ cd Voron0-AutoLoader
 ./install.sh               # install (no sudo – it asks itself where needed)
 ```
 
-The installer backs up your config, links the macros, creates `filament_loader_settings.cfg` (yours – updates never
-overwrite it), `[save_variables]` and `[force_move]`, comments out clashing sections, adds the includes and – on request – the
-print hooks, the Mainsail page, the update manager entry and the KlipperScreen menu.
-Options: `--analyze`, `--reconfigure`, `--yes`, `--lang de|en`, `--no-web`, `--no-hooks`, `--no-restart`,
-`--no-klipperscreen`.
+The installer backs up your config, links the macros, links the small Klipper module `autoloader_sync.py` into
+`~/klipper/klippy/extras/` (hidden from git, so Moonraker doesn't flag Klipper), creates `filament_loader_settings.cfg`
+(yours – updates never overwrite it) with `[save_variables]` and `[autoloader_sync]`, comments out clashing sections,
+adds the includes and – on request – the print hooks, the Mainsail page, the update manager entry and the
+KlipperScreen menu. Options: `--analyze`, `--reconfigure`, `--yes`, `--lang de|en`, `--klipper-dir`, `--no-web`,
+`--no-hooks`, `--no-restart`, `--no-klipperscreen`.
 
 **Update:** Mainsail → *Update Manager* → `voron0-autoloader`, then run `./install.sh` once if the page reports new
 settings. **Uninstall:** `./uninstall.sh` – restores everything the installer changed, the settings file is kept.
@@ -112,14 +113,15 @@ steps, so the tip is never more than `step_mm` past the sensor. *Prepare* stops 
 extrudes the rest of `ext_to_nozzle` plus the purge (`nozzle`). Each one continues from wherever the filament is –
 from parked or prepared it only feeds the remaining distance.
 
-**Hand-over to the extruder.** From sensor 2 on, loader and extruder move together at `grip_speed` – the extruder
-gears are already turning long before the tip arrives, so it is pulled in instead of being pushed against standing
-gears, however exact `gear_offset` is. They move through `gear_offset + gear_push` and another `grip_len` mm. Klipper
-refuses extruder moves below `min_extrude_temp`; `FORCE_MOVE` drives the extruder stepper directly and is not limited
-by that, so this works with a cold nozzle. It needs `[force_move]` with `enable_force_move: True` (the installer adds
-it, and the page can add it with one click; it also enables `SET_KINEMATIC_POSITION`). The filament only moves a few mm
-into the cold heatsink, nothing is extruded. The loader never pushes into stationary gears: without `[force_move]`
-*Load* (cold) is refused, *Load hot* waits at sensor 2 until the nozzle is hot and then turns the extruder with `G1 E`.
+**Hand-over to the extruder.** From sensor 2 on, loader and extruder move at the same time at `grip_speed` – the
+extruder gears are already turning long before the tip arrives, so it is pulled in instead of being pushed against
+standing gears, however exact `gear_offset` is. They move through `gear_offset + gear_push` and another `grip_len` mm.
+Klipper itself can't do that: `G1 E` is blocked below `min_extrude_temp`, and `FORCE_MOVE` / `MANUAL_STEPPER` always
+wait for each other, so the motors would only run one after the other. The module `autoloader_sync` adds
+`LOADER_DUAL_MOVE`: both steppers get the same move on one shared timeline (a direct stepper move like `FORCE_MOVE`,
+also cold, nothing is extruded, `[force_move]` is not needed). Every move with the filament in both the loader and the
+extruder uses it – hand-over, pulling it out cold and pulling it out after the tip forming. Without the module these
+operations are refused before anything moves.
 
 **Tolerances.** In a PTFE tube with 3 mm bore the filament snakes a little, so pushing and pulling the same distance
 can differ by a few mm. The macros never rely on the exact length: every load and unload is referenced at sensor 2,
@@ -129,10 +131,11 @@ have tens of mm of reserve, and prepared filament stops only a couple of mm past
 **Unload / park.** First the macros decide whether the filament can be molten in the nozzle: yes if it was loaded
 hot, or if the extruder has extruded since it was prepared or gripped (`toolhead.position.e` is compared with the
 value at the last position change); unknown filament at sensor 2 counts as yes.
-- *In the nozzle:* heat → form the tip → extruder retracts `unload_ext_len` → loader pulls until sensor 2 is free.
+- *In the nozzle:* heat → form the tip (loader released) → loader and extruder pull the filament out of the extruder
+  together (at least `unload_ext_len` in total) → loader pulls until sensor 2 is free.
   The nozzle is switched off afterwards (not during a print or pause).
-- *Prepared or gripped cold:* no heating – loader and extruder pull the tip out of the extruder gears together
-  (`FORCE_MOVE`), the loader pulls until sensor 2 is free.
+- *Prepared or gripped cold:* no heating – loader and extruder pull the tip out of the extruder gears together,
+  the loader pulls until sensor 2 is free.
 - *In the tube:* the loader just pulls back; if the place is unknown, it first feeds to sensor 2 as a reference.
 
 Then *park* stops `park_dist` behind sensor 2, *unload* goes back to `unload_hold` inside the loader. *Prepare* on
@@ -179,6 +182,7 @@ or a lower `tip_temp`. The defaults are Happy Hare's starting values.
 | `LOADER_ACK`, `LOADER_CAREFUL` | acknowledge an error / make the next sensor search careful; `HOT=1` on unload or park always heats |
 | `LOADER_RESET CONFIRM=1` | when everything goes wrong (e.g. a clog): servo released, loader and extruder motor off, errors cleared, position forgotten – the filament can be pulled out by hand, the next load searches carefully |
 | `LOADER_CLAMP`, `LOADER_RELEASE`, `LOADER_STOP` | servo and stepper |
+| `LOADER_DUAL_MOVE DIST= SPEED= ACCEL=` | loader and extruder move at the same time (module `autoloader_sync`, used by the macros) |
 | `LOADER_MOVE DIST= SPEED= CLAMP=`, `LOADER_BENCHTEST`, `LOADER_FORM_TIP TEMP=` | tests |
 | `LOADER_TO_SENSOR`, `LOADER_NUDGE`, `LOADER_EXTRUDE` | measuring |
 
@@ -223,8 +227,8 @@ skips: lower `speed` or `accel` first, then raise `run_current`.
 - **"Sensor 2 reached during the full-speed move"** – `tube_len` too large or wrong stored position.
 - **Position notice after power-on** – filament was moved while off; check it or correct it under *Manual & test*.
 - **Filament stuck after unloading** – tune the tip forming.
-- **"The extruder cannot turn while cold"** – `[force_move]` with `enable_force_move: True` is missing (e.g. after an
-  update via the Update Manager, which doesn't run the installer). Click *Enable now* on the page, or run `./install.sh`.
+- **"The Klipper module autoloader_sync is missing"** – run `./install.sh` once via SSH (an update via the Update
+  Manager doesn't run the installer). Same for *Unable to load module 'autoloader_sync'* after Klipper was reinstalled.
 - **Page not reachable** – `sudo nginx -t`, and `chmod o+x ~`.
 
 ## Credits

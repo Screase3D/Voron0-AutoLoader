@@ -31,6 +31,9 @@ REPO_DIR = Path(__file__).resolve().parent.parent
 LOGIC_SRC = REPO_DIR / "klipper" / "filament_loader.cfg"
 SETTINGS_TPL = REPO_DIR / "klipper" / "filament_loader_settings.cfg.tpl"
 WEB_DIR = REPO_DIR / "web"
+MODULE_SRC = REPO_DIR / "klipper" / "autoloader_sync.py"   # Klipper module: loader + extruder move at the same time
+MODULE_NAME = "autoloader_sync.py"
+MODULE_EXCLUDE = "klippy/extras/" + MODULE_NAME           # hidden from git status, so Moonraker doesn't flag Klipper
 KS_DIR = REPO_DIR / "klipperscreen"
 
 LOGIC_NAME = "filament_loader.cfg"
@@ -277,6 +280,8 @@ def detect(args):
         env["nginx_site"] = next((Path(os.path.realpath(p)) for p in
                                   ("/etc/nginx/sites-available/mainsail", "/etc/nginx/sites-enabled/mainsail")
                                   if os.path.exists(p)), None)
+    kdir = Path(args.klipper_dir).expanduser() if getattr(args, "klipper_dir", None) else home / "klipper"
+    env["klipper_dir"] = kdir if (kdir / "klippy" / "extras").is_dir() else None
     env["nginx_bin"] = shutil.which("nginx") or ("/usr/sbin/nginx" if os.path.exists("/usr/sbin/nginx") else None)
     env["systemctl"] = shutil.which("systemctl")
     return env
@@ -332,9 +337,8 @@ def analyze(env):
     A["navi"] = navi.exists() and any(h in navi.read_text(errors="replace") for h in OLD_HREFS)
     A["save_vars_elsewhere"] = any(sec.lname == "save_variables" and os.path.realpath(sec.file) != os.path.realpath(settings)
                                    for sec in ctx["sections"])
-    # [force_move] for the cold grip: None = not in the config, otherwise the value of enable_force_move
-    fm = [sec for sec in ctx["sections"] if sec.lname == "force_move" and os.path.realpath(sec.file) != os.path.realpath(settings)]
-    A["force_move_elsewhere"] = (fm[-1].options.get("enable_force_move", "false").strip().lower() in ("true", "1", "yes")) if fm else None
+    link = module_link(env)
+    A["module_linked"] = bool(link and link.is_symlink() and os.path.realpath(link) == str(MODULE_SRC))
     A["um"] = bool(env["moonraker_conf"] and f"[{UM_SECTION}]" in env["moonraker_conf"].read_text(errors="replace"))
     return A
 
@@ -366,6 +370,8 @@ def report(env, A):
     info("Web-Oberfläche in nginx: " + ("eingebunden" if A["web_nginx"] else "nicht gefunden"))
     info("Menüeintrag in Mainsail: " + ("eingetragen" if A["navi"] else "nicht gefunden"))
     info("Update-Manager: " + ("eingetragen" if A["um"] else "nicht gefunden"))
+    info("Klipper-Modul autoloader_sync: " + ("verlinkt" if A["module_linked"] else
+                                             "nicht gefunden" if env["klipper_dir"] else "Klipper-Ordner nicht gefunden (--klipper-dir)"))
     if A["ks_present"]:
         info("KlipperScreen-Menü: " + ("eingebunden" if A["ks_menu"] else "nicht gefunden"))
     if A["ctx"]["missing"]:
@@ -456,18 +462,68 @@ def save_vars_block(env, A):
             f"[save_variables]\nfilename: {env['cfg']}/autoloader_variables.cfg")
 
 
-def force_move_block(A):
-    """[force_move] so the extruder can grip the filament while cold (FORCE_MOVE) – only if the printer has none yet"""
-    if A["force_move_elsewhere"] is True:
-        return "# [force_move] ist bereits in deiner Konfiguration aktiv – das kalte Greifen (grip_len) nutzt es"
-    if A["force_move_elsewhere"] is False:
-        return ("# [force_move] steht in deiner Konfiguration mit enable_force_move: False -\n"
-                "# fuer das kalte Greifen (grip_len) dort auf True setzen")
-    return ("# Kaltes Greifen: FORCE_MOVE bewegt den Extruder ohne Mindesttemperatur (nur grip_len mm beim Laden)\n"
-            "[force_move]\nenable_force_move: True")
+SYNC_BLOCK = ("# Loader und Extruder fahren gleichzeitig (Klipper-Modul aus dem Repo, vom Installer verlinkt)\n"
+              "[autoloader_sync]")
 
 
-def upgrade_settings(env, A, ops):
+def sync_block(linked):
+    """[autoloader_sync] only when the module is linked into Klipper – otherwise Klipper would not start"""
+    if linked:
+        return SYNC_BLOCK
+    return ("# [autoloader_sync] fehlt: Klipper-Ordner nicht gefunden - ./install.sh --klipper-dir <Pfad> ausfuehren.\n"
+            "# Ohne das Modul sind Laden in den und Entladen aus dem Extruder gesperrt.")
+
+
+def module_link(env):
+    return env["klipper_dir"] / "klippy" / "extras" / MODULE_NAME if env.get("klipper_dir") else None
+
+
+def module_install(env, ops):
+    """symlink the Klipper module into klippy/extras and hide it from git (Moonraker would report untracked files)"""
+    link = module_link(env)
+    if not link:
+        warn("Klipper-Ordner nicht gefunden – Modul autoloader_sync nicht verlinkt (./install.sh --klipper-dir <Pfad>)")
+        return False
+    if ops.dry:
+        info(c("2", f"[dry-run] Symlink {link} -> {MODULE_SRC}"))
+        return True
+    try:
+        if link.is_symlink() or link.exists():
+            if link.is_symlink() and os.path.realpath(link) == str(MODULE_SRC):
+                pass
+            else:
+                link.unlink()
+                link.symlink_to(MODULE_SRC)
+        else:
+            link.symlink_to(MODULE_SRC)
+    except OSError as e:
+        warn(f"Modul autoloader_sync konnte nicht verlinkt werden: {e}")
+        return False
+    excl = env["klipper_dir"] / ".git" / "info" / "exclude"
+    try:
+        if excl.parent.is_dir():
+            text = excl.read_text(errors="replace") if excl.exists() else ""
+            if MODULE_EXCLUDE not in text.split("\n"):
+                excl.write_text(text + ("" if text.endswith("\n") or not text else "\n") + MODULE_EXCLUDE + "\n")
+    except OSError as e:
+        warn(f"{excl} nicht beschreibbar ({e}) – Moonraker meldet evtl. eine unbekannte Datei im Klipper-Repo")
+    ok(f"Klipper-Modul autoloader_sync verlinkt ({link})")
+    return True
+
+
+def module_remove(env, ops):
+    link = module_link(env)
+    if link and link.is_symlink() and os.path.realpath(link) == str(MODULE_SRC):
+        ops.remove(link)
+        ok("Klipper-Modul autoloader_sync entfernt")
+    excl = env["klipper_dir"] / ".git" / "info" / "exclude" if env.get("klipper_dir") else None
+    if excl and excl.exists() and not ops.dry:
+        lines = excl.read_text(errors="replace").split("\n")
+        if MODULE_EXCLUDE in lines:
+            excl.write_text("\n".join(l for l in lines if l != MODULE_EXCLUDE))
+
+
+def upgrade_settings(env, A, ops, linked=False):
     """add variables introduced by newer versions to an existing settings file (values stay untouched)"""
     path = env["cfg"] / SETTINGS_NAME
     if not path.exists():
@@ -477,17 +533,15 @@ def upgrade_settings(env, A, ops):
     have = vals.get("gcode_macro _loader_vars", {})
     missing = [k for k in NEW_VARS_V2 if "variable_" + k not in have]
     add_sv = not A["save_vars_elsewhere"] and "save_variables" not in vals
-    add_fm = A["force_move_elsewhere"] is None and "force_move" not in vals
-    if A["force_move_elsewhere"] is False:
-        warn("[force_move] steht mit enable_force_move: False in deiner Konfiguration – für das kalte Greifen dort auf True setzen")
-    if not missing and not add_sv and not add_fm:
+    add_sync = linked and "autoloader_sync" not in vals
+    if not missing and not add_sv and not add_sync:
         return
     if add_sv:
         lines += ["", save_vars_block(env, A)]
         ok("[save_variables] ergänzt – die Filament-Position wird jetzt dauerhaft gespeichert")
-    if add_fm:
-        lines += ["", force_move_block(A)]
-        ok("[force_move] ergänzt – der Extruder kann das Filament jetzt auch kalt greifen")
+    if add_sync:
+        lines += ["", SYNC_BLOCK]
+        ok("[autoloader_sync] ergänzt – Loader und Extruder fahren jetzt gleichzeitig")
     if not missing:
         ops.write(path, "\n".join(lines))
         return
@@ -578,7 +632,6 @@ def gather(env, A, asker):
         V["toolhead_in_pin"] = asker.ask("Sensor 2 Pin (MCU-Name:gpioX), Öffner", V["toolhead_in_pin"])
     V["tool"] = "" if tool_on else OFF
     V["save_vars"] = save_vars_block(env, A)
-    V["force_move"] = force_move_block(A)
     return V
 
 
@@ -920,7 +973,7 @@ def printer_busy():
         return None
 
 
-def restart_services(restart_moonraker, ops):
+def restart_services(restart_moonraker, ops, klipper_service=False):
     if ops.dry:
         info(c("2", "[dry-run] Klipper-Neustart"))
         return
@@ -939,9 +992,12 @@ def restart_services(restart_moonraker, ops):
         except (urllib.error.URLError, OSError):
             warn("Moonraker-Neustart fehlgeschlagen – bitte manuell neu starten")
     try:
-        api("POST", "/printer/restart")
+        if klipper_service:     # a new / changed Python module is only loaded by a restart of the service
+            api("POST", "/machine/services/restart?service=klipper")
+        else:
+            api("POST", "/printer/restart")
     except (urllib.error.URLError, OSError):
-        warn("Klipper-Neustart über Moonraker fehlgeschlagen – bitte RESTART ausführen")
+        warn("Klipper-Neustart über Moonraker fehlgeschlagen – bitte den Klipper-Dienst neu starten (sudo systemctl restart klipper)")
         return
     info("Warte auf Klipper ...")
     for _ in range(30):
@@ -1004,6 +1060,7 @@ def do_install(env, A, args, ops, asker):
     if A["legacy_logic"]:
         info(f"alte {LOGIC_NAME} umbenennen in {LOGIC_NAME}.old")
     info(f"{LOGIC_NAME} als Symlink aufs Repo anlegen")
+    info("Klipper-Modul autoloader_sync in klippy/extras verlinken (Loader und Extruder fahren gleichzeitig)")
     if write_settings:
         info(f"{SETTINGS_NAME} " + ("neu erzeugen" if A["settings_exists"] else "anlegen"))
     for s in A["conflicts"]:
@@ -1043,14 +1100,16 @@ def do_install(env, A, args, ops, asker):
             link.unlink()
         link.symlink_to(LOGIC_SRC)
     ok(f"{LOGIC_NAME} verlinkt")
+    linked = module_install(env, ops)
 
     if write_settings:
+        V["sync_module"] = sync_block(linked)
         if A["settings_exists"]:
             ops.write(cfg / f"{SETTINGS_NAME}.bak", (cfg / SETTINGS_NAME).read_text(errors="replace"))
         ops.write(cfg / SETTINGS_NAME, render_settings(V))
         ok(f"{SETTINGS_NAME} geschrieben")
     else:
-        upgrade_settings(env, A, ops)
+        upgrade_settings(env, A, ops, linked)
 
     inside = [s for s in A["conflicts"] if os.path.realpath(s.file).startswith(str(cfg) + os.sep)]
     if inside:
@@ -1075,7 +1134,7 @@ def do_install(env, A, args, ops, asker):
             ok("KlipperScreen-Menü auf die Sprache der Klipper-Meldungen umgestellt (wirkt nach Neustart von KlipperScreen)")
 
     if not args.no_restart:
-        restart_services(um_changed, ops)
+        restart_services(um_changed, ops, klipper_service=linked)
 
     head("Fertig")
     info("Nächste Schritte (Mainsail → AutoLoader, oder in der Konsole):")
@@ -1130,6 +1189,7 @@ def do_uninstall(env, A, args, ops, asker):
     if asker.confirm("Vom Installer auskommentierte Sections wiederherstellen?", True):
         uncomment_all(cfg, ops)
     hooks_remove(cfg, ops)
+    module_remove(env, ops)
     ks_remove(env, A, ops)
     nginx_remove(env, ops)
     navi_remove(env, ops)
@@ -1150,6 +1210,7 @@ def main():
     ap.add_argument("--no-restart", action="store_true", help="Klipper nicht neu starten / do not restart Klipper")
     ap.add_argument("--config-dir", help="Config-Ordner / config folder (~/printer_data/config)")
     ap.add_argument("--nginx-site", help="nginx-Site von Mainsail / Mainsail nginx site file")
+    ap.add_argument("--klipper-dir", help="Klipper-Ordner / Klipper folder (~/klipper)")
     ap.add_argument("--lang", choices=("de", "en"), help="Sprache der Ausgaben / language")
     ap.add_argument("--no-hooks", action="store_true", help="PRINT_START/PRINT_END nicht ändern / don't touch PRINT_START/PRINT_END")
     ap.add_argument("--klipperscreen", action="store_true", help="KlipperScreen-Menü einbinden / add the KlipperScreen menu")

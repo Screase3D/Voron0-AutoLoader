@@ -333,7 +333,7 @@ body.no-mainsail .v-btn { background: #333; color: #fff; border: 0; border-radiu
                 <table class="kv">
                   <tr><td>Druck-Hooks</td><td id="s-hooks">–</td></tr>
                   <tr><td>Position speichern</td><td id="s-persist">–</td></tr>
-                  <tr><td>Kalt greifen</td><td id="s-grip">–</td></tr>
+                  <tr><td>Loader + Extruder gleichzeitig</td><td id="s-grip">–</td></tr>
                   <tr><td>Lade-Buttons Mainsail / KlipperScreen</td><td id="s-wrap">–</td></tr>
                   <tr><td>Modus</td><td id="s-mode">–</td></tr>
                 </table>
@@ -758,8 +758,7 @@ const T_EN = {
     "Deviation {d} at sensor 2: plus = later than expected (slip or lost steps), minus = earlier (tube_len too large).",
   "Beschleunigung über 1000 mm/s²: Mit voller 1-kg-Rolle muss die Rolle mitbeschleunigt werden und läuft beim Bremsen nach – 500 ist schonender und kostet nur Bruchteile einer Sekunde.":
     "Acceleration above 1000 mm/s²: with a full 1 kg spool the spool has to be accelerated too and keeps turning when the loader stops – 500 is gentler and costs only a fraction of a second.",
-  "Kalt greifen": "Cold grip", "{n} mm mit FORCE_MOVE": "{n} mm with FORCE_MOVE",
-  "[force_move] enable_force_move: False – auf True setzen": "[force_move] enable_force_move: False – set it to True",
+  "Kalt greifen": "Cold grip",
   "neu – unter Einstellungen einmal speichern": "new – save the settings once",
   "+ {g} mm beim kalten Greifen = <b>{s} mm</b>": "+ {g} mm from the cold grip = <b>{s} mm</b>",
   "Vorbereiten": "Prepare", "Laden": "Load", "Heiß laden": "Load hot", "Sensor 2 (vorbereiten)": "Sensor 2 (prepare)",
@@ -840,19 +839,15 @@ const T_EN = {
     "Heat the hotend to {n} °C and only form the tip? The filament is then above the melt zone – unload afterwards (works cold) or pull it out by hand and look at the tip.",
   "Formt nur die Spitze – das Filament steht danach über der Schmelzzone. Danach entladen (geht kalt) oder von Hand ziehen und die Spitze ansehen.":
     "Only forms the tip – the filament is then above the melt zone. Unload afterwards (works cold) or pull it out by hand and look at the tip.",
-  // [force_move]
-  "Der Extruder kann kalt nicht mitdrehen – [force_move] fehlt (Hinweis oben)": "The extruder cannot turn while cold – [force_move] is missing (see the notice above)",
-  "Der Extruder kann kalt nicht mitdrehen – [force_move] fehlt. Der Loader würde das Filament sonst in die stehenden Zahnräder drücken.": "The extruder cannot turn while cold – [force_move] is missing. Otherwise the loader would push the filament into the stationary gears.",
-  "[force_move] mit einem Klick aktivieren (Klipper startet neu)": "Enable [force_move] with one click (Klipper restarts)",
-  "Bis dahin: Vorbereiten oder Heiß laden – heiß dreht der Extruder auch ohne [force_move] mit": "Until then: prepare or load hot – when hot the extruder turns along even without [force_move]",
-  "[force_move] aktivieren": "Enable [force_move]",
-  "Der Extruder kann beim Laden nicht mitdrehen – [force_move] fehlt in der Konfiguration. Laden (kalt) ist gesperrt, Heiß laden heizt erst auf und dreht den Extruder dann mit.": "The extruder cannot turn along while loading – [force_move] is missing in the configuration. Load (cold) is blocked, load hot heats up first and then turns the extruder along.",
-  "Der Extruder kann beim Laden nicht mitdrehen – [force_move] steht mit enable_force_move: False in deiner Konfiguration. Dort auf True setzen. Laden (kalt) ist bis dahin gesperrt.": "The extruder cannot turn along while loading – [force_move] is in your configuration with enable_force_move: False. Set it to True there. Until then load (cold) is blocked.",
-  "Jetzt aktivieren": "Enable now",
-  "[force_move] fehlt – Hinweis oben": "[force_move] missing – see the notice above",
-  "Trägt [force_move] mit enable_force_move: True in {f} ein (vorherige Version als .bak) und startet Klipper neu.": "Adds [force_move] with enable_force_move: True to {f} (previous version as .bak) and restarts Klipper.",
-  "Damit dreht der Extruder bei der Übergabe auch kalt mit (FORCE_MOVE, nur während des Ladens) – das Filament wird nicht in die stehenden Zahnräder gedrückt.": "Then the extruder also turns along cold during the hand-over (FORCE_MOVE, only while loading) – the filament is not pushed into stationary gears.",
-  "Eintragen & Neustart": "Add & restart",
+  // sync module
+  "Braucht das Klipper-Modul autoloader_sync (Hinweis oben)": "Needs the Klipper module autoloader_sync (see the notice above)",
+  "Das Klipper-Modul autoloader_sync fehlt – ohne es können Loader und Extruder nicht gleichzeitig fahren.": "The Klipper module autoloader_sync is missing – without it loader and extruder cannot move at the same time.",
+  "Einmal per SSH ausführen: cd ~/Voron0-AutoLoader && ./install.sh – verlinkt das Modul und startet Klipper neu": "Run once via SSH: cd ~/Voron0-AutoLoader && ./install.sh – links the module and restarts Klipper",
+  "Bis dahin: Vorbereiten geht, Laden in den Extruder und Entladen aus dem Extruder sind gesperrt": "Until then: prepare works, loading into and unloading from the extruder are blocked",
+  "Das Klipper-Modul autoloader_sync fehlt – ohne es können Loader und Extruder nicht gleichzeitig fahren. Laden in den Extruder und Entladen aus dem Extruder sind bis dahin gesperrt. Einmal per SSH ausführen:": "The Klipper module autoloader_sync is missing – without it loader and extruder cannot move at the same time. Until then loading into and unloading from the extruder are blocked. Run once via SSH:",
+  "Loader + Extruder gleichzeitig": "Loader + extruder together",
+  "Modul autoloader_sync fehlt – ./install.sh": "module autoloader_sync missing – ./install.sh",
+  "aktiv – greift kalt {n} mm": "active – cold grip {n} mm", "aktiv": "active",
   "So geht es weiter:": "How to continue:",
   // Console
   "G-Code": "G-Code", "z. B. LOADER_STATUS": "e.g. LOADER_STATUS",
@@ -1164,7 +1159,7 @@ async function buildNav(avail) {
 // Connection to Moonraker
 // =====================================================================
 const S = {};
-let CFG = {}, CFGSEC = new Set(), ws = null, rid = 0, busy = 0, klippy = "disconnected", components = [], installed = true, hasTool = false, hasSV = true;
+let CFG = {}, ws = null, rid = 0, busy = 0, klippy = "disconnected", components = [], installed = true, hasTool = false, hasSV = true, hasSync = true;
 const pending = new Map();
 
 function connect() {
@@ -1244,12 +1239,11 @@ async function subscribe() {
   for (const k in want) if (avail.includes(k)) objects[k] = want[k];
   EV.last = null;
   merge((await rpc("printer.objects.subscribe", { objects })).status);
-  const cf = (await rpc("printer.objects.query", { objects: { configfile: ["settings", "config"] } })).status.configfile;
-  CFG = cf.settings || {};
-  CFGSEC = new Set(Object.keys(cf.config || {}).map((k) => k.toLowerCase()));   // sections really written in the config files
+  CFG = (await rpc("printer.objects.query", { objects: { configfile: ["settings"] } })).status.configfile.settings || {};
   installed = avail.includes("gcode_macro _LOADER_STATE");
   hasTool = avail.includes("filament_switch_sensor toolhead_in");
   hasSV = avail.includes("save_variables");
+  hasSync = avail.includes("autoloader_sync");
   await buildNav(avail);
   await loadSettings();
   if (!tempInit && lv().default_temp != null) { setTemp(store.get("temp", lv().default_temp), true); $("purge").value = lv().purge_len ?? 30; tempInit = true; }
@@ -1376,11 +1370,14 @@ function wrapState() {
   return { bad, html: bad.length ? chip(t("{m} umgeht den AutoLoader", { m: bad.join(", ") }), "warning--text") : chip(t("führen zum AutoLoader"), "success--text") };
 }
 const isPaused = () => (S.print_stats || {}).state === "paused";
-/* [force_move]: "on" | "off" (in the config with enable_force_move: False) | "missing" – without it the extruder can only turn along when hot.
-   Klipper always loads force_move, so its settings show enable_force_move: False even without the section – only the raw config tells */
-const fmState = () => { const f = CFG.force_move || {}; return f.enable_force_move === true || /^(true|1|yes)$/i.test(String(f.enable_force_move)) ? "on" : CFGSEC.has("force_move") ? "off" : "missing"; };
-const fmFixable = () => fmState() === "missing" || (ED && /^\[force_move\]/m.test(ED.text));
-const coldOk = () => fmState() === "on" || !!(S.extruder || {}).can_extrude;
+/* the Klipper module autoloader_sync moves loader and extruder at the same time – without it nothing may move the filament into or out of the extruder */
+const needSync = (op) => {
+  if (hasSync) return false;
+  const p = ls().pos || "unknown", { s2 } = sens(), inExt = s2 && ["gears", "nozzle"].includes(p);
+  if (op === "load-cold") return !(inExt);
+  if (op === "load-hot") return !inExt;
+  return s2 && p !== "sensor2";      // prepare, park, unload: only when the filament is in the extruder
+};
 const sens = () => {
   const s2o = S["filament_switch_sensor toolhead_in"];
   return { s1: !!(S["filament_switch_sensor loader_in"] || {}).filament_detected, s2: !!(s2o && s2o.filament_detected) };
@@ -1391,11 +1388,11 @@ function opAvail() {
   const loaded = s2 && ["gears", "nozzle"].includes(p);
   const inLoader = !s2 && ["none", "loader"].includes(p) && +st.tip_known === 1;
   return {
-    "prepare": none ? "Kein Filament am Loader-Eingang" : paused ? "In der Druckpause bis zur Düse laden (Heiß laden)" : s2 && p === "sensor2" ? "Filament ist schon vorbereitet" : "",
-    "load-cold": none ? "Kein Filament am Loader-Eingang" : paused ? "In der Druckpause bis zur Düse laden (Heiß laden)" : loaded ? "Filament ist schon geladen" : !coldOk() ? "Der Extruder kann kalt nicht mitdrehen – [force_move] fehlt (Hinweis oben)" : "",
-    "load-hot": none ? "Kein Filament am Loader-Eingang" : "",
-    "park": !s2 ? "Kein Filament im Toolhead" : "",
-    "unload": none ? "Kein Filament im Loader" : inLoader ? "Filament steckt schon im Loader" : "",
+    "prepare": none ? "Kein Filament am Loader-Eingang" : paused ? "In der Druckpause bis zur Düse laden (Heiß laden)" : s2 && p === "sensor2" ? "Filament ist schon vorbereitet" : needSync("prepare") ? "Braucht das Klipper-Modul autoloader_sync (Hinweis oben)" : "",
+    "load-cold": none ? "Kein Filament am Loader-Eingang" : paused ? "In der Druckpause bis zur Düse laden (Heiß laden)" : loaded ? "Filament ist schon geladen" : needSync("load-cold") ? "Braucht das Klipper-Modul autoloader_sync (Hinweis oben)" : "",
+    "load-hot": none ? "Kein Filament am Loader-Eingang" : needSync("load-hot") ? "Braucht das Klipper-Modul autoloader_sync (Hinweis oben)" : "",
+    "park": !s2 ? "Kein Filament im Toolhead" : needSync("park") ? "Braucht das Klipper-Modul autoloader_sync (Hinweis oben)" : "",
+    "unload": none ? "Kein Filament im Loader" : inLoader ? "Filament steckt schon im Loader" : needSync("unload") ? "Braucht das Klipper-Modul autoloader_sync (Hinweis oben)" : "",
   };
 }
 /* one line: where the filament is and what makes sense next */
@@ -1409,7 +1406,7 @@ function opHint() {
     if (Number(v.auto_enable) !== 1) return ["Filament in den Loader-Eingang schieben, dann Vorbereiten, Laden oder Heiß laden.", {}];
     if (Number(v.bench_mode) === 1) return ["Filament in den Loader-Eingang schieben – Bench-Modus: der Loader fährt nur die Teststrecke.", {}];
     let tgt = { prepare: "bis Sensor 2", cold: "in den Extruder", hot: "bis zur Düse" }[String(v.auto_target || "cold").replace(/["']/g, "")] || "in den Extruder";
-    if (tgt === "in den Extruder" && fmState() !== "on") tgt = "bis Sensor 2";
+    if (tgt === "in den Extruder" && !hasSync) tgt = "bis Sensor 2";
     return ["Filament in den Loader-Eingang schieben – es wird automatisch {t} geladen.", { t: t(tgt) }];
   }
   if (!s2) return [p === "tube" ? "Filament im Schlauch geparkt – Laden geht jetzt schnell." : "Filament steckt im Loader – Vorbereiten, Laden oder Heiß laden.", {}];
@@ -1438,8 +1435,8 @@ const ERRS = {
   no_sensor2: { t: "Sensor 2 ist nicht aktiv.", c: ["Unter Einstellungen → Hardware aktivieren"] },
   printing: { t: "Während eines Drucks nicht möglich.", noretry: true, c: [] },
   print_no_filament: { t: "Kein Filament im Toolhead – der Druck wurde abgebrochen.", noretry: true, c: ["Filament einlegen und den Druck neu starten"] },
-  no_force_move: { t: "Der Extruder kann kalt nicht mitdrehen – [force_move] fehlt. Der Loader würde das Filament sonst in die stehenden Zahnräder drücken.", noretry: true, h: "So geht es weiter:",
-    c: ["[force_move] mit einem Klick aktivieren (Klipper startet neu)", "Bis dahin: Vorbereiten oder Heiß laden – heiß dreht der Extruder auch ohne [force_move] mit"] },
+  no_sync_module: { t: "Das Klipper-Modul autoloader_sync fehlt – ohne es können Loader und Extruder nicht gleichzeitig fahren.", noretry: true, h: "So geht es weiter:",
+    c: ["Einmal per SSH ausführen: cd ~/Voron0-AutoLoader && ./install.sh – verlinkt das Modul und startet Klipper neu", "Bis dahin: Vorbereiten geht, Laden in den Extruder und Entladen aus dem Extruder sind gesperrt"] },
   bench_blocked: { t: "Die Teststrecke des Bench-Tests könnte bis Sensor 2 oder in den Extruder gehen.", noretry: true,
     c: ["Der Bench-Test ist für den Loader auf dem Tisch – am Drucker Vorbereiten oder Laden benutzen", "Oder erst entladen, dann testen"] },
 };
@@ -1471,7 +1468,6 @@ function errorCard() {
     b.push(btnHTML({ text: t("Heiß wiederholen"), variant: "text", color: "primary", icon: "mdiFire", g: st.cmd + " HOT=1", cls: "err-act",
       title: t("Heizt auf und formt die Spitze, auch wenn das Filament nicht in der Düse sein sollte") }));
   if (e.sync) b.push(btnHTML({ text: t("Mit Sensoren abgleichen"), variant: "text", color: "primary", g: "LOADER_SYNC", cls: "err-act" }));
-  if (code === "no_force_move" && fmFixable()) b.push(btnHTML({ text: t("[force_move] aktivieren"), color: "primary", id: "fm-on2" }));
   if (code === "no_sensor2" || code === "overshoot") b.push(btnHTML({ text: t("Zu den Einstellungen"), variant: "text", color: "primary", id: "go-settings" }));
   b.push(btnHTML({ text: t("Zurücksetzen …"), variant: "text", icon: "mdiRestore", id: "err-reset",
     title: t("Wenn das Filament von Hand heraus muss – die gespeicherte Position wird vergessen") }));
@@ -1541,11 +1537,9 @@ function draw() {
       btnHTML({ text: t("Jetzt aktualisieren"), color: "primary", id: "upd-run", cls: pr ? "v-btn--disabled" : "" }) + btnHTML({ text: t("Update-Manager"), variant: "text", color: "primary", id: "upd-open" })));
   }
   if (ready && installed && wrapState().bad.length) al.push(alertHTML("warning", "mdiAlertOutline", esc(t("{m} ruft nicht den AutoLoader auf – ein anderes Makro gleichen Namens überschreibt es (z. B. weiter unten in printer.cfg). Die Lade-Buttons in Mainsail und KlipperScreen laden dann am AutoLoader vorbei. Das andere Makro entfernen oder ./install.sh erneut ausführen.", { m: wrapState().bad.join(", ") }))));
-  if (ready && installed && hasTool && Object.keys(CFG).length && fmState() !== "on" && !(st.state === "error" && st.err_code === "no_force_move"))
-    al.push(alertHTML("warning", "mdiAlertOutline", esc(fmState() === "missing"
-      ? t("Der Extruder kann beim Laden nicht mitdrehen – [force_move] fehlt in der Konfiguration. Laden (kalt) ist gesperrt, Heiß laden heizt erst auf und dreht den Extruder dann mit.")
-      : t("Der Extruder kann beim Laden nicht mitdrehen – [force_move] steht mit enable_force_move: False in deiner Konfiguration. Dort auf True setzen. Laden (kalt) ist bis dahin gesperrt.")),
-      fmFixable() ? btnHTML({ text: t("Jetzt aktivieren"), color: "warning", id: "fm-on", cls: pr ? "v-btn--disabled" : "" }) : ""));
+  if (ready && installed && hasTool && !hasSync && !(st.state === "error" && st.err_code === "no_sync_module"))
+    al.push(alertHTML("warning", "mdiAlertOutline", esc(t("Das Klipper-Modul autoloader_sync fehlt – ohne es können Loader und Extruder nicht gleichzeitig fahren. Laden in den Extruder und Entladen aus dem Extruder sind bis dahin gesperrt. Einmal per SSH ausführen:")) +
+      `<div class="mt-1"><code>cd ~/Voron0-AutoLoader &amp;&amp; ./install.sh</code></div>`));
   if (ED && ED.schema < SCHEMA) al.push(alertHTML("info", "mdiInformationOutline", esc(t("Neue Einstellungsfelder verfügbar. Unter Einstellungen einmal speichern, um sie zu ergänzen.")),
     btnHTML({ text: t("Zu den Einstellungen"), variant: "text", color: "primary", id: "go-settings" })));
   if (ready && installed && st.sync_msg) al.push(alertHTML("warning", "mdiAlertOutline", esc(t("Filament-Position: {m}", { m: st.sync_msg })),
@@ -1562,10 +1556,9 @@ function draw() {
   $("s-slip").innerHTML = slipHTML(st, v);
   const psel = $("pos-sel");
   if (psel && psel.dataset.touched !== "1" && psel.value !== st.pos && [...psel.options].some((o) => o.value === st.pos)) psel.value = st.pos;
-  const fmOn = fmState() === "on", gl = Number(v.grip_len ?? 0);
-  $("s-grip").innerHTML = !ready || v.grip_len === undefined ? (ready ? chip(t("neu – unter Einstellungen einmal speichern"), "muted") : "–")
-    : gl <= 0 ? chip(t("aus"), "muted") : fmOn ? chip(t("{n} mm mit FORCE_MOVE", { n: dec(String(gl)) }), "success--text")
-    : chip(fmState() === "off" ? t("[force_move] enable_force_move: False – auf True setzen") : t("[force_move] fehlt – Hinweis oben"), "warning--text");
+  const gl = Number(v.grip_len ?? 0);
+  $("s-grip").innerHTML = !ready ? "–" : !hasSync ? chip(t("Modul autoloader_sync fehlt – ./install.sh"), "warning--text")
+    : chip(gl > 0 ? t("aktiv – greift kalt {n} mm", { n: dec(String(gl)) }) : t("aktiv"), "success--text");
   $("s-wrap").innerHTML = wrapState().html;
   $("s-persist").innerHTML = hasSV ? chip(t("aktiv – überlebt Neustart und Ausschalten"), "success--text") : chip(t("fehlt – ./install.sh ergänzt [save_variables]"), "warning--text");
   autoSync(ready);
@@ -1647,7 +1640,6 @@ function bindAlerts() {
   const u = $("upd-run"); if (u) u.onclick = () => !u.disabled && runUpdate();
   const o = $("upd-open"); if (o) o.onclick = () => showMainsail("/config");
   const r = $("err-reset"); if (r) r.onclick = () => askReset();
-  ["fm-on", "fm-on2"].forEach((id) => { const f = $(id); if (f) f.onclick = () => !f.classList.contains("v-btn--disabled") && enableForceMove(); });
   const g = $("go-settings");
   if (g) g.onclick = () => { if (MODE !== "setup") setMode("setup"); setTimeout(() => { const el = document.querySelector('.panel[data-p="settings"]'); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80); };
 }
@@ -2112,7 +2104,7 @@ const GROUPS = [
     F("tube_len", ["Loader → Sensor 2", "Loader → sensor 2"], "mm", ["Loader-Zahnräder bis Sensor 2 – unter „Längen messen“ ermitteln", "Loader gears to sensor 2 – measure it under “Measure lengths”"], { min: 20, max: 3000, st: 1 }),
     F("gear_offset", ["Sensor 2 → Zahnräder", "Sensor 2 → gears"], "mm", ["Bis die Spitze an den Extruder-Zahnrädern ansteht", "Until the tip touches the extruder gears"], { min: 0, max: 100, st: 0.5 }),
     F("gear_push", ["In die Zahnräder schieben", "Push into the gears"], "mm", ["Zusätzlich, damit der Extruder sicher greift", "Extra, so the extruder grips reliably"], { min: 0, max: 20, st: 0.5 }),
-    F("grip_len", ["Kalt greifen", "Cold grip"], "mm", ["So weit zieht der Extruder das Filament nach der Übergabe kalt ein. Die Übergabe selbst läuft immer mit drehendem Extruder: ab Sensor 2 schieben Loader und Extruder gemeinsam. 0 = nur übergeben. Braucht [force_move]", "How far the extruder pulls the filament in cold after the hand-over. The hand-over itself always runs with the extruder turning: from sensor 2 on, loader and extruder push together. 0 = hand-over only. Needs [force_move]"], { min: 0, max: 20, st: 1 }),
+    F("grip_len", ["Kalt greifen", "Cold grip"], "mm", ["So weit zieht der Extruder das Filament nach der Übergabe kalt ein. Die Übergabe selbst läuft immer mit drehendem Extruder: ab Sensor 2 fahren Loader und Extruder gleichzeitig. 0 = nur übergeben", "How far the extruder pulls the filament in cold after the hand-over. The hand-over itself always runs with the extruder turning: from sensor 2 on, loader and extruder move at the same time. 0 = hand-over only"], { min: 0, max: 20, st: 1 }),
     F("ext_to_nozzle", ["Zahnräder → Düse", "Gears → nozzle"], "mm", ["So weit fördert der Extruder beim Laden heiß", "The extruder feeds this far when loading hot"], { min: 5, max: 300, st: 1 }),
     F("purge_len", ["Ausspülen", "Purge"], "mm", ["Nach dem Laden heiß, 0 = aus", "After loading hot, 0 = off"], { min: 0, max: 300, st: 1 }),
     F("unload_ext_len", ["Extruder zieht zurück", "Extruder retracts"], "mm", ["Beim Entladen insgesamt ab Düse, inklusive Spitze formen", "When unloading, in total from the nozzle, incl. tip forming"], { min: 5, max: 300, st: 1 }),
@@ -2480,34 +2472,6 @@ async function saveSettings() {
   try {
     await uploadCfg(SETTINGS + ".bak", ED.text);
     await uploadCfg(SETTINGS, text);
-    snack(t("Gespeichert – Klipper startet neu …"));
-    await rpc("printer.restart");
-  } catch (e) { dialog(t("Fehler beim Speichern"), esc(e.message), null); }
-}
-
-/* [force_move] like ./install.sh: into the settings file (or switch it on there), then restart */
-async function enableForceMove() {
-  if (printing()) return snack(t("Während eines Drucks gesperrt."));
-  if ((S.configfile || {}).save_config_pending) return dialog(t("Erst speichern"), esc(t("Es gibt ungespeicherte Kalibrierwerte (SAVE_CONFIG ausstehend). Bitte zuerst Save Config ausführen – ein Neustart würde sie verwerfen.")), null);
-  const body = `<p>${esc(t("Trägt [force_move] mit enable_force_move: True in {f} ein (vorherige Version als .bak) und startet Klipper neu.", { f: SETTINGS }))}</p>` +
-    `<p class="mb-0">${esc(t("Damit dreht der Extruder bei der Übergabe auch kalt mit (FORCE_MOVE, nur während des Ladens) – das Filament wird nicht in die stehenden Zahnräder gedrückt."))}</p>`;
-  if (!(await dialog(t("[force_move] aktivieren"), body, t("Eintragen & Neustart")))) return;
-  try {
-    const text = await fetchCfg(SETTINGS), L = text.split("\n");
-    const r = secRange(L, "force_move");
-    if (r) {
-      let done = false;
-      for (let i = r[0] + 1; i < r[1]; i++) if (/^enable_force_move\s*[:=]/i.test(L[i])) { L[i] = "enable_force_move: True"; done = true; }
-      for (let i = r[0]; i < r[1]; i++) if (L[i].startsWith(OFF)) L[i] = L[i].slice(OFF.length);
-      if (!done) L.splice(r[0] + 1, 0, "enable_force_move: True");
-    } else {
-      let at = L.findIndex((l) => l.startsWith("#*#"));
-      if (at < 0) at = L.length;
-      while (at > 0 && !L[at - 1].trim()) at--;
-      L.splice(at, 0, "", "# Kaltes Greifen: FORCE_MOVE bewegt den Extruder ohne Mindesttemperatur (nur beim Laden)", "[force_move]", "enable_force_move: True", "");
-    }
-    await uploadCfg(SETTINGS + ".bak", text);
-    await uploadCfg(SETTINGS, L.join("\n"));
     snack(t("Gespeichert – Klipper startet neu …"));
     await rpc("printer.restart");
   } catch (e) { dialog(t("Fehler beim Speichern"), esc(e.message), null); }
