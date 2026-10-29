@@ -14,6 +14,10 @@ shows where the filament is.
 ![Mainsail](https://img.shields.io/badge/UI-Mainsail-2196f3)
 ![Languages](https://img.shields.io/badge/languages-English%20%7C%20Deutsch-lightgrey)
 
+| Filament Feeder | Mounted to V0 |
+|---|---|
+![The CAD Assembly](docs/images/filamentfeeder_CAD.png) | ![The CAD Assembly V0](docs/images/filamentfeeder_V0_CAD.png)
+
 A NEMA17 with BMG gears pushes the filament through a PTFE tube into the toolhead. An MG90S servo clamps the idler
 gear only while the loader feeds, so it never fights the extruder. Two NC micro switches – at the loader entrance and
 right above the extruder gears – tell Klipper where the filament is.
