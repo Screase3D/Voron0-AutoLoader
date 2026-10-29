@@ -156,7 +156,8 @@ nozzle with purge. The buttons on the page that make sense in a pause stay usabl
 **Print hooks.** `LOADER_PRINT_START` (after `M109`) looks where the filament is: loaded → nothing; prepared or
 gripped → loads it on to the nozzle (no purge – your purge line follows); toolhead empty → loads from the loader or
 the tube (`print_start_mode` 2) or aborts the print (1). `LOADER_PRINT_END` (before `TURN_OFF_HEATERS`) does
-nothing, parks or unloads (`print_end_action` 0/1/2).
+nothing, parks or unloads (`print_end_action` 0/1/2) – only once PRINT_END has finished, so the toolhead is already
+parked and nothing drips onto the part.
 
 **Full spools.** The loader has to accelerate the spool, and the spool keeps turning when the loader stops. A gentle
 acceleration (`accel` 500 mm/s², default) avoids both and costs only a fraction of a second. Every load reports the
