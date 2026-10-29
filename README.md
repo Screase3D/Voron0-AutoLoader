@@ -53,8 +53,8 @@ right above the extruder gears – tell Klipper where the filament is.
 
 The loader is inspired by **[fila_feeder](https://github.com/DarkK9Design/fila_feeder)** by DarkK9Design.
 
-> [!NOTE]
-> STEP/STL files and a build guide for this loader will be added later.
+**[Assembly guide](docs/assembly.md)** – parts list and step-by-step pictures rendered from the CAD model.
+STEP/STL files will be added later.
 
 | Function | Part | Default pin |
 |---|---|---|
