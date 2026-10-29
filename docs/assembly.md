@@ -17,7 +17,9 @@ Bearing Horn Adapter
 | 4 | 693ZZ bearing | 2 | M3×10 SHCS |
 | 1 | Omron D2F-5 | 1 | M3×10 button head |
 | 2 | ECAS04 | 1 | M2×6 SHCS |
-| 1 | spring 0.4×5×15 | 2 | M2×10 |
+| 1 | spring 0.4×5×15 | 2 | M2×10 selfcutting |
+| 2 | Neodym magnet 6x3mm | 2 | / |
+
 
 ## Steps
 
