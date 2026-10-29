@@ -18,6 +18,10 @@ shows where the filament is.
 |---|---|
 ![The CAD Assembly](docs/images/filamentfeeder_CAD.png) | ![The CAD Assembly V0](docs/images/filamentfeeder_V0_CAD.png)
 
+
+**[Assembly guide](docs/assembly.md)** · Mostly complete
+
+
 A NEMA17 with BMG gears pushes the filament through a PTFE tube into the toolhead. An MG90S servo clamps the idler
 gear only while the loader feeds, so it never fights the extruder. Two NC micro switches – at the loader entrance and
 right above the extruder gears – tell Klipper where the filament is.
@@ -57,7 +61,6 @@ right above the extruder gears – tell Klipper where the filament is.
 
 The loader is inspired by **[fila_feeder](https://github.com/DarkK9Design/fila_feeder)** by DarkK9Design.
 
-**[Assembly guide](docs/assembly.md)** · STEP/STL files follow later.
 
 | Function | Part | Default pin |
 |---|---|---|
