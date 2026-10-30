@@ -77,8 +77,16 @@ If it grows with the speed, lower `accel` or `speed`, or check the clamp angle; 
 measure `tube_len` again. A spool holder with bearings and a light brake helps, and a straight path from the spool
 into the loader. A full unload pushes about `tube_len` of filament back towards the spool – parking avoids that.
 
-**Tip tuning.** Thin string → more cooling moves or higher `tip_cool_pos`. Blob or fat tip → lower `tip_cool_pos`
-or a lower `tip_temp`. The defaults are Happy Hare's starting values.
+**Tip forming.** Like Happy Hare / PrusaSlicer: break-off out of the melt zone, cooling moves in the cooling zone
+(`tip_cool_pos` ± `tip_cool_len`/2 above the nozzle – the tip never goes lower than that, otherwise it gets soft and
+fat again), then optionally a skinnydip (`tip_dip_pos`) against fine hairs and a pause (`tip_cool_pause`) until the
+tip is firm. `tip_temp` lowers the temperature before the cooling moves and waits for it.
+
+**Tip tuning** (*Manual & test → Form tip*, pull the filament, change one thing at a time):
+- fat tip / blob → `tip_cool_pos` 2–3 mm higher, shorter `tip_cool_len` or `tip_temp` 10–20 °C below the print temperature
+- long string → lower `tip_speed`, more `tip_cool_moves`
+- fine hairs → `tip_dip_pos` just below the cooling zone, then lower in 2 mm steps
+- tip squashed by the extruder gears → `tip_cool_pause` 2–3 s
 
 ## All macros
 

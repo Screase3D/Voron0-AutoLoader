@@ -1,4 +1,4 @@
-#@schema 7
+#@schema 8
 # =====================================================================
 # voron0-autoloader - Einstellungen (vom Installer erzeugt)
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -102,14 +102,18 @@ variable_bench_dist: ${bench_dist}          # mm im Bench-Test
 # --- Tip-Forming beim Entladen (Startwerte fuer Sherpa Mini + Dragon, nach Happy Hare) ---
 variable_tip_enable: ${tip_enable}          # 1 = Spitze formen vor dem Entladen
 variable_tip_ram_len: ${tip_ram_len}         # mm rammen (extrudieren) vor dem Abreissen, 0 = aus
-variable_tip_temp: ${tip_temp}            # Temperatur fuer die Kuehlbewegungen, 0 = nicht aendern
+variable_tip_temp: ${tip_temp}            # Temperatur fuer die Kuehlbewegungen (wird abgewartet), 0 = nicht aendern
 variable_tip_speed_start: ${tip_speed_start}     # mm/s erstes schnelles Zurueckziehen (15 mm)
 variable_tip_speed: ${tip_speed}          # mm/s weiter bis in die Kuehlzone
-variable_tip_cool_pos: ${tip_cool_pos}        # mm Duese -> Mitte der Kuehlzone (Heatbreak)
-variable_tip_cool_len: ${tip_cool_len}        # mm Weg einer Kuehlbewegung
+variable_tip_cool_pos: ${tip_cool_pos}        # mm Duese -> Mitte der Kuehlzone (Heatbreak), Dragon HF: 35
+variable_tip_cool_len: ${tip_cool_len}        # mm Hoehe der Kuehlzone = Weg einer Kuehlbewegung
 variable_tip_cool_moves: ${tip_cool_moves}       # Anzahl Kuehlbewegungen
 variable_tip_cool_start: ${tip_cool_start}      # mm/s erste Kuehlbewegung
 variable_tip_cool_end: ${tip_cool_end}        # mm/s letzte Kuehlbewegung
+variable_tip_cool_pause: ${tip_cool_pause}      # s warten, bis die Spitze fest ist, 0 = aus
+variable_tip_dip_pos: ${tip_dip_pos}         # Skinnydip: mm ueber der Duese kurz eintauchen (feine Haerchen), 0 = aus
+variable_tip_dip_in: ${tip_dip_in}          # mm/s Skinnydip rein
+variable_tip_dip_out: ${tip_dip_out}         # mm/s Skinnydip raus
 variable_tip_eject_speed: ${tip_eject_speed}     # mm/s restliches Zurueckziehen bis unload_ext_len
 # --- Druck-Hooks ---
 variable_print_start_mode: ${print_start_mode}    # 0 = aus, 1 = nur fertig laden, was an Sensor 2 / im Extruder steht (sonst Abbruch), 2 = immer automatisch laden

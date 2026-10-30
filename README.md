@@ -101,7 +101,7 @@ All macros and settings: [How it works](docs/how-it-works.md).
 - **Loader runs backwards** – invert `dir_pin`
 - **Timeout before sensor 2** – measure `tube_len`, check friction in the tube
 - **Deviation warning** – lower `accel` / `speed`, check the clamp angle ([details](docs/how-it-works.md))
-- **Filament stuck after unloading** – tune the tip forming
+- **Filament stuck after unloading** – tune the tip forming ([tip tuning](docs/how-it-works.md))
 - **"autoloader_sync is missing"** – run `./install.sh` once via SSH (updates don't run the installer)
 - **Page not reachable** – `sudo nginx -t`, and `chmod o+x ~`
 
