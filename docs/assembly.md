@@ -17,9 +17,8 @@ Bearing Horn Adapter
 | 4 | 693ZZ bearing | 2 | M3×10 SHCS |
 | 1 | Omron D2F-5 | 1 | M3×10 button head |
 | 2 | ECAS04 | 1 | M2×6 SHCS |
-| 1 | spring 0.4×5×15 | 2 | M2×10 selfcutting |
-| 2 | Neodym magnet 6x3mm | 2 | / |
-
+| 1 | spring 0.4×5×15 | 2 | M2×10 self-tapping |
+| 2 | neodymium magnet 6×3 | | |
 
 ## Steps
 
@@ -39,19 +38,20 @@ Bearing Horn Adapter
 
 <img src="images/assembly/04-servo.png" width="420" alt="Step 4">
 
-**5.** Lever: 2× 693ZZ, idler gear + shaft, spring, spring lever with M2×6 (must swing freely).
+**5.** Lever: 2× 693ZZ, idler gear + shaft, spring, spring lever with M2×6 (must swing freely), magnet into the back.
 
 <img src="images/assembly/05-lever.png" width="620" alt="Step 5">
 
-**6.** Lever onto the plate.
+**6.** Lever onto the plate. The D-shaped hole is for the switch wires (step 8).
 
 <img src="images/assembly/06-lever-on-plate.png" width="400" alt="Step 6">
 
-**7.** Housing: 693ZZ into the slot, D2F-5 (wired COM + NC) with 2× M2×10, ECAS04.
+**7.** Housing: 693ZZ into the slot, D2F-5 (wired COM + NC) with 2× M2×10, ECAS04, magnet.
+The two magnets must **repel** each other (same pole facing): they push the lever open when the servo releases.
 
 <img src="images/assembly/07-sensor.png" width="560" alt="Step 7">
 
-**8.** Housing on top: M3×35 through everything into the motor, 2× M3×10 from below.
+**8.** Switch wires down through the D-shaped hole, housing on top: M3×35 through everything into the motor, 2× M3×10 from below.
 
 <img src="images/assembly/08-housing.png" width="360" alt="Step 8">
 
