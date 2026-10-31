@@ -17,8 +17,19 @@ Bearing Horn Adapter
 | 4 | 693ZZ bearing | 2 | M3×10 SHCS |
 | 1 | Omron D2F-5 | 1 | M3×10 button head |
 | 2 | ECAS04 | 1 | M2×6 SHCS |
-| 1 | spring 0.4×5×15 | 2 | M2×10 self-tapping |
+| 1 | spring 0.4×5.5×17 | 2 | M2×10 self-tapping |
 | 2 | neodymium magnet 6×3 | | |
+| 1 | PTFE tube 4mm OD 3mm ID | | |
+| 1 | M3 Washer (for servo bearing) | | |
+
+**Optional:** Hardware for V0.2 Backplate (see files)
+
+| Qty | Hardware |
+|---|---|
+| 8 | M3x4x5mm heatset insert |
+| 4 | M3x10mm SHCS |
+| 4 | M3x18mm SHCS |
+| 1 | Fan 80x80x10mm |
 
 ## Steps
 
@@ -46,7 +57,7 @@ Bearing Horn Adapter
 
 <img src="images/assembly/06-lever-on-plate.png" width="400" alt="Step 6">
 
-**7.** Housing: 693ZZ into the slot, D2F-5 (wired COM + NC) with 2× M2×10, ECAS04, magnet.
+**7.** Housing: 693ZZ into the slot, D2F-5 (wired COM + NC) with 2× M2×10 self-tapping, ECAS04, magnet.
 The two magnets must **repel** each other (same pole facing): they push the lever open when the servo releases.
 
 <img src="images/assembly/07-sensor.png" width="560" alt="Step 7">
