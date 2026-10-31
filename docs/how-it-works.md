@@ -68,7 +68,9 @@ nozzle with purge. The buttons on the page that make sense in a pause stay usabl
 gripped → loads it on to the nozzle (no purge – your purge line follows); toolhead empty → loads from the loader or
 the tube (`print_start_mode` 2) or aborts the print (1). `LOADER_PRINT_END` (before `TURN_OFF_HEATERS`) does
 nothing, parks or unloads (`print_end_action` 0/1/2) – only once PRINT_END has finished, so the toolhead is already
-parked and nothing drips onto the part.
+parked and nothing drips onto the part. The print start stops `print_start_short` mm (default 5) before the nozzle,
+so nothing oozes onto the bed before the purge line; the purge line feeds the rest (with KAMP set `tip_distance` to the
+same value).
 
 **Full spools.** The loader has to accelerate the spool, and the spool keeps turning when the loader stops. A gentle
 acceleration (`accel` 500 mm/s², default) avoids both and costs only a fraction of a second. Every load reports the
@@ -132,6 +134,7 @@ directly in `filament_loader_settings.cfg`, where every value is commented. The 
 | `park_dist` / `unload_hold` | 20 / 15 | mm behind sensor 2 when parking / left in the loader |
 | `auto_enable` / `auto_target` | 1 / "cold" | auto load and its target (`prepare` / `cold` / `hot`) |
 | `print_start_mode` / `print_end_action` | 2 / 0 | print hooks (see above) |
+| `print_start_short` | 5 | mm the print start stops before the nozzle |
 | `slip_warn` | 10 | mm deviation at sensor 2 before a warning |
 
 For high speeds the stepper needs SpreadCycle (`stealthchop_threshold` below the feed speed) and 0.6–0.8 A. If it

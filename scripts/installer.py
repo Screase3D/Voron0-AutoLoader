@@ -52,7 +52,7 @@ KS_NAME = "autoloader_klipperscreen.conf"
 KS_INCLUDE = f"[include {KS_NAME}]"
 KS_CREATED = "# created by voron0-autoloader"
 
-SETTINGS_SCHEMA = 8  # matches "#@schema" in filament_loader_settings.cfg.tpl
+SETTINGS_SCHEMA = 9  # matches "#@schema" in filament_loader_settings.cfg.tpl
 TOOL_SECTION = "filament_switch_sensor toolhead_in"
 
 # icon: Material Design Icons "printer-3d-nozzle" (Pictogrammers, Apache-2.0)
@@ -89,10 +89,10 @@ FIELDS = [
     "bench_dist", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
     "print_end_action", "park_dist", "auto_enable", "auto_target", "heater_off", "slip_warn", "grip_len", "grip_speed",
-    "tip_cool_pause", "tip_dip_pos", "tip_dip_in", "tip_dip_out")]
+    "tip_cool_pause", "tip_dip_pos", "tip_dip_in", "tip_dip_out", "print_start_short")]
 NEW_VARS_V2 = ["grip_len", "grip_speed", "slip_warn", "park_dist", "print_end_action", "auto_enable", "auto_target", "heater_off", "approach", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos", "tip_cool_len",
                "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
-               "tip_cool_pause", "tip_dip_pos", "tip_dip_in", "tip_dip_out"]
+               "tip_cool_pause", "tip_dip_pos", "tip_dip_in", "tip_dip_out", "print_start_short"]
 
 HOOK_TAG = "# autoloader"
 HOOK_START = "LOADER_PRINT_START  # autoloader: load filament if the toolhead is empty"
@@ -116,7 +116,7 @@ DEFAULTS = {
     "tip_eject_speed": "25", "print_start_mode": "2", "print_end_action": "0", "park_dist": "20",
     "auto_enable": "1", "auto_target": "cold", "heater_off": "1", "slip_warn": "10",
     "grip_len": "5", "grip_speed": "5",
-    "tip_cool_pause": "0", "tip_dip_pos": "0", "tip_dip_in": "30", "tip_dip_out": "70",
+    "tip_cool_pause": "0", "tip_dip_pos": "0", "tip_dip_in": "30", "tip_dip_out": "70", "print_start_short": "5",
 }
 
 QUOTED = {"lang", "auto_target"}   # string variables, written with quotes

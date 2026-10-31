@@ -1,4 +1,4 @@
-#@schema 8
+#@schema 9
 # =====================================================================
 # voron0-autoloader - Einstellungen (vom Installer erzeugt)
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -117,6 +117,7 @@ variable_tip_dip_out: ${tip_dip_out}         # mm/s Skinnydip raus
 variable_tip_eject_speed: ${tip_eject_speed}     # mm/s restliches Zurueckziehen bis unload_ext_len
 # --- Druck-Hooks ---
 variable_print_start_mode: ${print_start_mode}    # 0 = aus, 1 = nur fertig laden, was an Sensor 2 / im Extruder steht (sonst Abbruch), 2 = immer automatisch laden
+variable_print_start_short: ${print_start_short}   # mm, so weit vor der Duese stoppt der Druckstart (den Rest foerdert die Purge-Linie, nichts tropft vorher), 0 = bis zur Duese
 variable_print_end_action: ${print_end_action}    # nach dem Druck (PRINT_END): 0 = nichts, 1 = parken, 2 = ganz entladen
 gcode:
 

@@ -579,7 +579,7 @@ const OFF = "#off# ";                            // prefix of deactivated config
 const TOOL = "filament_switch_sensor toolhead_in";
 const BASE = location.pathname.replace(/[^/]*$/, "") || "/autoloader/";   // /autoloader/ or /server/autoloader/
 const SELF_RE = /^\/(autoloader|server\/autoloader)\/?$/;
-const SCHEMA = 8;                                // version of the settings file format
+const SCHEMA = 9;                                // version of the settings file format
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const store = {
@@ -2161,7 +2161,7 @@ const FIELDS = [
     "unload_hold", "auto_delay", "bench_dist", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
     "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode",
     "print_end_action", "park_dist", "slip_warn", "grip_len", "grip_speed", "tip_cool_pause", "tip_dip_pos", "tip_dip_in",
-    "tip_dip_out"].map((k) => [k, VARS, "variable_" + k, "n"]),
+    "tip_dip_out", "print_start_short"].map((k) => [k, VARS, "variable_" + k, "n"]),
   ["servo_off_released", VARS, "variable_servo_off_released", "b"], ["bench_mode", VARS, "variable_bench_mode", "b"],
   ["tip_enable", VARS, "variable_tip_enable", "b"],
   ["auto_enable", VARS, "variable_auto_enable", "b"], ["heater_off", VARS, "variable_heater_off", "b"],
@@ -2179,12 +2179,12 @@ const DEF = {
   tip_enable: 1, tip_ram_len: 0, tip_temp: 0, tip_speed_start: 80, tip_speed: 18, tip_cool_pos: 35, tip_cool_len: 10,
   tip_cool_moves: 4, tip_cool_start: 10, tip_cool_end: 50, tip_eject_speed: 25, print_start_mode: 2, print_end_action: 0, park_dist: 20,
   auto_enable: 1, auto_target: "cold", heater_off: 1, slip_warn: 10, grip_len: 5, grip_speed: 5,
-  tip_cool_pause: 0, tip_dip_pos: 0, tip_dip_in: 30, tip_dip_out: 70,
+  tip_cool_pause: 0, tip_dip_pos: 0, tip_dip_in: 30, tip_dip_out: 70, print_start_short: 5,
 };
 /* variables of newer versions – defaults when the settings file does not have them yet */
 const NEW_KEYS = ["auto_enable", "auto_target", "heater_off", "approach", "stealth_speed", "tip_enable", "tip_ram_len", "tip_temp", "tip_speed_start", "tip_speed", "tip_cool_pos",
   "tip_cool_len", "tip_cool_moves", "tip_cool_start", "tip_cool_end", "tip_eject_speed", "print_start_mode", "print_end_action", "park_dist", "slip_warn", "grip_len", "grip_speed",
-  "tip_cool_pause", "tip_dip_pos", "tip_dip_in", "tip_dip_out"];
+  "tip_cool_pause", "tip_dip_pos", "tip_dip_in", "tip_dip_out", "print_start_short"];
 const NEW_DEFAULTS = Object.fromEntries(NEW_KEYS.map((k) => [k, DEF[k]]));
 
 const L2 = (x) => Array.isArray(x) ? x[LANG === "en" ? 1 : 0] : x;
@@ -2196,6 +2196,7 @@ const GROUPS = [
     F("default_temp", ["Standard-Düsentemperatur", "Default nozzle temperature"], "°C", ["Wenn weder TEMP= noch eine Zieltemperatur gesetzt ist", "When neither TEMP= nor a target temperature is set"], { min: 150, max: 320, st: 5 }),
     F("print_start_mode", ["Druckstart", "Print start"], "", ["LOADER_PRINT_START in PRINT_START schaut, wo das Filament ist: steht es an Sensor 2 oder im Extruder, wird es bis zur Düse geladen. Ist der Toolhead leer, entscheidet diese Einstellung", "LOADER_PRINT_START in PRINT_START checks where the filament is: waiting at sensor 2 or in the extruder, it is loaded to the nozzle. If the toolhead is empty, this setting decides"],
       { ty: "select", o: [["2", ["leerer Toolhead: automatisch laden", "empty toolhead: load automatically"]], ["1", ["leerer Toolhead: Druck abbrechen", "empty toolhead: abort the print"]], ["0", ["nichts tun", "do nothing"]]], wide: true }),
+    F("print_start_short", ["Stopp vor der Düse", "Stop before nozzle"], "mm", ["Der Druckstart lädt nur bis so weit vor die Düse, den Rest fördert die Purge-Linie – vorher tropft nichts. KAMP: tip_distance gleich groß. 0 = bis zur Düse", "The print start loads only this far before the nozzle, the purge line feeds the rest – nothing drips before it. KAMP: same tip_distance. 0 = up to the nozzle"], { min: 0, max: 30, st: 0.5 }),
     F("print_end_action", ["Nach dem Druck", "After the print"], "", ["LOADER_PRINT_END in PRINT_END: Parken = Spitze formen und knapp hinter Sensor 2 abstellen, Entladen = ganz zurück in den Loader", "LOADER_PRINT_END in PRINT_END: park = form the tip and stop just behind sensor 2, unload = all the way back into the loader"],
       { ty: "select", o: [["0", ["nichts tun", "do nothing"]], ["1", ["parken (im Schlauch)", "park (in the tube)"]], ["2", ["ganz entladen", "unload completely"]]], wide: true }),
     F("auto_enable", ["Auto-Laden", "Auto load"], "", ["Filament am Loader-Eingang wird automatisch geladen", "Filament inserted at the loader entrance is loaded automatically"], { ty: "check" }),
