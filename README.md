@@ -40,7 +40,7 @@ filament is.
 | **Manual & test** | **Measuring** | **Lengths** |
 | ![Manual](docs/images/manual.png) | ![Measure](docs/images/measure.png) | ![Lengths](docs/images/settings-lengths.png) |
 
-## Hardware
+## Hardware Pins
 
 Inspired by **[fila_feeder](https://github.com/DarkK9Design/fila_feeder)** by DarkK9Design.
 
@@ -50,6 +50,8 @@ Inspired by **[fila_feeder](https://github.com/DarkK9Design/fila_feeder)** by Da
 | Servo | MG90S | `gpio29` (SERVOS header) |
 | Sensor 1 | micro switch at the loader entrance, NC | `^gpio16` (E0-STOP) |
 | Sensor 2 | micro switch at the toolhead entrance, NC | `^nhk:gpio12` (Nitehawk-SB) |
+
+**See [Assembly guide](docs/assembly.md) for full hardware list**
 
 Tested: Voron V0.2, SKR Pico, Nitehawk-SB, BTT Pi, Dragon Burner with Sherpa Mini and Dragon HF.
 All pins can be changed in the installer or on the page.
