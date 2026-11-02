@@ -516,9 +516,18 @@ def module_install(env, ops):
 
 def module_remove(env, ops):
     link = module_link(env)
-    if link and link.is_symlink() and os.path.realpath(link) == str(MODULE_SRC):
+    if link and link.is_symlink():          # ours, even if the repo was moved or deleted meanwhile
         ops.remove(link)
         ok("Klipper-Modul autoloader_sync entfernt")
+    elif link and link.exists():
+        warn(f"{link} ist keine vom Installer angelegte Verknüpfung – nicht gelöscht")
+    if link and not ops.dry:                # compiled leftovers (Python 3: __pycache__, Python 2: next to the module)
+        for pyc in list(link.parent.glob("__pycache__/autoloader_sync.*.pyc")) + [link.parent / "autoloader_sync.pyc"]:
+            try:
+                if pyc.is_file():
+                    pyc.unlink()
+            except OSError:
+                pass
     excl = env["klipper_dir"] / ".git" / "info" / "exclude" if env.get("klipper_dir") else None
     if excl and excl.exists() and not ops.dry:
         lines = excl.read_text(errors="replace").split("\n")

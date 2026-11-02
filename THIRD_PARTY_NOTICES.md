@@ -24,7 +24,7 @@ voron0-autoloader is licensed under the GNU General Public License v3.0 or later
 
 | Project | What was taken | License |
 |---|---|---|
-| [fila_feeder](https://github.com/DarkK9Design/fila_feeder) by DarkK9Design | the idea for the loader hardware: NEMA17 with BMG gears, an MG90S servo pressing the idler arm, a micro switch at the entrance. The STEP/STL files of this project's own loader design will be added separately. | GPL-3.0 |
+| [fila_feeder](https://github.com/DarkK9Design/fila_feeder) by DarkK9Design | the idea for the loader hardware: NEMA17 with BMG gears, an MG90S servo pressing the idler arm, a micro switch at the entrance. The loader design in `CAD/` and `STL/` is this project's own. | GPL-3.0 |
 | [Happy Hare](https://github.com/moggieuk/Happy-Hare) by moggieuk | the tip-forming sequence (break-off, cooling moves with rising speed) and its default values; the macros here are written from scratch | GPL-3.0 |
 
 ## Used at runtime, not included

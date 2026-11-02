@@ -72,7 +72,8 @@ The installer backs up your config, installs the macros and the small Klipper mo
 update manager entry and the KlipperScreen menu. All options: `./install.sh --help`.
 
 **Update:** Mainsail → *Update Manager* → `voron0-autoloader` (run `./install.sh` again if the page asks for it).
-**Uninstall:** `./uninstall.sh` – the settings file is kept.
+**Uninstall:** `./uninstall.sh` – removes macros, Klipper module, hooks, page and update manager entry and restores
+what the installer changed (the settings file is kept). Then `rm -rf ~/Voron0-AutoLoader`.
 
 ## First setup
 

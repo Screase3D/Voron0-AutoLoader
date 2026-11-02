@@ -6,8 +6,8 @@ Orange = printed, blue = hardware, dark = screw, teal = bearing, grey = already 
 
 ## Parts
 
-**Printed:** Main Plate, Bowden In Bearing (housing), Lever Spring V3 (lever), Lever Spring Lever V3 (spring lever),
-Bearing Horn Adapter
+**Printed** ([STL](../STL)): Main Plate, Bowden In Bearing (housing), Lever Spring (lever), Lever Spring Flap
+(spring lever), Bearing Horn Adapter
 
 | Qty | Hardware | Qty | Screws |
 |---|---|---|---|
@@ -74,4 +74,4 @@ The two magnets must **repel** each other (same pole facing): they push the leve
 
 <img src="images/assembly/10-horn-on-servo.png" width="440" alt="Step 10">
 
-**11.** Mount (4× M3), PTFE in, wiring: [pins](../README.md#hardware), then [first setup](../README.md#first-setup).
+**11.** Mount (4× M3), PTFE in, wiring: [pins](../README.md#hardware-pins), then [first setup](../README.md#first-setup).
